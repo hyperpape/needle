@@ -14,7 +14,7 @@ public class CharRangeTest {
         List<CharRange> ranges = new ArrayList<>();
         ranges.add(new CharRange('a', 'e'));
 
-        List<CharRange> minimized = CharRange.minimize(ranges);
+        List<CharRange> minimized = CharRange.minimalCovering(ranges);
         assertEquals(minimized.get(0), new CharRange('a', 'e'));
     }
 
@@ -24,7 +24,7 @@ public class CharRangeTest {
         ranges.add(new CharRange('a', 'e'));
         ranges.add(new CharRange('b', 'd'));
 
-        List<CharRange> minimized = CharRange.minimize(ranges);
+        List<CharRange> minimized = CharRange.minimalCovering(ranges);
         assertEquals(minimized.get(0), new CharRange('a', 'a'));
         assertEquals(minimized.get(1), new CharRange('b', 'd'));
         assertEquals(minimized.get(2), new CharRange('e', 'e'));
@@ -37,7 +37,7 @@ public class CharRangeTest {
         ranges.add(new CharRange('b', 'd'));
         ranges.add(new CharRange('f', 'h'));
 
-        List<CharRange> minimized = CharRange.minimize(ranges);
+        List<CharRange> minimized = CharRange.minimalCovering(ranges);
         assertEquals(minimized.get(0), new CharRange('a', 'a'));
         assertEquals(minimized.get(1), new CharRange('b', 'd'));
         assertEquals(minimized.get(2), new CharRange('e', 'e'));

@@ -1,9 +1,9 @@
 Compiling string matching algorithms directly to Java bytecodes.
 
-Includes an NFA/DFA interpreter, an NFA -> DFA compiler, and a DFA ->
-bytecode compiler.
+Includes an NFA/DFA interpreter, a regex -> NFA parser, an NFA -> DFA
+compiler, and a DFA -> bytecode compiler.
 
-Very very early experiment. 
+Very very early experiment.
 
 ### Performance
 

@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 public class TestNFA {
 
-
     @Test
     public void testEpsilonClosureShallow() {
         NFA nfa = new NFA(false);
@@ -28,7 +27,7 @@ public class TestNFA {
         NFA second = new NFA(false);
         NFA third = new NFA(false);
         nfa.addEpsilonTransition(second);
-        second.addEpsilonTransition(second);
+        second.addEpsilonTransition(third);
         assertTrue(nfa.epsilonClosure().contains(nfa));
         assertTrue(nfa.epsilonClosure().contains(second));
         assertTrue(nfa.epsilonClosure().contains(third));
@@ -81,4 +80,19 @@ public class TestNFA {
         assertTrue(nfa.matches("aab"));
         assertFalse(nfa.matches("aba"));
     }
+
+    @Test
+    public void testTerminalStates() {
+        NFA nfa = NFATestUtil.aSTAR_aORb_();
+        Set<NFA> terminals = nfa.terminalStates();
+        assertNotEquals(terminals.size(), 0);
+    }
+
+    @Test
+    public void testCircularTerminalStates() {
+        NFA nfa = NFATestUtil._0to9AtoZatoz_STAR();
+        Set<NFA> terminals = nfa.terminalStates();
+        assertNotEquals(terminals.size(), 0);
+    }
+
 }

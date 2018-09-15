@@ -63,7 +63,7 @@ public class CharRange {
      * @param ranges a list of character ranges
      * @return a minimized list of character ranges
      */
-    public static List<CharRange> minimize(List<CharRange> ranges) {
+    public static List<CharRange> minimalCovering(List<CharRange> ranges) {
         List<CharRange> minimized = new ArrayList<>();
         ranges = new ArrayList<>(ranges);
         ranges.sort(Comparator.comparingInt(CharRange::getStart));
@@ -103,6 +103,32 @@ public class CharRange {
 
         minimized.sort(Comparator.comparingInt(CharRange::getStart));
         return minimized;
+    }
+
+    // Note that this assumes non-overlapping ranges
+    public static List<CharRange> compact(List<CharRange> charRanges) {
+        charRanges.sort(Comparator.comparingInt(CharRange::getStart));
+        if (charRanges.size() < 2) {
+            return charRanges;
+        }
+        List<CharRange> ranges = new ArrayList<>();
+        CharRange current = charRanges.get(0);
+        for (int i = 1; i < charRanges.size(); i++) {
+            CharRange next = charRanges.get(i);
+            if (incr(current.getEnd()) == next.getStart()) {
+                current = new CharRange(current.getStart(), next.getEnd());
+            }
+            else {
+                ranges.add(current);
+                current = next;
+            }
+        }
+        ranges.add(current);
+        return ranges;
+    }
+
+    private static char incr(char c) {
+        return (char) (((int) c) + 1);
     }
 
     private static List<CharRange> withoutDominatedRanges(List<CharRange> ranges) {

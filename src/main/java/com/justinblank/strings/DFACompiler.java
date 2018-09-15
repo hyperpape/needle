@@ -46,15 +46,6 @@ public class DFACompiler {
         compiler.addWasAcceptedMethod();
 
         byte[] classBytes = cw.toByteArray();
-        // TODO: remove/refactor debugging code
-        try {
-            FileOutputStream fos = new FileOutputStream("/home/justin/code/BytecodeRegex/dfaoutput.class");
-            fos.write(classBytes);
-            fos.close();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
         MyClassLoader.getInstance().loadClass(name, classBytes);
     }
 

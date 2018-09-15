@@ -19,7 +19,7 @@ public class NFA {
         // we trust that our character ranges don't overlap
         transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
     }
-    
+
     public void addEpsilonTransition(NFA end) {
         addTransitions(CharRange.emptyRange(), Collections.singletonList(end));
     }
@@ -72,5 +72,34 @@ public class NFA {
         return nfaStates.stream().
                 flatMap(nfa -> nfa.epsilonClosure().stream()).
                 collect(Collectors.toSet());
+    }
+
+    public Set<NFA> terminalStates() {
+        Set<NFA> terminals = new HashSet<>();
+        Set<NFA> seen = new HashSet<>();
+        Queue<NFA> pending = new LinkedList<>();
+        pending.add(this);
+        while (!pending.isEmpty()) {
+            NFA nfa = pending.poll();
+            if (!seen.contains(nfa)) {
+                nfa.getTransitions().stream().
+                        flatMap(p -> p.getRight().stream()).
+                        filter(p -> !seen.contains(p)).
+                        forEach(transitionNFA -> {
+                            if (transitionNFA.isTerminal()) {
+                                terminals.add(transitionNFA);
+                            }
+                            pending.add(transitionNFA);
+                        });
+                seen.add(nfa);
+            }
+        }
+        return terminals;
+    }
+
+    public boolean isTerminal() {
+        return getTransitions().stream().
+                flatMap(pair -> pair.getRight().stream()).
+                allMatch(this::equals);
     }
 }

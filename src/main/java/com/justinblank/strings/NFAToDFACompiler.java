@@ -21,7 +21,7 @@ public class NFAToDFACompiler {
         DFA dfa = new DFA(nfa.isAccepting());
         Set<NFA> epsilonClosure = nfa.epsilonClosure();
         Stream<NFA> nfaStream = epsilonClosure.stream();
-        List<CharRange> ranges = CharRange.minimize(findCharRanges(nfaStream.collect(Collectors.toList())));
+        List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(nfaStream.collect(Collectors.toList())));
         for (CharRange range : ranges) {
             // choice of start/end is arbitrary
             Set<NFA> moves = NFA.epsilonClosure(transition(epsilonClosure, range.getStart()));
