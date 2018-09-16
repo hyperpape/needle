@@ -19,4 +19,12 @@ public class NFATestUtil {
 
         return nfa;
     }
+
+    public static NFA _0to9AtoZatoz_STAR() {
+        NFA nfa = new NFA(true);
+        nfa.addTransitions(new CharRange('0', '9'), Collections.singletonList(nfa));
+        nfa.addTransitions(new CharRange('A', 'Z'), Collections.singletonList(nfa));
+        nfa.addTransitions(new CharRange('a', 'z'), Collections.singletonList(nfa));
+        return nfa;
+    }
 }

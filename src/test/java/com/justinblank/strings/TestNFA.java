@@ -25,14 +25,12 @@ public class TestNFA {
 
     @Test
     public void testNFAMatchingInterpreted() {
-        NFA nfa = new NFA(true);
-        nfa.addTransitions(new CharRange('0', '9'), Collections.singletonList(nfa));
-        nfa.addTransitions(new CharRange('A', 'Z'), Collections.singletonList(nfa));
-        nfa.addTransitions(new CharRange('a', 'z'), Collections.singletonList(nfa));
+        NFA nfa = NFATestUtil._0to9AtoZatoz_STAR();
 
         assertTrue(nfa.matches("ABC09az"));
         assertFalse(nfa.matches("09{"));
     }
+
 
     @Test
     public void testNFAMatchingInterpreted2() {
