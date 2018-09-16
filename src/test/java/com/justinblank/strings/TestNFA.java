@@ -4,11 +4,35 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestNFA {
+
+
+    @Test
+    public void testEpsilonClosureShallow() {
+        NFA nfa = new NFA(false);
+        NFA second = new NFA(false);
+        nfa.addEpsilonTransition(second);
+        assertTrue(nfa.epsilonClosure().contains(nfa));
+        assertTrue(nfa.epsilonClosure().contains(second));
+    }
+
+    @Test
+    public void testEpsilonClosureDeep() {
+        NFA nfa = new NFA(false);
+        NFA second = new NFA(false);
+        NFA third = new NFA(false);
+        nfa.addEpsilonTransition(second);
+        second.addEpsilonTransition(second);
+        assertTrue(nfa.epsilonClosure().contains(nfa));
+        assertTrue(nfa.epsilonClosure().contains(second));
+        assertTrue(nfa.epsilonClosure().contains(third));
+    }
 
     @Test
     public void testEmptyNFAMatchingEmptyString() {

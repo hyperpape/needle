@@ -19,6 +19,10 @@ public class NFA {
         // we trust that our character ranges don't overlap
         transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
     }
+    
+    public void addEpsilonTransition(NFA end) {
+        addTransitions(CharRange.emptyRange(), Collections.singletonList(end));
+    }
 
     public List<Pair<CharRange, List<NFA>>> getTransitions() {
         return transitions;
@@ -48,12 +52,19 @@ public class NFA {
     }
 
     public Set<NFA> epsilonClosure() {
-        Set<NFA> closure = getTransitions().
-                stream().
-                filter(pair -> pair.getLeft().isEmpty()).
-                flatMap(pair -> pair.getRight().stream()).
-                collect(Collectors.toSet());
-        closure.add(this);
+        Set<NFA> closure = new HashSet<>();
+        Queue<NFA> pending = new LinkedList<>();
+        pending.add(this);
+        while (!pending.isEmpty()) {
+            NFA next = pending.poll();
+            closure.add(next);
+            next.getTransitions().
+                    stream().
+                    filter(pair -> pair.getLeft().isEmpty()).
+                    flatMap(pair -> pair.getRight().stream()).
+                    filter(nfa -> !closure.contains(nfa)).
+                    forEach(pending::add);
+        }
         return closure;
     }
 
