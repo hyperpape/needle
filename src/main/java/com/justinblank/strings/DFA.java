@@ -3,6 +3,8 @@ package com.justinblank.strings;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DFA {
 
@@ -50,20 +52,27 @@ public class DFA {
     }
 
     public int statesCount() {
-        Set<DFA> states = new HashSet<>();
-        Queue<DFA> queue = new LinkedList<>();
-        queue.add(this);
-        while (!queue.isEmpty()) {
-            DFA next = queue.poll();
-            states.add(next);
-            for (Pair<CharRange, DFA> pair : next.getTransitions()) {
-                DFA dfa = pair.getRight();
-                boolean added = states.add(dfa);
-                if (added) {
-                    queue.add(dfa);
+        return allStates().size();
+    }
+
+    public Set<DFA> allStates() {
+        Set<DFA> seen = new HashSet<>();
+        Queue<DFA> pending = new LinkedList<>();
+        pending.add(this);
+        while (!pending.isEmpty()) {
+            DFA current = pending.poll();
+            seen.add(current);
+            for (Pair<CharRange, DFA> transition : current.getTransitions()) {
+                DFA next = transition.getRight();
+                if (!seen.contains(next)) {
+                    pending.add(next);
                 }
             }
         }
-        return states.size();
+        return seen;
+    }
+
+    public Set<DFA> acceptingStates() {
+        return allStates().stream().filter(DFA::isAccepting).collect(Collectors.toSet());
     }
 }
