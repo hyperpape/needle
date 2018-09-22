@@ -29,6 +29,9 @@ class RegexParser {
                 case '(':
                     parenDepth++;
                     current = _parse();
+                    if (peekStar()) {
+                        current = new Repetition(current);
+                    }
                     if (last != null) {
                         last = new Concatenation(last, current);
                     } else {
@@ -37,6 +40,9 @@ class RegexParser {
                     break;
                 case '[':
                     current = buildCharSet();
+                    if (peekStar()) {
+                        current = new Repetition(current);
+                    }
                     if (last != null) {
                         last = new Concatenation(last, current);
                     } else {
@@ -141,6 +147,14 @@ class RegexParser {
         List<CharRange> charRanges = new ArrayList<>(ranges);
         characters.stream().map(c -> new CharRange(c, c)).forEach(charRanges::add);
         return CharRange.compact(charRanges);
+    }
+
+    private boolean peekStar() {
+        if (index < regex.length() && regex.charAt(index) == '*') {
+            index++;
+            return true;
+        }
+        return false;
     }
 
     private boolean peekParen() {

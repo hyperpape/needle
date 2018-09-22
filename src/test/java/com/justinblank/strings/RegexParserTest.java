@@ -84,4 +84,25 @@ public class RegexParserTest {
         assertNotNull(node);
         assertTrue(node instanceof Alternation);
     }
+
+    @Test
+    public void testConcatenatedParensWithRepetition() {
+        Node node = RegexParser.parse("(AB)(CD)*");
+        assertNotNull(node);
+        assertTrue(node instanceof Concatenation);
+    }
+
+    @Test
+    public void testConcatenatedParens() {
+        Node node = RegexParser.parse("(AB)(CD)");
+        assertNotNull(node);
+        assertTrue(node instanceof Concatenation);
+    }
+
+    @Test
+    public void testConcatenatedRegex() {
+        Node node = RegexParser.parse("[A-Za-z][A-Za-z0-9]*");
+        assertNotNull(node);
+        assertTrue(node instanceof Concatenation);
+    }
 }
