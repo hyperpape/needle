@@ -33,6 +33,11 @@ public class DFACompiler {
         this.dfa = dfa;
     }
 
+    public static void compileString(String regex, String className) {
+        NFA nfa = ASTToNFA.createNFA(RegexParser.parse(regex));
+        compile(NFAToDFACompiler.compile(nfa), className);
+    }
+
     public static void compile(DFA dfa, String name) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
