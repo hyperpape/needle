@@ -16,6 +16,7 @@ public class DFA {
     }
 
     protected void addTransition(CharRange charRange, DFA dfa) {
+        assert !charRange.isEmpty() : "cannot add an epsilon transition to a DFA";
         transitions.add(Pair.of(charRange, dfa));
         // we trust that our character ranges don't overlap
         transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));

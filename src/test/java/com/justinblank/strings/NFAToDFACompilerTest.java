@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -14,6 +15,7 @@ public class NFAToDFACompilerTest {
     public void testEmptyAcceptingNFACompile() {
         NFA nfa = new NFA(true);
         DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.statesCount() == 1);
         assertTrue(dfa.matches(""));
     }
 
@@ -21,6 +23,7 @@ public class NFAToDFACompilerTest {
     public void testEmptyRejectingNFACompile() {
         NFA nfa = new NFA(false);
         DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertEquals(1, dfa.statesCount());
         assertFalse(dfa.matches(""));
     }
 
@@ -30,6 +33,7 @@ public class NFAToDFACompilerTest {
         List<NFA> postTransition = Collections.singletonList(new NFA(true));
         nfa.addTransitions(new CharRange('a', 'a'), postTransition);
         DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertEquals(2, dfa.statesCount());
         assertTrue(dfa.matches("a"));
         assertFalse(dfa.matches("ab"));
     }
@@ -40,5 +44,7 @@ public class NFAToDFACompilerTest {
         NFA nfa = NFATestUtil.aSTAR_aORb_();
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("a"));
+        assertTrue(dfa.matches("ab"));
+        assertTrue(dfa.matches("aaaab"));
     }
 }

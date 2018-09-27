@@ -19,7 +19,12 @@ public class NFAToDFACompiler {
 
     private DFA _compile(NFA nfa) {
         DFA dfa = new DFA(nfa.isAccepting());
-        Set<NFA> epsilonClosure = nfa.epsilonClosure();
+        addNFAStatesToDFA(Collections.singleton(nfa), dfa);
+        return dfa;
+    }
+
+    private void addNFAStatesToDFA(Set<NFA> nfas, DFA dfa) {
+        Set<NFA> epsilonClosure = NFA.epsilonClosure(nfas);
         Stream<NFA> nfaStream = epsilonClosure.stream();
         List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(nfaStream.collect(Collectors.toList())));
         for (CharRange range : ranges) {
@@ -30,10 +35,10 @@ public class NFAToDFACompiler {
                 boolean accepting = moves.stream().anyMatch(NFA::isAccepting);
                 targetDfa = new DFA(accepting);
                 stateSets.put(moves, targetDfa);
+                addNFAStatesToDFA(moves, targetDfa);
             }
             dfa.addTransition(range, targetDfa);
         }
-        return dfa;
     }
 
     protected static List<CharRange> findCharRanges(List<NFA> nfas) {
@@ -41,7 +46,9 @@ public class NFAToDFACompiler {
         for (NFA nfa : nfas) {
             List<Pair<CharRange, List<NFA>>> transitionList = nfa.getTransitions();
             for (Pair<CharRange, List<NFA>> pair : transitionList) {
-                ranges.add(pair.getLeft());
+                if (!pair.getLeft().isEmpty()) {
+                    ranges.add(pair.getLeft());
+                }
             }
         }
         return ranges;

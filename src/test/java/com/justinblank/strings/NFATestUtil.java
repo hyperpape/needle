@@ -5,7 +5,11 @@ import java.util.Collections;
 import java.util.List;
 
 public class NFATestUtil {
-    
+
+    /**
+     * Create an NFA corresponding to (a*)(a|b)
+     * @return
+     */
     public static NFA aSTAR_aORb_() {
         NFA nfa = new NFA(false);
         List<NFA> postTransition = new ArrayList<>();
@@ -20,6 +24,10 @@ public class NFATestUtil {
         return nfa;
     }
 
+    /**
+     * Create an NFA corresponding to [A-Za-z0-9]*
+     * @return an NFA
+     */
     public static NFA _0to9AtoZatoz_STAR() {
         NFA nfa = new NFA(true);
         nfa.addTransitions(new CharRange('0', '9'), Collections.singletonList(nfa));
