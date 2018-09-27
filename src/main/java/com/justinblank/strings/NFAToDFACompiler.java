@@ -18,8 +18,9 @@ public class NFAToDFACompiler {
     }
 
     private DFA _compile(NFA nfa) {
-        DFA dfa = new DFA(nfa.isAccepting());
-        addNFAStatesToDFA(Collections.singleton(nfa), dfa);
+        Set<NFA> nfas = nfa.epsilonClosure();
+        DFA dfa = new DFA(nfas.stream().anyMatch(NFA::isAccepting));
+        addNFAStatesToDFA(nfas, dfa);
         return dfa;
     }
 
