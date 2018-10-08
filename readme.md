@@ -12,3 +12,9 @@ should be capable of outperforming Java regular expressions, which are
 not specialized.
 
 In practice, I have done no performance testing whatsoever. 
+
+### Building
+
+Requires Java 9.
+
+    mvn compile
