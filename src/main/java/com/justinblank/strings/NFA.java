@@ -43,12 +43,15 @@ public class NFA {
 
     public boolean matches(String s) {
         int length = s.length();
-        Stream<NFA> current = epsilonClosure().stream();
+        Set<NFA> current = epsilonClosure();
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            current = current.flatMap(node -> node.transition(c).stream()).filter(Objects::nonNull);
+            current = current.stream().
+                    flatMap(node -> node.transition(c).stream()).
+                    filter(Objects::nonNull).
+                    collect(Collectors.toSet());
         }
-        return current.anyMatch(NFA::isAccepting);
+        return current.stream().anyMatch(NFA::isAccepting);
     }
 
     public Set<NFA> epsilonClosure() {
