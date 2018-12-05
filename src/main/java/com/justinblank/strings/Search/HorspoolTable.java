@@ -47,10 +47,13 @@ class HorspoolTable implements SearchMethod {
     }
 
     private int getOffset(char next) {
-        for (int j = 0; j < patternChars.length && next >= patternChars[j]; j++) {
+        for (int j = 0; j < patternChars.length; j++) {
             char offsetChar = patternChars[j];
             if (next == offsetChar) {
                 return offsets[j];
+            }
+            if (next > offsetChar) {
+                return patternLength;
             }
         }
         return patternLength;
