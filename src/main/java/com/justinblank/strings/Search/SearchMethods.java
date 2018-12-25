@@ -20,8 +20,21 @@ public final class SearchMethods {
         if (patternChars.size() == pattern.length()) {
             return new UniqueCharPattern(pattern);
         }
+        if (patternChars.size() < BNDMSearch.MAX_PATTERN_SIZE && allAscii(pattern)) {
+            return BNDMSearch.prepare(pattern);
+        }
         else {
             return HorspoolTable.mkTable(pattern, patternChars);
         }
+    }
+
+    protected static boolean allAscii(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c > '\u007F') {
+                return false;
+            }
+        }
+        return true;
     }
 }
