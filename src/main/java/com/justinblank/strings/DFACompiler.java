@@ -2,13 +2,13 @@ package com.justinblank.strings;
 
 import com.justinblank.classloader.MyClassLoader;
 import org.apache.commons.lang3.tuple.Pair;
-import org.objectweb.asm.*;
-
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.io.FileOutputStream;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -26,6 +26,7 @@ public class DFACompiler {
     private String className;
     private ClassWriter classWriter;
     private DFA dfa;
+    private final Map<Character, String> rangeConstants = new HashMap<>();
 
     private DFACompiler(ClassWriter classWriter, String className, DFA dfa) {
         this.classWriter = classWriter;
@@ -43,6 +44,7 @@ public class DFACompiler {
         cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
         DFACompiler compiler = new DFACompiler(cw, name, dfa);
         compiler.addFields();
+        compiler.addCharConstants();
         compiler.addConstructor();
         compiler.addIterMethod();
         compiler.addMatchMethod(dfa);
@@ -212,9 +214,21 @@ public class DFACompiler {
             Label transitionLabel = transitionTargets.computeIfAbsent(transition.getRight(), d -> new Label());
             CharRange charRange = transition.getLeft();
             mv.visitVarInsn(ILOAD, 1);
-            mv.visitIntInsn(BIPUSH, charRange.getStart());
+            if (charRange.getStart() <= 128) {
+                mv.visitIntInsn(BIPUSH, charRange.getStart());
+            }
+            else {
+                mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getStart()), "C");
+            }
             mv.visitJumpInsn(IF_ICMPLT, failLabel);
-            mv.visitIntInsn(BIPUSH, charRange.getEnd());
+
+            if (charRange.getStart() <= 128) {
+                mv.visitIntInsn(BIPUSH, charRange.getEnd());
+            }
+            else {
+                mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getEnd()), "C");
+            }
+
             mv.visitIntInsn(ILOAD, 1);
             mv.visitJumpInsn(IF_ICMPGE, transitionLabel);
         }
@@ -236,6 +250,26 @@ public class DFACompiler {
 
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
+    }
+
+    private void addCharConstants() {
+        AtomicInteger constCount = new AtomicInteger(0);
+        dfa.allStates().stream().map(DFA::getTransitions).flatMap(List::stream).map(Pair::getLeft).forEach(charRange -> {
+            if (charRange.getStart() > 128) {
+                rangeConstants.computeIfAbsent(charRange.getStart(), c -> {
+                    String constName = "CHAR_CONST_" + constCount.incrementAndGet();
+                    classWriter.visitField(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, constName, "C", null, charRange.getStart());
+                    return constName;
+                });
+            }
+            if (charRange.getEnd() > 128) {
+                rangeConstants.computeIfAbsent(charRange.getEnd(), c -> {
+                    String constName = "CHAR_CONST_" + constCount.incrementAndGet();
+                    classWriter.visitField(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, constName, "C", null, charRange.getEnd());
+                    return constName;
+                });
+            }
+        });
     }
 
     private Integer methodDesignator(DFA right) {

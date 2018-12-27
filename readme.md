@@ -1,7 +1,8 @@
 Compiling string matching algorithms directly to Java bytecodes.
 
 Includes an NFA/DFA interpreter, a regex -> NFA parser, an NFA -> DFA
-compiler, and a DFA -> bytecode compiler.
+compiler, and a DFA -> bytecode compiler. Unicode support is currently limited
+to the BMP. 
 
 Very very early experiment.
 
