@@ -14,12 +14,12 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class DFACompiler {
 
-    public static final String STATE_FIELD = "state";
-    public static final String CHAR_FIELD = "c";
-    public static final String ACCEPTING_FIELD = "accepting";
-    public static final String LENGTH_FIELD = "length";
-    public static final String STRING_FIELD = "string";
-    public static final String INDEX_FIELD = "index";
+    private static final String STATE_FIELD = "state";
+    private static final String CHAR_FIELD = "c";
+    private static final String ACCEPTING_FIELD = "accepting";
+    private static final String LENGTH_FIELD = "length";
+    private static final String STRING_FIELD = "string";
+    private static final String INDEX_FIELD = "index";
 
     private Map<DFA, Integer> dfaMethodMap = new IdentityHashMap<>();
     private int methodCount = 0;
@@ -74,9 +74,12 @@ public class DFACompiler {
         mv.visitLabel(iterateLabel);
         mv.visitVarInsn(ALOAD, 0);
 
+        // Move to next char, return if necessary
         mv.visitMethodInsn(INVOKEVIRTUAL, className, "iterate", "()Z", false);
         mv.visitInsn(ICONST_1);
         mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
+
+        // dispatch to method associated with current state
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
         int labelCount = dfa.statesCount();
@@ -94,9 +97,12 @@ public class DFACompiler {
             mv.visitJumpInsn(GOTO, iterateLabel);
         }
 
+        // handle case of failure
         mv.visitLabel(failLabel);
         mv.visitInsn(ICONST_0);
         mv.visitInsn(IRETURN);
+
+        // check if the dfa had a match
         mv.visitLabel(returnLabel);
         mv.visitVarInsn(ALOAD, 0);
         mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "()V", false);
@@ -153,6 +159,8 @@ public class DFACompiler {
 
     private void addIterMethod() {
         MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "iterate","()Z", null, null);
+
+        // Bounds check
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, INDEX_FIELD, "I");
         mv.visitVarInsn(ISTORE, 1);
@@ -161,12 +169,16 @@ public class DFACompiler {
         mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
         Label iterationDone = new Label();
         mv.visitJumpInsn(IF_ICMPGE, iterationDone);
+
+        // Retrieve next char
         mv.visitVarInsn(ALOAD, 0);
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
         mv.visitVarInsn(ILOAD, 1);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
         mv.visitFieldInsn(PUTFIELD, className, CHAR_FIELD, "C");
+
+        // Increment index
         mv.visitVarInsn(ALOAD, 0);
         mv.visitIincInsn(1, 1);
         mv.visitVarInsn(ILOAD, 1);
