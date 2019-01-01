@@ -4,6 +4,7 @@ import com.justinblank.strings.RegexAST.Node;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public class IntegrationTest {
 
@@ -38,5 +39,23 @@ public class IntegrationTest {
         assertTrue(dfa.matches(""));
         assertTrue(dfa.matches("C"));
         assertTrue(dfa.matches("CCCCCC"));
+    }
+
+    @Test
+    public void testDFAAlternation() {
+        Node node = RegexParser.parse("A|B");
+        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        assertTrue(dfa.matches("A"));
+        assertTrue(dfa.matches("B"));
+        assertFalse(dfa.matches("AB"));
+    }
+
+    @Test
+    public void testGroupedDFAAlternation() {
+        Node node = RegexParser.parse("(AB)|(BA)");
+        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        assertTrue(dfa.matches("AB"));
+        assertTrue(dfa.matches("BA"));
+        assertFalse(dfa.matches("ABBA"));
     }
 }
