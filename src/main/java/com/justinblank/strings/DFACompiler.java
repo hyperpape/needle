@@ -123,7 +123,7 @@ public class DFACompiler {
         }
         byte[] places = acceptanceBits.toByteArray();
 
-        Label returnLabel = new Label();
+        Label preReturnLabel = new Label();
         Label[] labels = new Label[places.length + 1];
         labels[0] = new Label();
         for (int i = 0; i < places.length; i++) {
@@ -132,31 +132,42 @@ public class DFACompiler {
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
         mv.visitInsn(DUP);
-        // states are 0 indexed, but we're computing state | bitfield
-        mv.visitInsn(ICONST_1);
-        mv.visitInsn(IADD);
         mv.visitIntInsn(BIPUSH, 8);
-        mv.visitInsn(IREM);
+        mv.visitInsn(IREM); // stack = state, state % 8
+        mv.visitIntInsn(BIPUSH, 1);
+        mv.visitInsn(SWAP); // stack = state, 1, state % 8
+        mv.visitInsn(ISHL); // stack = state, 1 << (state % 8)
         mv.visitInsn(SWAP);
         mv.visitIntInsn(BIPUSH, 8);
-        mv.visitInsn(IDIV);
+        mv.visitInsn(IDIV); // stack = (1 << state % 8), state / 8
         // default is impossible, so just use labels[0] for simplicity
-        mv.visitTableSwitchInsn(-1, places.length -1, labels[0], labels);
+        mv.visitTableSwitchInsn(-1, places.length -1, labels[labels.length - 1], labels);
         // push a label for state -1, which indicates failure
         mv.visitLabel(labels[0]);
         mv.visitIntInsn(BIPUSH, 0);
         mv.visitInsn(IAND);
-        mv.visitJumpInsn(GOTO, returnLabel);
+        mv.visitJumpInsn(GOTO, preReturnLabel);
         for (int i = 0; i < places.length; i++) {
             byte accepting = places[i];
             mv.visitLabel(labels[i + 1]);
             mv.visitIntInsn(BIPUSH, accepting);
             mv.visitInsn(IAND);
-            mv.visitJumpInsn(GOTO, returnLabel);
+            mv.visitJumpInsn(GOTO, preReturnLabel);
         }
-        mv.visitLabel(returnLabel);
+        mv.visitLabel(preReturnLabel);
+        Label returnLabel = new Label();
+        Label zeroLabel = new Label();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(SWAP);
+
+        mv.visitInsn(ICONST_0);
+        mv.visitJumpInsn(IF_ICMPEQ, zeroLabel);
+        mv.visitInsn(ICONST_1);
+        mv.visitJumpInsn(GOTO, returnLabel);
+        mv.visitLabel(zeroLabel);
+        mv.visitIntInsn(BIPUSH, 0);
+        mv.visitLabel(returnLabel);
+
         mv.visitFieldInsn(PUTFIELD, className, ACCEPTING_FIELD, "Z");
         mv.visitInsn(RETURN);
         mv.visitMaxs(-1, -1);

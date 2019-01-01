@@ -29,6 +29,23 @@ public class TestDFACompiler {
     }
 
     @Test
+    public void testNew() throws Exception {
+        DFA dfa = new DFA(false);
+        DFA accepting = new DFA(true);
+        dfa.addTransition(new CharRange('0', '9'), accepting);
+        accepting.addTransition(new CharRange('0', '9'), accepting);
+
+        DFACompiler.compile(dfa, "testNew");
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass("testNew");
+        Constructor<Matcher> constructor = (Constructor<Matcher>) matcherClass.getDeclaredConstructors()[0];
+        Matcher instance = constructor.newInstance("0");
+        assertTrue(instance.matches());
+
+        assertFalse(constructor.newInstance("").matches());
+        assertFalse(constructor.newInstance("059{").matches());
+    }
+
+    @Test
     public void testDFACompiledBMP() throws Exception {
         DFA dfa = new DFA(true);
         dfa.addTransition(new CharRange('\u0600', '\u06FF'), dfa);
