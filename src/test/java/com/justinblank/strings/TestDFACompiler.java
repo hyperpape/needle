@@ -1,10 +1,9 @@
 package com.justinblank.strings;
 
+import com.justinblank.classloader.MyClassLoader;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
-
-import com.justinblank.classloader.MyClassLoader;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -29,14 +28,38 @@ public class TestDFACompiler {
     }
 
     @Test
-    public void testNew() throws Exception {
+    public void testGroupedDFAAlternation() throws Exception {
+        DFACompiler.compileString("(AB)|(BA)", "testGroupedDFAAlternation");
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass("testGroupedDFAAlternation");
+        Constructor<Matcher> constructor = (Constructor<Matcher>) matcherClass.getDeclaredConstructors()[0];
+        Matcher instance = constructor.newInstance("AB");
+        assertTrue(instance.matches());
+        assertTrue(constructor.newInstance("BA").matches());
+        assertFalse(constructor.newInstance("ABBA").matches());
+    }
+
+    @Test
+    public void testDFACompiledManyStateRegex() throws Exception {
+        String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)";
+        DFACompiler.compileString(regexString, "testDFACompiledManyStateRegex");
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass("testDFACompiledManyStateRegex");
+        Constructor<Matcher> constructor = (Constructor<Matcher>) matcherClass.getDeclaredConstructors()[0];
+        Matcher instance = constructor.newInstance("7654");
+        assertTrue(instance.matches());
+
+        assertFalse(constructor.newInstance("").matches());
+        assertFalse(constructor.newInstance("059{").matches());
+    }
+
+    @Test
+    public void testDFACompiledDigitPlus() throws Exception {
         DFA dfa = new DFA(false);
         DFA accepting = new DFA(true);
         dfa.addTransition(new CharRange('0', '9'), accepting);
         accepting.addTransition(new CharRange('0', '9'), accepting);
 
-        DFACompiler.compile(dfa, "testNew");
-        Class<?> matcherClass = MyClassLoader.getInstance().loadClass("testNew");
+        DFACompiler.compile(dfa, "testDFACompiledDigitPlus");
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass("testDFACompiledDigitPlus");
         Constructor<Matcher> constructor = (Constructor<Matcher>) matcherClass.getDeclaredConstructors()[0];
         Matcher instance = constructor.newInstance("0");
         assertTrue(instance.matches());
