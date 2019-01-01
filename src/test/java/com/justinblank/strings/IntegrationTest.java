@@ -58,4 +58,16 @@ public class IntegrationTest {
         assertTrue(dfa.matches("BA"));
         assertFalse(dfa.matches("ABBA"));
     }
+
+    @Test
+    public void testManyStateRegex() {
+        String regexString = "(123)|(234)|(345)|(456)|(567)";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ASTToNFA.createNFA(node);
+        assertTrue(nfa.matches("567"));
+        assertFalse(nfa.matches(""));
+        DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.matches("567"));
+        assertFalse(dfa.matches(""));
+    }
 }

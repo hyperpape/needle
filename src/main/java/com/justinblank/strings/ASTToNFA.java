@@ -2,8 +2,8 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 // TODO: This construction is like the Thompson construction. Verify and name appropriately
 class ASTToNFA {
@@ -44,10 +44,10 @@ class ASTToNFA {
             nfa = new NFA(false);
             NFA left = createPartial(a.left);
             NFA right = createPartial(a.right);
-            nfa.addTransitions(CharRange.emptyRange(), Arrays.asList(left, right));
+            nfa.addTransitions(CharRange.emptyRange(), List.of(left, right));
             NFA end = new NFA(false);
-            left.addEpsilonTransition(end);
-            right.addEpsilonTransition(end);
+            left.terminalStates().forEach(n -> n.addEpsilonTransition(end));
+            right.terminalStates().forEach(n -> n.addEpsilonTransition(end));
         }
         else if (ast instanceof CharRangeNode) {
             CharRangeNode range = (CharRangeNode) ast;
