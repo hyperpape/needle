@@ -124,9 +124,10 @@ public class DFACompiler {
         byte[] places = acceptanceBits.toByteArray();
 
         Label returnLabel = new Label();
-        Label[] labels = new Label[places.length];
+        Label[] labels = new Label[places.length + 1];
+        labels[0] = new Label();
         for (int i = 0; i < places.length; i++) {
-            labels[i] = new Label();
+            labels[i + 1] = new Label();
         }
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
@@ -140,10 +141,15 @@ public class DFACompiler {
         mv.visitIntInsn(BIPUSH, 8);
         mv.visitInsn(IDIV);
         // default is impossible, so just use labels[0] for simplicity
-        mv.visitTableSwitchInsn(0, places.length -1, labels[0], labels);
+        mv.visitTableSwitchInsn(-1, places.length -1, labels[0], labels);
+        // push a label for state -1, which indicates failure
+        mv.visitLabel(labels[0]);
+        mv.visitIntInsn(BIPUSH, 0);
+        mv.visitInsn(IAND);
+        mv.visitJumpInsn(GOTO, returnLabel);
         for (int i = 0; i < places.length; i++) {
             byte accepting = places[i];
-            mv.visitLabel(labels[i]);
+            mv.visitLabel(labels[i + 1]);
             mv.visitIntInsn(BIPUSH, accepting);
             mv.visitInsn(IAND);
             mv.visitJumpInsn(GOTO, returnLabel);
