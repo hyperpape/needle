@@ -70,4 +70,32 @@ public class IntegrationTest {
         assertTrue(dfa.matches("567"));
         assertFalse(dfa.matches(""));
     }
+
+    @Test
+    public void test_ab_PLUS() {
+        String regexString = "(ab)+";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ASTToNFA.createNFA(node);
+        assertTrue(nfa.matches("ab"));
+        assertTrue(nfa.matches("ababab"));
+        assertFalse(nfa.matches(""));
+        DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.matches("ab"));
+        assertTrue(dfa.matches("abab"));
+        assertFalse(dfa.matches(""));
+    }
+
+    @Test
+    public void test_a_PLUS() {
+        String regexString = "a+";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ASTToNFA.createNFA(node);
+        assertTrue(nfa.matches("a"));
+        assertTrue(nfa.matches("aaaaaaa"));
+        assertFalse(nfa.matches(""));
+        DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.matches("a"));
+        assertTrue(dfa.matches("aaaaaaa"));
+        assertFalse(dfa.matches(""));
+    }
 }

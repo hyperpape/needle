@@ -32,6 +32,9 @@ class RegexParser {
                     if (peekStar()) {
                         current = new Repetition(current);
                     }
+                    else if (peekPlus()) {
+                        current = new Concatenation(current, new Repetition(current));
+                    }
                     if (last != null) {
                         last = new Concatenation(last, current);
                     } else {
@@ -49,9 +52,12 @@ class RegexParser {
                         last = current;
                     }
                     break;
+                case '+':
+                    last = new Concatenation(last, new Repetition(last));
+                    break;
                 case '*':
                     last = new Repetition(last);
-                    if (peekParen()) {
+                    if (peekRightParen()) {
                         return last;
                     }
                     break;
@@ -62,6 +68,7 @@ class RegexParser {
                     if (parenDepth == 0) {
                         throw new IllegalStateException("Encountered unmatched ')' char at index " + index);
                     }
+                    // TODO: this fall-through is intentional?
                 default:
                     current = new CharRangeNode(c, c);
                     if (last != null) {
@@ -69,7 +76,7 @@ class RegexParser {
                     } else {
                         last = current;
                     }
-                    if (peekParen()) {
+                    if (peekRightParen()) {
                         return last;
                     }
             }
@@ -157,7 +164,15 @@ class RegexParser {
         return false;
     }
 
-    private boolean peekParen() {
+    private boolean peekPlus() {
+        if (index < regex.length() && regex.charAt(index) == '+') {
+            index++;
+            return true;
+        }
+        return false;
+    }
+
+    private boolean peekRightParen() {
         if (parenDepth > 0 && index < regex.length() && regex.charAt(index) == ')') {
             index++;
             parenDepth--;
