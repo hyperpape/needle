@@ -46,6 +46,9 @@ class RegexParser {
                     if (peekStar()) {
                         current = new Repetition(current);
                     }
+                    else if (peekPlus()) {
+                        current = new Concatenation(current, new Repetition(current));
+                    }
                     if (last != null) {
                         last = new Concatenation(last, current);
                     } else {

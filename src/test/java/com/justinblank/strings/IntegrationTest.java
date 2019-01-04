@@ -98,4 +98,15 @@ public class IntegrationTest {
         assertTrue(dfa.matches("aaaaaaa"));
         assertFalse(dfa.matches(""));
     }
+
+    @Test
+    public void test_aORb_PLUS() {
+        String regexString = "[a-c]+";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ASTToNFA.createNFA(node);
+        assertTrue(nfa.matches("a"));
+        assertTrue(nfa.matches("c"));
+        assertTrue(nfa.matches("abacbabababbbabababa"));
+        assertFalse(nfa.matches(""));
+    }
 }
