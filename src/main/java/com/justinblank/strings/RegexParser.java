@@ -101,6 +101,9 @@ class RegexParser {
         while (index < regex.length()) {
             char c = regex.charAt(index++);
             if (c == ']') {
+                if (last != null) {
+                    characterSet.add(last);
+                }
                 return buildNode(characterSet, ranges);
             } else if (c == '-') {
                 // TODO: find out actual semantics

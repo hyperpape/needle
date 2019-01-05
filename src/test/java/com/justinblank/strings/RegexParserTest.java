@@ -86,6 +86,15 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testConcatenatedCharRange() {
+        Node node = RegexParser.parse("[ab]");
+        assertNotNull(node);
+        CharRangeNode charRangeNode = (CharRangeNode) node;
+        assertTrue(charRangeNode.range().getStart() == 'a');
+        assertTrue(charRangeNode.range().getEnd() == 'b');
+    }
+
+    @Test
     public void testConcatenatedParensWithRepetition() {
         Node node = RegexParser.parse("(AB)(CD)*");
         assertNotNull(node);

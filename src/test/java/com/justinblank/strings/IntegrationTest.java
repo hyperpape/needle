@@ -109,4 +109,17 @@ public class IntegrationTest {
         assertTrue(nfa.matches("abacbabababbbabababa"));
         assertFalse(nfa.matches(""));
     }
+
+    @Test
+    public void testConcatenatedMultiRegex() {
+        String regexString = "[a-zA-Z@#]";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ASTToNFA.createNFA(node);
+        assertTrue(nfa.matches("a"));
+        assertTrue(nfa.matches("@"));
+        assertTrue(nfa.matches("#"));
+        assertFalse(nfa.matches(""));
+        assertFalse(nfa.matches("ab"));
+        assertFalse(nfa.matches("a#"));
+    }
 }
