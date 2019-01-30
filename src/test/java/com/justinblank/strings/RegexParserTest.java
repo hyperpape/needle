@@ -4,6 +4,7 @@ import com.justinblank.strings.RegexAST.*;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class RegexParserTest {
@@ -34,6 +35,16 @@ public class RegexParserTest {
         Node node = RegexParser.parse("b*");
         assertNotNull(node);
         assertTrue(node instanceof Repetition);
+    }
+
+    @Test
+    public void testCurlyRepetition() {
+        Node node = RegexParser.parse("b{0,1}");
+        assertNotNull(node);
+        assertTrue(node instanceof CountedRepetition);
+        CountedRepetition cr = (CountedRepetition) node;
+        assertEquals(0, cr.min);
+        assertEquals(1, cr.max);
     }
 
     @Test

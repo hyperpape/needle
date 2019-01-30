@@ -20,9 +20,8 @@ class RegexParser {
 
     protected Node _parse() {
         Node last = null;
-        boolean inRange = false;
         while (index < regex.length()) {
-            char c = regex.charAt(index++);
+            char c = takeChar();
             Node current = null;
 
             switch (c) {
@@ -39,6 +38,20 @@ class RegexParser {
                         last = new Concatenation(last, current);
                     } else {
                         last = current;
+                    }
+                    break;
+                case '{':
+                    int left = consumeInt();
+                    char next = takeChar();
+                    if (next != ',') {
+                        throw new IllegalStateException("Expected ',' at " + index + ", but found " + next);
+                    }
+                    int right = consumeInt();
+                    last = new CountedRepetition(last, left, right);
+                    // TODO: error handling
+                    next = takeChar();
+                    if (next != '}') {
+                        throw new IllegalStateException("Expeted '}' at " + index + ", but found " + next);
                     }
                     break;
                 case '[':
@@ -67,6 +80,8 @@ class RegexParser {
                 case '|':
                     last = new Alternation(last, _parse());
                     break;
+                case '}':
+                    throw new IllegalStateException("Encountered unmatched '}' char at index" + index);
                 case ')':
                     if (parenDepth == 0) {
                         throw new IllegalStateException("Encountered unmatched ')' char at index " + index);
@@ -94,12 +109,34 @@ class RegexParser {
         return last;
     }
 
+    private char takeChar() {
+        return regex.charAt(index++);
+    }
+
+    private int consumeInt() {
+        int initialIndex = index;
+        while (index < regex.length()) {
+            char next = regex.charAt(index);
+            if (next < '0' || next > '9') {
+                String subString = regex.substring(initialIndex, index);
+                return Integer.parseInt(subString);
+            }
+            takeChar();
+        }
+        if (index >= regex.length()) {
+            throw new IllegalStateException("");
+        }
+        else {
+            throw new IllegalStateException("Expected number, found " + regex.substring(initialIndex, index));
+        }
+    }
+
     private Node buildCharSet() {
         Set<Character> characterSet = new HashSet<>();
         Set<CharRange> ranges = new HashSet<>();
         Character last = null;
         while (index < regex.length()) {
-            char c = regex.charAt(index++);
+            char c = takeChar();
             if (c == ']') {
                 if (last != null) {
                     characterSet.add(last);
@@ -110,7 +147,7 @@ class RegexParser {
                 if (last == null || index == regex.length()) {
                     throw new IllegalStateException("Parsing failed");
                 }
-                char next = regex.charAt(index++);
+                char next = takeChar();
                 ranges.add(new CharRange(last, next));
                 last = null;
             } else if (c == '(' || c == ')') {
