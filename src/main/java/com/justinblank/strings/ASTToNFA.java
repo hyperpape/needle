@@ -39,6 +39,31 @@ class ASTToNFA {
             }
             nfa.addEpsilonTransition(end);
         }
+        // TODO: revisit this solution. It will perform badly, and the bytecode
+        //  compiler would do better with higher level info about repetitions
+        else if (ast instanceof CountedRepetition) {
+            CountedRepetition countedRepetition = (CountedRepetition) ast;
+            NFA child = new NFA(false);
+            // NFA child = createPartial(countedRepetition.node);
+            nfa = child;
+            NFA end = new NFA(false);
+            int repetition = 0;
+            for (; repetition < countedRepetition.min; repetition++) {
+                NFA child2 = createPartial(countedRepetition.node);
+                for (NFA terminal : child.terminalStates()) {
+                    terminal.addEpsilonTransition(child2);
+                }
+                child = child2;
+            }
+            for (; repetition < countedRepetition.max; repetition++) {
+                NFA child2 = createPartial(countedRepetition.node);
+                for (NFA terminal : child.terminalStates()) {
+                    terminal.addEpsilonTransition(child2);
+                    terminal.addEpsilonTransition(end);
+                }
+                child = child2;
+            }
+        }
         else if (ast instanceof Alternation) {
             Alternation a = (Alternation) ast;
             nfa = new NFA(false);
