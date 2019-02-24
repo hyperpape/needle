@@ -51,8 +51,14 @@ class RegexParser {
                     // TODO: error handling
                     next = takeChar();
                     if (next != '}') {
-                        throw new IllegalStateException("Expeted '}' at " + index + ", but found " + next);
+                        throw new IllegalStateException("Expected '}' at " + index + ", but found " + next);
                     }
+                    break;
+                case '?':
+                    if (last == null) {
+                        throw new IllegalStateException("? cannot be the first character in a regex");
+                    }
+                    last = new CountedRepetition(last, 0, 1);
                     break;
                 case '[':
                     current = buildCharSet();

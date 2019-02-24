@@ -48,6 +48,31 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testQuestionMarkSimple() {
+        Node node = RegexParser.parse("1?");
+        assertNotNull(node);
+        assertTrue(node instanceof CountedRepetition);
+        CountedRepetition cr = (CountedRepetition) node;
+        assertEquals(0, cr.min);
+        assertEquals(1, cr.max);
+    }
+
+    @Test
+    public void testQuestionMarkGrouped() {
+        Node node = RegexParser.parse("(1|2)?");
+        assertNotNull(node);
+        assertTrue(node instanceof CountedRepetition);
+        CountedRepetition cr = (CountedRepetition) node;
+        assertEquals(0, cr.min);
+        assertEquals(1, cr.max);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testMalformedQuestionMarkEmpty() {
+        Node node = RegexParser.parse("?");
+    }
+
+    @Test
     public void testTwoCharAlternation() {
         Node node = RegexParser.parse("a|b");
         assertNotNull(node);
