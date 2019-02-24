@@ -79,7 +79,6 @@ public class IntegrationTest {
         assertTrue(nfa.matches("1"));
         assertFalse(nfa.matches(""));
         assertFalse(nfa.matches("11"));
-
     }
 
     @Test
@@ -95,22 +94,22 @@ public class IntegrationTest {
 
     @Test
     public void testCountedRepetition() {
-        String regexString = "1{2,3}abc";
+        String regexString = "(1|2){2,3}abc";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ASTToNFA.createNFA(node);
-        assertTrue(nfa.matches("11abc"));
-        assertTrue(nfa.matches("111abc"));
+        assertTrue(nfa.matches("12abc"));
+        assertTrue(nfa.matches("121abc"));
         assertFalse(nfa.matches(""));
         assertFalse(nfa.matches("1abc"));
-        assertFalse(nfa.matches("1111abc"));
-        assertFalse(nfa.matches("11def"));
+        assertFalse(nfa.matches("1221abc"));
+        assertFalse(nfa.matches("12def"));
         DFA dfa = NFAToDFACompiler.compile(nfa);
-        assertTrue(dfa.matches("11abc"));
-        assertTrue(dfa.matches("111abc"));
+        assertTrue(dfa.matches("12abc"));
+        assertTrue(dfa.matches("121abc"));
         assertFalse(dfa.matches(""));
         assertFalse(dfa.matches("1abc"));
-        assertFalse(dfa.matches("1111abc"));
-        assertFalse(dfa.matches("11def"));
+        assertFalse(dfa.matches("1211abc"));
+        assertFalse(dfa.matches("12def"));
     }
 
     @Test
