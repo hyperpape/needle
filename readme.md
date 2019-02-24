@@ -12,10 +12,12 @@ In principle generating classes specialized for a particular automaton
 should be capable of outperforming Java regular expressions, which are
 not specialized.
 
-In practice, I have done no performance testing whatsoever. 
+In practice, I have done minimal performance testing. The string
+algorithms in Search perform worse than indexOf, which is a hotspot
+intrinsic.
 
 ### Building
 
-Requires Java 9.
+Requires Java 11.
 
     mvn compile
