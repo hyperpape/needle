@@ -82,6 +82,10 @@ public class NFA {
         Set<NFA> seen = new HashSet<>();
         Queue<NFA> pending = new LinkedList<>();
         pending.add(this);
+        // TODO: kinda hacky
+        if (this.getTransitions().isEmpty()) {
+            terminals.add(this);
+        }
         while (!pending.isEmpty()) {
             NFA nfa = pending.poll();
             if (!seen.contains(nfa)) {
