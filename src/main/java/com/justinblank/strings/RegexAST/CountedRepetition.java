@@ -16,4 +16,8 @@ public class CountedRepetition extends Node {
         this.min = min;
         this.max = max;
     }
+
+    protected int minLength() {
+        return min;
+    }
 }

@@ -179,4 +179,6 @@ public class RegexParserTest {
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
     }
+
+
 }

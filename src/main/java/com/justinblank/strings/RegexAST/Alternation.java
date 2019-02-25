@@ -13,4 +13,8 @@ public class Alternation extends Node {
         this.left = left;
         this.right = right;
     }
+
+    protected int minLength() {
+        return Math.min(left.minLength(), right.minLength());
+    }
 }

@@ -17,4 +17,8 @@ public class CharRangeNode extends Node {
     public CharRangeNode(char start, char end) {
         this.range = new CharRange(start, end);
     }
+
+    protected int minLength() {
+        return 1;
+    }
 }

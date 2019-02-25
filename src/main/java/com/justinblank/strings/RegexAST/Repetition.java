@@ -10,4 +10,8 @@ public class Repetition extends Node {
         Objects.requireNonNull(node, "Cannot repeat nothing");
         this.node = node;
     }
+
+    protected int minLength() {
+        return 0;
+    }
 }

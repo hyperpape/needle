@@ -4,7 +4,7 @@ import com.justinblank.strings.RegexAST.*;
 
 import java.util.*;
 
-class RegexParser {
+public class RegexParser {
 
     private int index = 0;
     private int parenDepth = 0;

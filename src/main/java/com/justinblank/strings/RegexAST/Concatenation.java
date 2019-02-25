@@ -13,4 +13,8 @@ public class Concatenation extends Node {
         this.head = head;
         this.tail = tail;
     }
+
+    protected int minLength() {
+        return head.minLength() + tail.minLength();
+    }
 }
