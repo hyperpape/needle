@@ -1,5 +1,7 @@
 package com.justinblank.strings.RegexAST;
 
+import com.justinblank.strings.Factorization;
+
 import java.util.Objects;
 
 public class Concatenation extends Node {
@@ -16,5 +18,12 @@ public class Concatenation extends Node {
 
     protected int minLength() {
         return head.minLength() + tail.minLength();
+    }
+
+    public Factorization bestFactors() {
+        Factorization left = head.bestFactors();
+        Factorization right = tail.bestFactors();
+        left.concatenate(right);
+        return left;
     }
 }

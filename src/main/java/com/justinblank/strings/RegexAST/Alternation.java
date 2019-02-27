@@ -1,5 +1,7 @@
 package com.justinblank.strings.RegexAST;
 
+import com.justinblank.strings.Factorization;
+
 import java.util.Objects;
 
 public class Alternation extends Node {
@@ -16,5 +18,13 @@ public class Alternation extends Node {
 
     protected int minLength() {
         return Math.min(left.minLength(), right.minLength());
+    }
+
+    @Override
+    public Factorization bestFactors() {
+        Factorization leftFactors = left.bestFactors();
+        Factorization rightFactors = right.bestFactors();
+        leftFactors.alternate(rightFactors);
+        return leftFactors;
     }
 }

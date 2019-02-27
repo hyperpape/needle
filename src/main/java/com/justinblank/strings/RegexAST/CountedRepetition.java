@@ -1,5 +1,7 @@
 package com.justinblank.strings.RegexAST;
 
+import com.justinblank.strings.Factorization;
+
 import java.util.Objects;
 
 public class CountedRepetition extends Node {
@@ -19,5 +21,10 @@ public class CountedRepetition extends Node {
 
     protected int minLength() {
         return min;
+    }
+
+    @Override
+    public Factorization bestFactors() {
+        return Factorization.empty();
     }
 }

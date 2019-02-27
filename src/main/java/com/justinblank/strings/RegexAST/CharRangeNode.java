@@ -1,6 +1,7 @@
 package com.justinblank.strings.RegexAST;
 
 import com.justinblank.strings.CharRange;
+import com.justinblank.strings.Factorization;
 
 public class CharRangeNode extends Node {
 
@@ -20,5 +21,12 @@ public class CharRangeNode extends Node {
 
     protected int minLength() {
         return 1;
+    }
+
+    public Factorization bestFactors() {
+        if (this.range.getStart() == this.range.getEnd()) {
+            return Factorization.fromChar(this.range.getStart());
+        }
+        return Factorization.empty();
     }
 }
