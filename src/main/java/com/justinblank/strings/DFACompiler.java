@@ -14,12 +14,12 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class DFACompiler {
 
-    private static final String STATE_FIELD = "state";
-    private static final String CHAR_FIELD = "c";
-    private static final String ACCEPTING_FIELD = "accepting";
-    private static final String LENGTH_FIELD = "length";
-    private static final String STRING_FIELD = "string";
-    private static final String INDEX_FIELD = "index";
+    protected static final String STATE_FIELD = "state";
+    protected static final String CHAR_FIELD = "c";
+    protected static final String ACCEPTING_FIELD = "accepting";
+    protected static final String LENGTH_FIELD = "length";
+    protected static final String STRING_FIELD = "string";
+    protected static final String INDEX_FIELD = "index";
 
     private Map<DFA, Integer> dfaMethodMap = new IdentityHashMap<>();
     private int methodCount = 0;
@@ -28,7 +28,7 @@ public class DFACompiler {
     private DFA dfa;
     private final Map<Character, String> rangeConstants = new HashMap<>();
 
-    private DFACompiler(ClassWriter classWriter, String className, DFA dfa) {
+    protected DFACompiler(ClassWriter classWriter, String className, DFA dfa) {
         this.classWriter = classWriter;
         this.className = className;
         this.dfa = dfa;
@@ -43,20 +43,24 @@ public class DFACompiler {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
         DFACompiler compiler = new DFACompiler(cw, name, dfa);
-        compiler.addFields();
-        compiler.addCharConstants();
-        compiler.addConstructor();
-        compiler.addIterMethod();
-        compiler.addMatchMethod(dfa);
-        compiler.generateTransitionMethods(dfa);
-        // current impl requires that accepted be called last
-        compiler.addWasAcceptedMethod();
+        compiler.compile();
 
         byte[] classBytes = cw.toByteArray();
         MyClassLoader.getInstance().loadClass(name, classBytes);
     }
 
-    private void addFields() {
+    protected void compile() {
+        addFields();
+        addCharConstants();
+        addConstructor();
+        addIterMethod();
+        addMatchMethod();
+        generateTransitionMethods();
+        // current impl requires that accepted be called last
+        addWasAcceptedMethod();
+    }
+
+    protected void addFields() {
         this.classWriter.visitField(ACC_PRIVATE, ACCEPTING_FIELD, "Z", null, 0);
         this.classWriter.visitField(ACC_PRIVATE, INDEX_FIELD, "I", null,0);
         this.classWriter.visitField(ACC_PRIVATE, CHAR_FIELD, "C", null, null);
@@ -65,7 +69,7 @@ public class DFACompiler {
         this.classWriter.visitField(ACC_PRIVATE, STATE_FIELD, "I", null, 0);
     }
 
-    private void addMatchMethod(DFA dfa) {
+    protected void addMatchMethod() {
         MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, "matches", "()Z", null, null);
 
         Label returnLabel = new Label();
@@ -113,7 +117,7 @@ public class DFACompiler {
         mv.visitEnd();
     }
 
-    private void addWasAcceptedMethod() {
+    protected void addWasAcceptedMethod() {
         MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()V", null, null);
         BitSet acceptanceBits = new BitSet(dfaMethodMap.size());
         for (Map.Entry<DFA, Integer> e : dfaMethodMap.entrySet()) {
@@ -174,7 +178,7 @@ public class DFACompiler {
         mv.visitEnd();
     }
 
-    private void addIterMethod() {
+    protected void addIterMethod() {
         MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "iterate","()Z", null, null);
 
         // Bounds check
@@ -211,7 +215,7 @@ public class DFACompiler {
         mv.visitEnd();
     }
 
-    private void generateTransitionMethods(DFA dfa) {
+    protected void generateTransitionMethods() {
         Set<DFA> seen = new HashSet<>();
         Queue<DFA> pending = new LinkedList<>();
         pending.add(dfa);
@@ -229,7 +233,7 @@ public class DFACompiler {
         }
     }
 
-    private void generateTransitionMethod(DFA dfa, Integer transitionNumber) {
+    protected void generateTransitionMethod(DFA dfa, Integer transitionNumber) {
         MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "()V", null, null);
 
         Label returnLabel = new Label();
@@ -281,7 +285,7 @@ public class DFACompiler {
         mv.visitEnd();
     }
 
-    private void addCharConstants() {
+    protected void addCharConstants() {
         AtomicInteger constCount = new AtomicInteger(0);
         dfa.allStates().stream().map(DFA::getTransitions).flatMap(List::stream).map(Pair::getLeft).forEach(charRange -> {
             if (charRange.getStart() > 128) {
@@ -301,7 +305,7 @@ public class DFACompiler {
         });
     }
 
-    private Integer methodDesignator(DFA right) {
+    protected Integer methodDesignator(DFA right) {
         return dfaMethodMap.computeIfAbsent(right, d -> methodCount++);
     }
 
@@ -344,6 +348,18 @@ public class DFACompiler {
     // Intellij won't debug through generated bytecode that lacks an accompanying classfile
     public static void debug(int i) {
         System.out.println("debug: " + i);
+    }
+
+    protected ClassWriter getClassWriter() {
+        return classWriter;
+    }
+
+    protected String getClassName() {
+        return className;
+    }
+
+    protected DFA getDFA() {
+        return dfa;
     }
 }
 
