@@ -233,7 +233,7 @@ public class DFACompiler {
         }
     }
 
-    protected void generateTransitionMethod(DFA dfa, Integer transitionNumber) {
+    protected void generateTransitionMethod(DFA node, Integer transitionNumber) {
         MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "()V", null, null);
 
         Label returnLabel = new Label();
@@ -241,9 +241,29 @@ public class DFACompiler {
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, CHAR_FIELD, "C");
         mv.visitVarInsn(ISTORE, 1);
+        List<Pair<CharRange, DFA>> transitions = node.getTransitions();
+        if (!transitions.isEmpty()) {
+            if (transitions.size() > 1 || !transitions.get(0).getLeft().isSingleCharRange()) {
+                generateTransitionJumps(node, mv, returnLabel, failLabel);
+            } else {
+                generateSingleCharTransition(node, mv, returnLabel, failLabel);
+            }
+        }
+        mv.visitLabel(failLabel);
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(ICONST_M1);
+        mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD, "I");
+        mv.visitLabel(returnLabel);
+        mv.visitInsn(RETURN);
+
+        mv.visitMaxs(-1, -1);
+        mv.visitEnd();
+    }
+
+    private void generateTransitionJumps(DFA node, MethodVisitor mv, Label returnLabel, Label failLabel) {
         Map<DFA, Label> transitionTargets = new IdentityHashMap<>();
 
-        for (Pair<CharRange, DFA> transition : dfa.getTransitions()) {
+        for (Pair<CharRange, DFA> transition : node.getTransitions()) {
             Label transitionLabel = transitionTargets.computeIfAbsent(transition.getRight(), d -> new Label());
             CharRange charRange = transition.getLeft();
             mv.visitVarInsn(ILOAD, 1);
@@ -274,18 +294,27 @@ public class DFACompiler {
             mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD,  "I");
             mv.visitJumpInsn(GOTO, returnLabel);
         }
-        mv.visitLabel(failLabel);
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitInsn(ICONST_M1);
-        mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD, "I");
-        mv.visitLabel(returnLabel);
-        mv.visitInsn(RETURN);
-
-        mv.visitMaxs(-1, -1);
-        mv.visitEnd();
     }
 
-    protected void addCharConstants() {
+    private void generateSingleCharTransition(DFA node, MethodVisitor mv, Label returnLabel, Label failLabel) {
+        CharRange charRange = node.getTransitions().get(0).getLeft();
+        DFA next = node.getTransitions().get(0).getRight();
+        mv.visitVarInsn(ILOAD, 1);
+        if (charRange.getStart() <= 128) {
+            mv.visitIntInsn(BIPUSH, charRange.getStart());
+        }
+        else {
+            mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getStart()), "C");
+        }
+        mv.visitJumpInsn(IF_ICMPNE, failLabel);
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitIntInsn(BIPUSH, methodDesignator(next));
+        mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD, "I");
+        mv.visitJumpInsn(GOTO, returnLabel);
+
+    }
+
+        protected void addCharConstants() {
         AtomicInteger constCount = new AtomicInteger(0);
         dfa.allStates().stream().map(DFA::getTransitions).flatMap(List::stream).map(Pair::getLeft).forEach(charRange -> {
             if (charRange.getStart() > 128) {

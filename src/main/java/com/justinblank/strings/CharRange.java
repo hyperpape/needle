@@ -42,6 +42,10 @@ public class CharRange {
         return c >= start && c <= end;
     }
 
+    public boolean isSingleCharRange() {
+        return start == end;
+    }
+
     public boolean contains(CharRange charRange) {
         return getStart() <= charRange.getStart() && charRange.getEnd() <= getEnd();
     }
