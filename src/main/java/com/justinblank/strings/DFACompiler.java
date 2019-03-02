@@ -275,7 +275,7 @@ public class DFACompiler {
             }
             mv.visitJumpInsn(IF_ICMPLT, failLabel);
 
-            if (charRange.getStart() <= 128) {
+            if (charRange.getEnd() <= 128) {
                 mv.visitIntInsn(BIPUSH, charRange.getEnd());
             }
             else {
