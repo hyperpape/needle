@@ -1,6 +1,9 @@
 package com.justinblank.strings;
 
 import com.justinblank.classloader.MyClassLoader;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.implementation.MethodDelegation;
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
@@ -10,6 +13,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static net.bytebuddy.matcher.ElementMatchers.named;
 import static org.objectweb.asm.Opcodes.*;
 
 public class DFACompiler {
@@ -34,19 +38,33 @@ public class DFACompiler {
         this.dfa = dfa;
     }
 
-    public static void compileString(String regex, String className) {
+    public static Pattern compileString(String regex, String className) {
         NFA nfa = ASTToNFA.createNFA(RegexParser.parse(regex));
-        compile(NFAToDFACompiler.compile(nfa), className);
+        return compile(NFAToDFACompiler.compile(nfa), className);
     }
 
-    public static void compile(DFA dfa, String name) {
+    public static Pattern compile(DFA dfa, String name) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
         DFACompiler compiler = new DFACompiler(cw, name, dfa);
         compiler.compile();
 
         byte[] classBytes = cw.toByteArray();
-        MyClassLoader.getInstance().loadClass(name, classBytes);
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass(name, classBytes);
+        Class<? extends Pattern> c = createPatternClass("Pattern"  + name, (Class<? extends Matcher>) matcherClass);
+        try {
+            return (Pattern) c.getDeclaredConstructors()[0].newInstance();
+        }
+        catch (Exception e) {
+            // TODO: determine good exceptions/result types
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
+        DynamicType.Builder<? extends Pattern> builder = new ByteBuddy().subclass(Pattern.class).name(name);
+        builder = builder.method(named("matcher")).intercept(MethodDelegation.toConstructor(m));
+        return builder.make().load(MyClassLoader.getInstance()).getLoaded();
     }
 
     protected void compile() {
