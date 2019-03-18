@@ -307,8 +307,40 @@ public class DFACompiler {
         for (Map.Entry<DFA, Label> e : transitionTargets.entrySet()) {
             mv.visitLabel(e.getValue());
             mv.visitVarInsn(ALOAD, 0);
-            // TODO: this implicitly limits the number of states..change or decide how to handle explicitly
-            mv.visitIntInsn(BIPUSH, methodDesignator(e.getKey()));
+            int nextState = methodDesignator(e.getKey());
+            if (nextState < 6) {
+                switch (nextState) {
+                    case 0: {
+                        mv.visitInsn(ICONST_0);
+                        break;
+                    }
+                    case 1: {
+                        mv.visitInsn(ICONST_1);
+                        break;
+                    }
+                    case 2: {
+                        mv.visitInsn(ICONST_2);
+                        break;
+                    }
+                    case 3: {
+                        mv.visitInsn(ICONST_3);
+                        break;
+                    }
+                    case 4: {
+                        mv.visitInsn(ICONST_4);
+                        break;
+                    }
+                    case 5: {
+                        mv.visitInsn(ICONST_5);
+                    }
+                }
+            }
+            else if (nextState <= 127) {
+                mv.visitIntInsn(BIPUSH, nextState);
+            }
+            else {
+                mv.visitIntInsn(SIPUSH, nextState);
+            }
             mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD,  "I");
             mv.visitJumpInsn(GOTO, returnLabel);
         }
@@ -353,7 +385,12 @@ public class DFACompiler {
     }
 
     protected Integer methodDesignator(DFA right) {
-        return dfaMethodMap.computeIfAbsent(right, d -> methodCount++);
+        Integer stateNumber = dfaMethodMap.computeIfAbsent(right, d -> methodCount++);
+        if (stateNumber > 1 << 15) {
+            // TODO: decide best approach to large state automata
+            throw new IllegalStateException("Too many states");
+        }
+        return stateNumber;
     }
 
     protected void addConstructor() {

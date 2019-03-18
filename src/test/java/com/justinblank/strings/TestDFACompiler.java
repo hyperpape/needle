@@ -36,10 +36,11 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledManyStateRegex() throws Exception {
-        String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)";
+        String regexString = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,24}";
         Pattern pattern = DFACompiler.compileString(regexString, "testDFACompiledManyStateRegex");
         Matcher instance = pattern.matcher("7654");
         assertTrue(instance.matches());
+        assertTrue(pattern.matcher("32103210").matches());
 
         assertFalse(pattern.matcher("").matches());
         assertFalse(pattern.matcher("059{").matches());

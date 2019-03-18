@@ -61,14 +61,16 @@ public class IntegrationTest {
 
     @Test
     public void testManyStateRegex() {
-        String regexString = "(123)|(234)|(345)|(456)|(567)";
+        String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ASTToNFA.createNFA(node);
         assertTrue(nfa.matches("567"));
+        assertTrue(nfa.matches("32103210"));
         assertFalse(nfa.matches(""));
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("567"));
         assertFalse(dfa.matches(""));
+        assertTrue(dfa.matches("32103210"));
     }
 
     @Test
