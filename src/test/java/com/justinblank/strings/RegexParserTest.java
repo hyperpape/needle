@@ -107,6 +107,35 @@ public class RegexParserTest {
         assertTrue(node instanceof Concatenation);
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testLeftUnbalancedParens() {
+        Node node = RegexParser.parse("(((");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testRightUnbalancedParens() {
+        Node node = RegexParser.parse(")))");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testMixedUnbalancedParens() {
+        Node node = RegexParser.parse("((())");
+    }
+
+    @Test
+    public void testSuperfluousParentheses() {
+        Node node = RegexParser.parse("((1))");
+        assertNotNull(node);
+        assertTrue(node instanceof CharRangeNode);
+    }
+
+    @Test
+    public void testCountedRepetitionOfParenthesizedAlternations() {
+        Node node = RegexParser.parse("((12)|(34)){2,3}");
+        assertNotNull(node);
+        assertTrue(node instanceof CountedRepetition);
+    }
+
     @Test
     public void testCharRange() {
         Node node = RegexParser.parse("[0-9]");

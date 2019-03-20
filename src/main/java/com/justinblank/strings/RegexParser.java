@@ -28,6 +28,9 @@ class RegexParser {
                 case '(':
                     parenDepth++;
                     current = _parse();
+                    if (parenDepth > 0 && peekRightParen()) {
+                        return current;
+                    }
                     if (peekStar()) {
                         current = new Repetition(current);
                     }
@@ -91,6 +94,9 @@ class RegexParser {
                 case ')':
                     if (parenDepth == 0) {
                         throw new IllegalStateException("Encountered unmatched ')' char at index " + index);
+                    }
+                    else if (last != null) {
+                        return last;
                     }
                     // TODO: this fall-through is intentional?
                 default:
