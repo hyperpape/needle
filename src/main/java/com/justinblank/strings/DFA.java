@@ -67,6 +67,7 @@ public class DFA {
                 DFA next = transition.getRight();
                 if (!seen.contains(next)) {
                     pending.add(next);
+                    seen.add(next);
                 }
             }
         }
