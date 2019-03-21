@@ -20,11 +20,11 @@ public class NFA {
         transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
     }
 
-    public void addEpsilonTransition(NFA end) {
+    protected void addEpsilonTransition(NFA end) {
         addTransitions(CharRange.emptyRange(), Collections.singletonList(end));
     }
 
-    public List<Pair<CharRange, List<NFA>>> getTransitions() {
+    protected List<Pair<CharRange, List<NFA>>> getTransitions() {
         return transitions;
     }
 
@@ -54,7 +54,7 @@ public class NFA {
         return current.stream().anyMatch(NFA::isAccepting);
     }
 
-    public Set<NFA> epsilonClosure() {
+    protected Set<NFA> epsilonClosure() {
         Set<NFA> closure = new HashSet<>();
         Queue<NFA> pending = new LinkedList<>();
         pending.add(this);
@@ -71,13 +71,13 @@ public class NFA {
         return closure;
     }
 
-    public static Set<NFA> epsilonClosure(Collection<NFA> nfaStates) {
+    protected static Set<NFA> epsilonClosure(Collection<NFA> nfaStates) {
         return nfaStates.stream().
                 flatMap(nfa -> nfa.epsilonClosure().stream()).
                 collect(Collectors.toSet());
     }
 
-    public Set<NFA> terminalStates() {
+    protected Set<NFA> terminalStates() {
         Set<NFA> terminals = new HashSet<>();
         Set<NFA> seen = new HashSet<>();
         Queue<NFA> pending = new LinkedList<>();
@@ -104,7 +104,7 @@ public class NFA {
         return terminals;
     }
 
-    public boolean isTerminal() {
+    protected boolean isTerminal() {
         return getTransitions().stream().
                 flatMap(pair -> pair.getRight().stream()).
                 allMatch(this::equals);
