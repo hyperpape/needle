@@ -10,7 +10,7 @@ public class RegexToNFATest {
 
     @Test
     public void testConversionSingleChar() {
-        NFA nfa = ASTToNFA.createNFA(RegexParser.parse("a"));
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse("a"));
         assertTrue(nfa.matches("a"));
         assertFalse(nfa.matches("b"));
         assertFalse(nfa.matches("ab"));
@@ -18,7 +18,7 @@ public class RegexToNFATest {
 
     @Test
     public void testConversionMultipleChars() {
-        NFA nfa = ASTToNFA.createNFA(RegexParser.parse("ab"));
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse("ab"));
         assertTrue(nfa.matches("ab"));
         assertFalse(nfa.matches("ba"));
         assertFalse(nfa.matches("aba"));
@@ -26,7 +26,7 @@ public class RegexToNFATest {
 
     @Test
     public void testSingleCharRepetition() {
-        NFA nfa = ASTToNFA.createNFA(RegexParser.parse("a*"));
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse("a*"));
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches(""));
         assertTrue(nfa.matches("aaaa"));
@@ -36,7 +36,7 @@ public class RegexToNFATest {
 
     @Test
     public void testCharRanges() {
-        NFA nfa = ASTToNFA.createNFA(RegexParser.parse("[0-9]"));
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse("[0-9]"));
         assertTrue(nfa.matches("0"));
         assertTrue(nfa.matches("5"));
         assertTrue(nfa.matches("9"));

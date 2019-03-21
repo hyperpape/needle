@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 // TODO: This construction is like the Thompson construction. Verify and name appropriately
-class ASTToNFA {
+class ThompsonNFABuilder {
 
     public static NFA createNFA(Node ast) {
         NFA nfa = createPartial(ast);

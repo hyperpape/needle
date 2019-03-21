@@ -6,13 +6,13 @@ import org.junit.Test;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 
-public class ASTToNFATest {
+public class ThompsonNFABuilderTest {
 
     @Test
     public void testRepetition() {
         Node charNode = new CharRangeNode('a', 'a');
         Node node = new Repetition(charNode);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches(""));
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches("aaaa"));
@@ -22,7 +22,7 @@ public class ASTToNFATest {
     public void testabPlus() {
         Node charNode = new CharRangeNode('a', 'b');
         Node node = new Concatenation(charNode, new Repetition(charNode));
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches("b"));
         assertTrue(nfa.matches("abba"));
@@ -34,7 +34,7 @@ public class ASTToNFATest {
         Node charNodea = new CharRangeNode('a', 'a');
         Node charNodeb = new CharRangeNode('b', 'b');
         Node alternation = new Alternation(charNodea, charNodeb);
-        NFA nfa = ASTToNFA.createNFA(alternation);
+        NFA nfa = ThompsonNFABuilder.createNFA(alternation);
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches("b"));
         assertFalse(nfa.matches(""));
@@ -47,7 +47,7 @@ public class ASTToNFATest {
 //        Node charNodec = new CharRangeNode('c', 'c');
 //        Node concatenation = new Concatenation(charNodea, charNodeb);
 //        Node alternation = new Alternation(concatenation, charNodec);
-//        NFA nfa = ASTToNFA.createNFA(alternation);
+//        NFA nfa = ThompsonNFABuilder.createNFA(alternation);
 //        assertTrue(nfa.matches("ab"));
 //        assertTrue(nfa.matches("c"));
 //        assertFalse(nfa.matches(""));

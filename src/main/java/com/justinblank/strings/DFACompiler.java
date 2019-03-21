@@ -39,7 +39,7 @@ public class DFACompiler {
     }
 
     public static Pattern compileString(String regex, String className) {
-        NFA nfa = ASTToNFA.createNFA(RegexParser.parse(regex));
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
         return compile(NFAToDFACompiler.compile(nfa), className);
     }
 

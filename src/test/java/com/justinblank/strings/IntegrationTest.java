@@ -11,14 +11,14 @@ public class IntegrationTest {
     @Test
     public void testConcatenatedRangesWithRepetition() {
         Node node = RegexParser.parse("[A-Za-z][A-Za-z0-9]*");
-        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("ABC0123"));
     }
 
     @Test
     public void testRanges() {
         Node node = RegexParser.parse("[A-Za-z]");
-        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("C"));
         assertTrue(dfa.matches("c"));
     }
@@ -26,7 +26,7 @@ public class IntegrationTest {
     @Test
     public void testNFARepetition() {
         Node node = RegexParser.parse("C*");
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches(""));
         assertTrue(nfa.matches("C"));
         assertTrue(nfa.matches("CCCCCC"));
@@ -35,7 +35,7 @@ public class IntegrationTest {
     @Test
     public void testDFARepetition() {
         Node node = RegexParser.parse("C*");
-        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches(""));
         assertTrue(dfa.matches("C"));
         assertTrue(dfa.matches("CCCCCC"));
@@ -44,7 +44,7 @@ public class IntegrationTest {
     @Test
     public void testDFAAlternation() {
         Node node = RegexParser.parse("A|B");
-        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("A"));
         assertTrue(dfa.matches("B"));
         assertFalse(dfa.matches("AB"));
@@ -53,7 +53,7 @@ public class IntegrationTest {
     @Test
     public void testGroupedDFAAlternation() {
         Node node = RegexParser.parse("(AB)|(BA)");
-        DFA dfa = NFAToDFACompiler.compile(ASTToNFA.createNFA(node));
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("BA"));
         assertFalse(dfa.matches("ABBA"));
@@ -63,7 +63,7 @@ public class IntegrationTest {
     public void testManyStateRegex() {
         String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("567"));
         assertTrue(nfa.matches("32103210"));
         assertFalse(nfa.matches(""));
@@ -77,7 +77,7 @@ public class IntegrationTest {
     public void testCountedRepetitionOneChar() {
         String regexString = "1{1,1}";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("1"));
         assertFalse(nfa.matches(""));
         assertFalse(nfa.matches("11"));
@@ -87,7 +87,7 @@ public class IntegrationTest {
     public void testZeroBoundCountedRepetition() {
         String regexString = "1{0,2}";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches(""));
         assertTrue(nfa.matches("1"));
         assertTrue(nfa.matches("11"));
@@ -98,7 +98,7 @@ public class IntegrationTest {
     public void testCountedRepetition() {
         String regexString = "(1|2){2,3}abc";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("12abc"));
         assertTrue(nfa.matches("121abc"));
         assertFalse(nfa.matches(""));
@@ -118,7 +118,7 @@ public class IntegrationTest {
     public void test_ab_PLUS() {
         String regexString = "(ab)+";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("ab"));
         assertTrue(nfa.matches("ababab"));
         assertFalse(nfa.matches(""));
@@ -132,7 +132,7 @@ public class IntegrationTest {
     public void test_a_PLUS() {
         String regexString = "a+";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches("aaaaaaa"));
         assertFalse(nfa.matches(""));
@@ -146,7 +146,7 @@ public class IntegrationTest {
     public void test_aORb_PLUS() {
         String regexString = "[a-c]+";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches("c"));
         assertTrue(nfa.matches("abacbabababbbabababa"));
@@ -157,7 +157,7 @@ public class IntegrationTest {
     public void testConcatenatedMultiRegex() {
         String regexString = "[a-zA-Z@#]";
         Node node = RegexParser.parse(regexString);
-        NFA nfa = ASTToNFA.createNFA(node);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
         assertTrue(nfa.matches("a"));
         assertTrue(nfa.matches("@"));
         assertTrue(nfa.matches("#"));
