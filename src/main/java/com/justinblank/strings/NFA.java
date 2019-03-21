@@ -7,6 +7,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class NFA {
+
+    private NFA root;
+    // This will only be non-null on the root
+    private List<NFA> states;
     private boolean accepting;
     private List<Pair<CharRange, List<NFA>>> transitions = new ArrayList<>();
 
@@ -28,8 +32,24 @@ public class NFA {
         return transitions;
     }
 
+    protected NFA getRoot() {
+        return root;
+    }
+
+    protected void setRoot(NFA root) {
+        this.root = root;
+    }
+
     protected boolean isAccepting() {
         return accepting;
+    }
+
+    public List<NFA> getStates() {
+        return states;
+    }
+
+    public void setStates(List<NFA> states) {
+        this.states = states;
     }
 
     protected Collection<NFA> transition(char c) {
@@ -79,6 +99,14 @@ public class NFA {
 
     protected Set<NFA> terminalStates() {
         Set<NFA> terminals = new HashSet<>();
+        if (states != null) {
+            for (NFA nfa : states) {
+                if (nfa.isTerminal()) {
+                    terminals.add(nfa);
+                }
+            }
+            return terminals;
+        }
         Set<NFA> seen = new HashSet<>();
         Queue<NFA> pending = new LinkedList<>();
         pending.add(this);

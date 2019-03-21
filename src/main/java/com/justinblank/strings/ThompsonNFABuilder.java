@@ -2,27 +2,47 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-// TODO: This construction is like the Thompson construction. Verify and name appropriately
 class ThompsonNFABuilder {
 
+    private NFA root;
+    private List<NFA> nfaStates = new ArrayList<>();
+
     public static NFA createNFA(Node ast) {
-        NFA nfa = createPartial(ast);
-        NFA finalState = new NFA(true);
-        for (NFA terminal : nfa.terminalStates()) {
-            terminal.addEpsilonTransition(finalState);
-        }
-        return nfa;
+        ThompsonNFABuilder builder = new ThompsonNFABuilder();
+        return builder.build(ast);
     }
 
-    protected static NFA createPartial(Node ast) {
+    protected NFA build(Node ast) {
+        NFA root = createPartial(ast);
+        // TODO: kinda hacky
+        if (!nfaStates.contains(root)) {
+            nfaStates.add(root);
+        }
+        Collections.reverse(nfaStates);
+        NFA finalState = new NFA(true);
+        nfaStates.add(finalState);
+        for (NFA state : nfaStates) {
+            state.setRoot(root);
+            if (state != finalState && state.isTerminal()) {
+                state.addEpsilonTransition(finalState);
+            }
+        }
+        root.setStates(nfaStates);
+        return root;
+    }
+
+    protected NFA createPartial(Node ast) {
         NFA nfa;
         if (ast instanceof Concatenation) {
             Concatenation c = (Concatenation) ast;
-            NFA head = createPartial(c.head);
             NFA tail = createPartial(c.tail);
+            nfaStates.add(tail);
+            NFA head = createPartial(c.head);
+            nfaStates.add(head);
             for (NFA terminal : head.terminalStates()) {
                 terminal.addTransitions(CharRange.emptyRange(), Collections.singletonList((tail)));
             }
@@ -37,6 +57,7 @@ class ThompsonNFABuilder {
                 terminal.addEpsilonTransition(nfa);
                 terminal.addEpsilonTransition(end);
             }
+            nfaStates.add(end);
             nfa.addEpsilonTransition(end);
         }
         // TODO: revisit this solution. It will perform badly, and the bytecode
@@ -47,6 +68,7 @@ class ThompsonNFABuilder {
             // NFA child = createPartial(countedRepetition.node);
             nfa = child;
             NFA end = new NFA(false);
+            nfaStates.add(end);
             int repetition = 0;
             for (; repetition < countedRepetition.min; repetition++) {
                 NFA child2 = createPartial(countedRepetition.node);
@@ -61,24 +83,31 @@ class ThompsonNFABuilder {
                     terminal.addEpsilonTransition(child2);
                     terminal.addEpsilonTransition(end);
                 }
+                nfaStates.add(child);
                 child = child2;
             }
+            nfaStates.add(nfa);
         }
         else if (ast instanceof Alternation) {
             Alternation a = (Alternation) ast;
             nfa = new NFA(false);
             NFA left = createPartial(a.left);
+            nfaStates.add(left);
             NFA right = createPartial(a.right);
+            nfaStates.add(right);
             nfa.addTransitions(CharRange.emptyRange(), List.of(left, right));
             NFA end = new NFA(false);
+            nfaStates.add(end);
             left.terminalStates().forEach(n -> n.addEpsilonTransition(end));
             right.terminalStates().forEach(n -> n.addEpsilonTransition(end));
+            // nfaStates.add(nfa);
         }
         else if (ast instanceof CharRangeNode) {
             CharRangeNode range = (CharRangeNode) ast;
             nfa = new NFA(false);
             NFA end = new NFA(false);
             nfa.addTransitions(range.range(), Collections.singletonList(end));
+            nfaStates.add(end);
         }
         else {
             throw new IllegalStateException("");
