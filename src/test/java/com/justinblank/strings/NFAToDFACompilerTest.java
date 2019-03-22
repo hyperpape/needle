@@ -13,7 +13,7 @@ public class NFAToDFACompilerTest {
 
     @Test
     public void testEmptyAcceptingNFACompile() {
-        NFA nfa = new NFA(true);
+        NFA nfa = new NFA(true, 0);
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.statesCount() == 1);
         assertTrue(dfa.matches(""));
@@ -21,7 +21,7 @@ public class NFAToDFACompilerTest {
 
     @Test
     public void testEmptyRejectingNFACompile() {
-        NFA nfa = new NFA(false);
+        NFA nfa = new NFA(false, 0);
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertEquals(1, dfa.statesCount());
         assertFalse(dfa.matches(""));
@@ -29,8 +29,8 @@ public class NFAToDFACompilerTest {
 
     @Test
     public void testSingleCharNFACompile() {
-        NFA nfa = new NFA(false);
-        List<NFA> postTransition = Collections.singletonList(new NFA(true));
+        NFA nfa = new NFA(false, 0);
+        List<NFA> postTransition = Collections.singletonList(new NFA(true, 0));
         nfa.addTransitions(new CharRange('a', 'a'), postTransition);
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertEquals(2, dfa.statesCount());

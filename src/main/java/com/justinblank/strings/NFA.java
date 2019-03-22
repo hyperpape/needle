@@ -4,18 +4,19 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class NFA {
 
     private NFA root;
+    private final int index;
     // This will only be non-null on the root
     private List<NFA> states;
     private boolean accepting;
     private List<Pair<CharRange, List<NFA>>> transitions = new ArrayList<>();
 
-    protected NFA(boolean accepting) {
+    protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
+        this.index = index;
     }
 
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
@@ -72,6 +73,89 @@ public class NFA {
                     collect(Collectors.toSet());
         }
         return current.stream().anyMatch(NFA::isAccepting);
+    }
+
+    public MatchResult search(String s) {
+        int length = s.length();
+        int lastStart = Integer.MAX_VALUE;
+        int lastEnd = -1;
+        int i = 0;
+        Set<NFA> initial = epsilonClosure();
+        Set<NFA> current = initial;
+        Map<NFA, Integer> stateMap = new HashMap<>();
+        for (; i < length; i++) {
+            // If any of our states can accept, we've found a match.
+            // Keep searching for a longer match, but store the current start and end indices
+            // we will no longer consider anything that starts after this starting location
+            boolean accepting = current.stream().anyMatch(NFA::isAccepting);
+            if (accepting) {
+                lastStart = computeLastStart(stateMap, i);
+                lastEnd = i;
+            }
+
+            current.addAll(initial);
+            final int currentIndex = i;
+            char c = s.charAt(i);
+            Set<NFA> next = new HashSet<>();
+            Map<NFA, Integer> newStateMap = new HashMap<>();
+            Map<NFA, Integer> existingStateMap = stateMap;
+            for (NFA node : current) {
+                Collection<NFA> nodeTransitions = node.transition(c);
+                nodeTransitions.forEach(transition -> {
+                    newStateMap.compute(transition, (nfa, start) -> {
+                        if (start == null) {
+                            start = currentIndex;
+                        }
+                        int startingPoint = Math.min(start, existingStateMap.getOrDefault(node, currentIndex));
+                        if (startingPoint == Integer.MAX_VALUE) {
+                            throw new IllegalStateException("");
+                        }
+                        return startingPoint;
+                    });
+                });
+            }
+            // Now, only keep states if they can match a range shorter than the current longest match
+            final int currentLastStart = lastStart;
+            stateMap.clear();
+            newStateMap.forEach((key, value) -> {
+                if (value <= currentLastStart) {
+                    next.add(key);
+                    stateMap.put(key, value);
+                }
+            });
+            current = next;
+        }
+        boolean accepting = current.stream().anyMatch(NFA::isAccepting);
+        if (accepting) {
+            int thisStart = i;
+            for (Map.Entry<NFA, Integer> e : stateMap.entrySet()) {
+                if (e.getKey().accepting) {
+                    thisStart = Math.min(thisStart, e.getValue());
+                }
+            }
+            if (lastStart == Integer.MAX_VALUE) {
+                lastStart = thisStart;
+            }
+            if (lastStart > thisStart) {
+                return new MatchResult(true, lastStart, lastEnd);
+            }
+        }
+        else if (lastStart != Integer.MAX_VALUE) {
+            return new MatchResult(true, lastStart, lastEnd);
+        }
+
+        boolean matched = current.stream().anyMatch(NFA::isAccepting);
+        return new MatchResult(matched, lastStart, i);
+    }
+
+    protected int computeLastStart(Map<NFA, Integer> stateMap, int i) {
+        int thisStart = i;
+        for (Map.Entry<NFA, Integer> e : stateMap.entrySet()) {
+            if (e.getKey().accepting) {
+                thisStart = Math.min(thisStart, e.getValue());
+            }
+        }
+        return thisStart;
     }
 
     protected Set<NFA> epsilonClosure() {
@@ -136,5 +220,9 @@ public class NFA {
         return getTransitions().stream().
                 flatMap(pair -> pair.getRight().stream()).
                 allMatch(this::equals);
+    }
+
+    public int hashCode() {
+        return index;
     }
 }

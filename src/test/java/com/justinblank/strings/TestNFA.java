@@ -6,16 +6,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static com.justinblank.strings.MatchTestUtil.checkMatch;
+import static com.justinblank.strings.MatchTestUtil.checkSearchFail;
+import static org.junit.Assert.*;
 
 public class TestNFA {
 
     @Test
     public void testEpsilonClosureShallow() {
-        NFA nfa = new NFA(false);
-        NFA second = new NFA(false);
+        NFA nfa = new NFA(false, 0);
+        NFA second = new NFA(false, 1);
         nfa.addEpsilonTransition(second);
         assertTrue(nfa.epsilonClosure().contains(nfa));
         assertTrue(nfa.epsilonClosure().contains(second));
@@ -23,9 +23,9 @@ public class TestNFA {
 
     @Test
     public void testEpsilonClosureDeep() {
-        NFA nfa = new NFA(false);
-        NFA second = new NFA(false);
-        NFA third = new NFA(false);
+        NFA nfa = new NFA(false, 0);
+        NFA second = new NFA(false, 1);
+        NFA third = new NFA(false, 2);
         nfa.addEpsilonTransition(second);
         second.addEpsilonTransition(third);
         assertTrue(nfa.epsilonClosure().contains(nfa));
@@ -35,14 +35,15 @@ public class TestNFA {
 
     @Test
     public void testEmptyNFAMatchingEmptyString() {
-        NFA nfa = new NFA(true);
+        NFA nfa = new NFA(true, 0);
         assertTrue(nfa.matches(""));
         assertFalse(nfa.matches("b"));
+        checkMatch(nfa, "b", 0, 0);
     }
 
     @Test
     public void testEmptyNFANotMatchingEmptyString() {
-        NFA nfa = new NFA(false);
+        NFA nfa = new NFA(false, 0);
         assertFalse(nfa.matches(""));
     }
 
@@ -57,9 +58,9 @@ public class TestNFA {
 
     @Test
     public void testNFAMatchingInterpreted2() {
-        NFA nfa = new NFA(false);
-        NFA step2 = new NFA(false);
-        NFA terminal = new NFA(true);
+        NFA nfa = new NFA(false, 0);
+        NFA step2 = new NFA(false, 1);
+        NFA terminal = new NFA(true, 2);
 
         nfa.addTransitions(new CharRange('a', 'a'), Arrays.asList(nfa, step2));
         step2.addTransitions(new CharRange('b', 'b'), Collections.singletonList(terminal));
@@ -74,11 +75,23 @@ public class TestNFA {
     public void testaSTAR_aORb_NFA() {
         NFA nfa = NFATestUtil.aSTAR_aORb_();
         assertTrue(nfa.matches("a"));
+        MatchResult result = nfa.search("a");
+        assertTrue(result.matched);
+        assertEquals(0, result.start);
+        assertEquals(1, result.end);
         assertTrue(nfa.matches("aa"));
+        result = nfa.search("aa");
+        assertTrue(result.matched);
+        assertEquals(0, result.start);
+        assertEquals(2, result.end);
         assertTrue(nfa.matches("b"));
+        checkMatch(nfa, "b", 0, 1);
         assertTrue(nfa.matches("ab"));
+        checkMatch(nfa, "ab", 0, 2);
         assertTrue(nfa.matches("aab"));
+        checkMatch(nfa, "aab", 0, 3);
         assertFalse(nfa.matches("aba"));
+        checkMatch(nfa, "aba", 0, 2);
     }
 
     @Test
@@ -94,5 +107,4 @@ public class TestNFA {
         Set<NFA> terminals = nfa.terminalStates();
         assertNotEquals(terminals.size(), 0);
     }
-
 }

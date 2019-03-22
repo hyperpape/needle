@@ -9,6 +9,7 @@ import java.util.List;
 class ThompsonNFABuilder {
 
     private NFA root;
+    private int index = 0;
     private List<NFA> nfaStates = new ArrayList<>();
 
     public static NFA createNFA(Node ast) {
@@ -23,7 +24,7 @@ class ThompsonNFABuilder {
             nfaStates.add(root);
         }
         Collections.reverse(nfaStates);
-        NFA finalState = new NFA(true);
+        NFA finalState = new NFA(true, index++);
         nfaStates.add(finalState);
         for (NFA state : nfaStates) {
             state.setRoot(root);
@@ -52,7 +53,7 @@ class ThompsonNFABuilder {
             Repetition r = (Repetition) ast;
             NFA child = createPartial(r.node);
             nfa = child;
-            NFA end = new NFA(false);
+            NFA end = new NFA(false, index++);
             for (NFA terminal : nfa.terminalStates()) {
                 terminal.addEpsilonTransition(nfa);
                 terminal.addEpsilonTransition(end);
@@ -64,10 +65,10 @@ class ThompsonNFABuilder {
         //  compiler would do better with higher level info about repetitions
         else if (ast instanceof CountedRepetition) {
             CountedRepetition countedRepetition = (CountedRepetition) ast;
-            NFA child = new NFA(false);
+            NFA child = new NFA(false, index++);
             // NFA child = createPartial(countedRepetition.node);
             nfa = child;
-            NFA end = new NFA(false);
+            NFA end = new NFA(false, index++);
             nfaStates.add(end);
             int repetition = 0;
             for (; repetition < countedRepetition.min; repetition++) {
@@ -90,13 +91,13 @@ class ThompsonNFABuilder {
         }
         else if (ast instanceof Alternation) {
             Alternation a = (Alternation) ast;
-            nfa = new NFA(false);
+            nfa = new NFA(false, index++);
             NFA left = createPartial(a.left);
             nfaStates.add(left);
             NFA right = createPartial(a.right);
             nfaStates.add(right);
             nfa.addTransitions(CharRange.emptyRange(), List.of(left, right));
-            NFA end = new NFA(false);
+            NFA end = new NFA(false, index++);
             nfaStates.add(end);
             left.terminalStates().forEach(n -> n.addEpsilonTransition(end));
             right.terminalStates().forEach(n -> n.addEpsilonTransition(end));
@@ -104,8 +105,8 @@ class ThompsonNFABuilder {
         }
         else if (ast instanceof CharRangeNode) {
             CharRangeNode range = (CharRangeNode) ast;
-            nfa = new NFA(false);
-            NFA end = new NFA(false);
+            nfa = new NFA(false, index++);
+            NFA end = new NFA(false, index++);
             nfa.addTransitions(range.range(), Collections.singletonList(end));
             nfaStates.add(end);
         }
