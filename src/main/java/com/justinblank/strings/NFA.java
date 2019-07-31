@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 public class NFA {
 
     private NFA root;
-    private final int index;
+    private final int state;
     // This will only be non-null on the root
     private List<NFA> states;
     private boolean accepting;
@@ -16,7 +16,7 @@ public class NFA {
 
     protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
-        this.index = index;
+        this.state = index;
     }
 
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
@@ -223,6 +223,6 @@ public class NFA {
     }
 
     public int hashCode() {
-        return index;
+        return state;
     }
 }
