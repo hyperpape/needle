@@ -3,7 +3,6 @@ package com.justinblank.strings;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class NFA {
 
@@ -67,12 +66,18 @@ public class NFA {
         Set<NFA> current = epsilonClosure();
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            current = current.stream().
-                    flatMap(node -> node.transition(c).stream()).
-                    filter(Objects::nonNull).
-                    collect(Collectors.toSet());
+            Set<NFA> newCurrent = new HashSet<>();
+            for (NFA nfa : current) {
+                newCurrent.addAll(nfa.transition(c));
+            }
+            current = newCurrent;
         }
-        return current.stream().anyMatch(NFA::isAccepting);
+        for (NFA nfa : current) {
+            if (nfa.isAccepting()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public MatchResult search(String s) {
@@ -162,23 +167,30 @@ public class NFA {
         Set<NFA> closure = new HashSet<>();
         Queue<NFA> pending = new LinkedList<>();
         pending.add(this);
+        closure.add(this);
         while (!pending.isEmpty()) {
             NFA next = pending.poll();
             closure.add(next);
-            next.getTransitions().
-                    stream().
-                    filter(pair -> pair.getLeft().isEmpty()).
-                    flatMap(pair -> pair.getRight().stream()).
-                    filter(nfa -> !closure.contains(nfa)).
-                    forEach(pending::add);
+            for (Pair<CharRange, List<NFA>> transition : next.getTransitions()) {
+                if (transition.getLeft().isEmpty()) {
+                    for (NFA reachable : transition.getRight()) {
+                        if (!closure.contains(reachable)) {
+                            pending.add(reachable);
+                            closure.add(reachable);
+                        }
+                    }
+                }
+            }
         }
         return closure;
     }
 
     protected static Set<NFA> epsilonClosure(Collection<NFA> nfaStates) {
-        return nfaStates.stream().
-                flatMap(nfa -> nfa.epsilonClosure().stream()).
-                collect(Collectors.toSet());
+        Set<NFA> closure = new HashSet<>();
+        for (NFA nfa : nfaStates) {
+            closure.addAll(nfa.epsilonClosure());
+        }
+        return closure;
     }
 
     protected Set<NFA> terminalStates() {
@@ -224,5 +236,13 @@ public class NFA {
 
     public int hashCode() {
         return state;
+    }
+
+    public boolean equals(Object object) {
+        if (object instanceof NFA) {
+            NFA other = (NFA) object;
+            return other.state == state && other.root == root;
+        }
+        return false;
     }
 }
