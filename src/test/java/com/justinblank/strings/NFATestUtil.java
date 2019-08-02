@@ -19,8 +19,13 @@ public class NFATestUtil {
         nfa.addTransitions(new CharRange('a', 'a'), postTransition);
         nfa.addTransitions(CharRange.emptyRange(), Collections.singletonList(penultimate));
 
-        penultimate.addTransitions(new CharRange('a', 'b'), Collections.singletonList(new NFA(true, 2)));
+        NFA other = new NFA(true, 2);
+        penultimate.addTransitions(new CharRange('a', 'b'), Collections.singletonList(other));
 
+        other.computeEpsilonClosure();
+        nfa.computeEpsilonClosure();
+        penultimate.computeEpsilonClosure();
+        postTransition.stream().forEach(NFA::computeEpsilonClosure);
         return nfa;
     }
 
@@ -33,6 +38,7 @@ public class NFATestUtil {
         nfa.addTransitions(new CharRange('0', '9'), Collections.singletonList(nfa));
         nfa.addTransitions(new CharRange('A', 'Z'), Collections.singletonList(nfa));
         nfa.addTransitions(new CharRange('a', 'z'), Collections.singletonList(nfa));
+        nfa.computeEpsilonClosure();
         return nfa;
     }
 }

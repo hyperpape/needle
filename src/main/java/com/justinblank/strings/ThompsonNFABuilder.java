@@ -82,6 +82,7 @@ class ThompsonNFABuilder {
                     terminal.addEpsilonTransition(child2);
                 }
                 child = child2;
+                nfaStates.add(child);
             }
             for (; repetition < countedRepetition.max; repetition++) {
                 NFA child2 = createPartial(countedRepetition.node);
@@ -89,8 +90,8 @@ class ThompsonNFABuilder {
                     terminal.addEpsilonTransition(child2);
                     terminal.addEpsilonTransition(end);
                 }
-                nfaStates.add(child);
                 child = child2;
+                nfaStates.add(child);
             }
             nfaStates.add(nfa);
         }

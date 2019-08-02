@@ -25,6 +25,9 @@ public class NFAToDFACompiler {
     }
 
     private void addNFAStatesToDFA(Set<NFA> nfas, DFA dfa) {
+        for (NFA nfa : nfas) {
+            nfa.computeEpsilonClosure();
+        }
         Set<NFA> epsilonClosure = NFA.epsilonClosure(nfas);
         Stream<NFA> nfaStream = epsilonClosure.stream();
         List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(nfaStream.collect(Collectors.toList())));

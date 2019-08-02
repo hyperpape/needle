@@ -17,6 +17,7 @@ public class TestNFA {
         NFA nfa = new NFA(false, 0);
         NFA second = new NFA(false, 1);
         nfa.addEpsilonTransition(second);
+        nfa.computeEpsilonClosure();
         assertTrue(nfa.epsilonClosure().contains(nfa));
         assertTrue(nfa.epsilonClosure().contains(second));
     }
@@ -28,6 +29,8 @@ public class TestNFA {
         NFA third = new NFA(false, 2);
         nfa.addEpsilonTransition(second);
         second.addEpsilonTransition(third);
+        nfa.computeEpsilonClosure();
+        second.computeEpsilonClosure();
         assertTrue(nfa.epsilonClosure().contains(nfa));
         assertTrue(nfa.epsilonClosure().contains(second));
         assertTrue(nfa.epsilonClosure().contains(third));
@@ -36,6 +39,7 @@ public class TestNFA {
     @Test
     public void testEmptyNFAMatchingEmptyString() {
         NFA nfa = new NFA(true, 0);
+        nfa.computeEpsilonClosure();
         assertTrue(nfa.matches(""));
         assertFalse(nfa.matches("b"));
         checkMatch(nfa, "b", 0, 0);
@@ -44,6 +48,7 @@ public class TestNFA {
     @Test
     public void testEmptyNFANotMatchingEmptyString() {
         NFA nfa = new NFA(false, 0);
+        nfa.computeEpsilonClosure();
         assertFalse(nfa.matches(""));
     }
 
@@ -64,6 +69,10 @@ public class TestNFA {
 
         nfa.addTransitions(new CharRange('a', 'a'), Arrays.asList(nfa, step2));
         step2.addTransitions(new CharRange('b', 'b'), Collections.singletonList(terminal));
+
+        nfa.computeEpsilonClosure();
+        step2.computeEpsilonClosure();
+        terminal.computeEpsilonClosure();
 
         assertTrue(nfa.matches("aaaaaaaab"));
         assertFalse(nfa.matches("aaaaaaaabb"));

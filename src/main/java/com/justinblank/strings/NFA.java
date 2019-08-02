@@ -165,25 +165,7 @@ public class NFA {
     }
 
     protected Set<NFA> epsilonClosure() {
-        Set<NFA> closure = new HashSet<>();
-        Queue<NFA> pending = new LinkedList<>();
-        pending.add(this);
-        closure.add(this);
-        while (!pending.isEmpty()) {
-            NFA next = pending.poll();
-            closure.add(next);
-            for (Pair<CharRange, List<NFA>> transition : next.getTransitions()) {
-                if (transition.getLeft().isEmpty()) {
-                    for (NFA reachable : transition.getRight()) {
-                        if (!closure.contains(reachable)) {
-                            pending.add(reachable);
-                            closure.add(reachable);
-                        }
-                    }
-                }
-            }
-        }
-        return closure;
+        return this.epsilonClosure;
     }
 
     protected static Set<NFA> epsilonClosure(Collection<NFA> nfaStates) {
@@ -273,7 +255,7 @@ public class NFA {
     }
 
     /**
-     * Check a number of invariants.
+     * Check a number of invariants. Only applicable to the root node.
      *
      * @throws IllegalStateException if the invariants are broken
      */
@@ -285,5 +267,6 @@ public class NFA {
             }
             assert nfa.root != null : "NFA node " + state + " has null root";
         }
+        // TODO: assert states.size() == new HashSet<>(states).size() : "nfaStates contains duplicates";
     }
 }
