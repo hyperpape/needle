@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -22,6 +23,9 @@ public class NFATestUtil {
         NFA other = new NFA(true, 2);
         penultimate.addTransitions(new CharRange('a', 'b'), Collections.singletonList(other));
 
+        // crappy book-keeping
+        nfa.setRoot(nfa);
+        nfa.setStates(Arrays.asList(nfa, penultimate, other));
         other.computeEpsilonClosure();
         nfa.computeEpsilonClosure();
         penultimate.computeEpsilonClosure();
@@ -38,6 +42,8 @@ public class NFATestUtil {
         nfa.addTransitions(new CharRange('0', '9'), Collections.singletonList(nfa));
         nfa.addTransitions(new CharRange('A', 'Z'), Collections.singletonList(nfa));
         nfa.addTransitions(new CharRange('a', 'z'), Collections.singletonList(nfa));
+        nfa.setRoot(nfa);
+        nfa.setStates(Arrays.asList(nfa));
         nfa.computeEpsilonClosure();
         return nfa;
     }

@@ -13,6 +13,7 @@ public class NFA {
     private boolean accepting;
     private List<Pair<CharRange, List<NFA>>> transitions = new ArrayList<>();
     private Set<NFA> epsilonClosure;
+    private BitSet epsilonClosureIndices = new BitSet();
 
     protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
@@ -57,30 +58,50 @@ public class NFA {
         this.states = states;
     }
 
-    protected Collection<NFA> transition(char c) {
+    protected int getState() {
+        return state;
+    }
+
+    protected NFA getState(int state) {
+        return states.get(state);
+    }
+
+    protected BitSet transition(char c) {
         for (Pair<CharRange, List<NFA>> transition : transitions) {
             if (transition.getLeft().inRange(c)) {
-                return epsilonClosure(transition.getRight());
+                BitSet bitSet = new BitSet();
+                for (NFA nfa : transition.getRight()) {
+                    bitSet.or(nfa.epsilonClosureIndices);
+                }
+                return bitSet;
             }
         }
-        return Collections.emptyList();
+        return new BitSet();
     }
 
     public boolean matches(String s) {
         int length = s.length();
-        Set<NFA> current = epsilonClosure();
+        BitSet current = new BitSet();
+        current.or(epsilonClosureIndices);
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            Set<NFA> newCurrent = new HashSet<>();
-            for (NFA nfa : current) {
-                newCurrent.addAll(nfa.transition(c));
+            BitSet newCurrent = new BitSet();
+            int state = 0;
+            int setBit = current.nextSetBit(0);
+            while (setBit != -1) {
+                NFA nfa = root.states.get(setBit);
+                newCurrent.or(nfa.transition(c));
+                setBit = current.nextSetBit(setBit + 1);
             }
             current = newCurrent;
         }
-        for (NFA nfa : current) {
-            if (nfa.isAccepting()) {
+        int setBit = current.nextSetBit(0);
+        while (setBit != -1) {
+            NFA nfa = root.states.get(setBit);
+            if (nfa.accepting) {
                 return true;
             }
+            setBit = current.nextSetBit(setBit + 1);
         }
         return false;
     }
@@ -110,9 +131,9 @@ public class NFA {
             Map<NFA, Integer> newStateMap = new HashMap<>();
             Map<NFA, Integer> existingStateMap = stateMap;
             for (NFA node : current) {
-                Collection<NFA> nodeTransitions = node.transition(c);
-                nodeTransitions.forEach(transition -> {
-                    newStateMap.compute(transition, (nfa, start) -> {
+                BitSet bitSet = node.transition(c);
+                bitSet.stream().forEach(nfaIndex -> {
+                    newStateMap.compute(states.get(nfaIndex), (nfa, start) -> {
                         if (start == null) {
                             start = currentIndex;
                         }
@@ -178,6 +199,14 @@ public class NFA {
             closure.addAll(nfa.epsilonClosure());
         }
         return closure;
+    }
+
+    protected static BitSet epsilonClosureIndices(Collection<NFA> nfaStates) {
+        BitSet bs = new BitSet();
+        for (NFA nfa : nfaStates) {
+            bs.or(nfa.epsilonClosureIndices);
+        }
+        return bs;
     }
 
     protected Set<NFA> terminalStates() {
@@ -254,7 +283,6 @@ public class NFA {
 
     protected void computeEpsilonClosure() {
         if (this.epsilonClosure == null) {
-
             Set<NFA> closure = new HashSet<>();
             Queue<NFA> pending = new LinkedList<>();
             pending.add(this);
@@ -274,6 +302,9 @@ public class NFA {
                 }
             }
             this.epsilonClosure = closure;
+            for (NFA nfa : epsilonClosure) {
+                epsilonClosureIndices.set(nfa.state);
+            }
         }
     }
 
@@ -284,6 +315,7 @@ public class NFA {
      */
     protected void checkRep() {
         for (NFA nfa : states) {
+            assert states.get(nfa.state) == nfa;
             assert nfa.epsilonClosure != null : "NFA node " + nfa.state + " has null epsilon closure";
             for (NFA reachable : nfa.epsilonClosure) {
                 assert states.contains(reachable) : "Epsilon transition to NFA node " + reachable.state + " not contained in states";

@@ -39,6 +39,8 @@ public class TestNFA {
     @Test
     public void testEmptyNFAMatchingEmptyString() {
         NFA nfa = new NFA(true, 0);
+        nfa.setRoot(nfa);
+        nfa.setStates(Arrays.asList(nfa));
         nfa.computeEpsilonClosure();
         assertTrue(nfa.matches(""));
         assertFalse(nfa.matches("b"));
@@ -48,6 +50,8 @@ public class TestNFA {
     @Test
     public void testEmptyNFANotMatchingEmptyString() {
         NFA nfa = new NFA(false, 0);
+        nfa.setRoot(nfa);
+        nfa.setStates(Arrays.asList(nfa));
         nfa.computeEpsilonClosure();
         assertFalse(nfa.matches(""));
     }
@@ -66,6 +70,8 @@ public class TestNFA {
         NFA nfa = new NFA(false, 0);
         NFA step2 = new NFA(false, 1);
         NFA terminal = new NFA(true, 2);
+        nfa.setRoot(nfa);
+        nfa.setStates(Arrays.asList(nfa, step2, terminal));
 
         nfa.addTransitions(new CharRange('a', 'a'), Arrays.asList(nfa, step2));
         step2.addTransitions(new CharRange('b', 'b'), Collections.singletonList(terminal));

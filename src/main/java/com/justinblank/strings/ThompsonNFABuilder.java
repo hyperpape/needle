@@ -2,9 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 class ThompsonNFABuilder {
 
@@ -32,6 +30,8 @@ class ThompsonNFABuilder {
                 state.addEpsilonTransition(finalState);
             }
         }
+        nfaStates = new ArrayList<>(new HashSet<>(nfaStates)); // TODO: don't be lazy
+        nfaStates.sort(Comparator.comparingInt(NFA::getState));
         root.setStates(nfaStates);
         for (NFA nfa : nfaStates) {
             nfa.computeEpsilonClosure();

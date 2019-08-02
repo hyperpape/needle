@@ -11,12 +11,14 @@ public class NFAToDFACompiler {
     private Map<Set<NFA>, DFA> stateSets = new HashMap<>();
     private int state = 1; // root will always be zero
     private DFA root;
+    private final NFA nfa;
 
-    private NFAToDFACompiler() {
+    private NFAToDFACompiler(NFA nfa) {
+        this.nfa = nfa;
     }
 
     public static DFA compile(NFA nfa) {
-        DFA dfa = new NFAToDFACompiler()._compile(nfa);
+        DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa);
         return MinimizeDFA.minimizeDFA(dfa);
     }
 
@@ -62,10 +64,12 @@ public class NFAToDFACompiler {
         return ranges;
     }
 
-    protected static Set<NFA> transition(Collection<NFA> nfaStates, char c) {
-        return nfaStates.stream().
-                flatMap(state -> state.transition(c).stream()).
-                collect(Collectors.toSet());
+    protected Set<NFA> transition(Collection<NFA> nfaStates, char c) {
+        Set<NFA> transitionStates = new HashSet<>();
+        for (NFA source : nfaStates) {
+            source.transition(c).stream().forEach(i -> transitionStates.add(nfa.getState(i)));
+        }
+        return transitionStates;
     }
 
 

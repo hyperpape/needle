@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -32,10 +33,11 @@ public class NFAToDFACompilerTest {
     @Test
     public void testSingleCharNFACompile() {
         NFA nfa = new NFA(false, 0);
-        List<NFA> postTransition = Collections.singletonList(new NFA(true, 0));
+        List<NFA> postTransition = Collections.singletonList(new NFA(true, 1));
         postTransition.get(0).computeEpsilonClosure();
         nfa.addTransitions(new CharRange('a', 'a'), postTransition);
         nfa.computeEpsilonClosure();
+        nfa.setStates(Arrays.asList(nfa, postTransition.get(0)));
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertEquals(2, dfa.statesCount());
         assertTrue(dfa.matches("a"));
