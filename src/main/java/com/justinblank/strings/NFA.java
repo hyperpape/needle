@@ -12,6 +12,7 @@ public class NFA {
     private List<NFA> states;
     private boolean accepting;
     private List<Pair<CharRange, List<NFA>>> transitions = new ArrayList<>();
+    private Set<NFA> epsilonClosure;
 
     protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
@@ -244,5 +245,45 @@ public class NFA {
             return other.state == state && other.root == root;
         }
         return false;
+    }
+
+    protected void computeEpsilonClosure() {
+        if (this.epsilonClosure == null) {
+
+            Set<NFA> closure = new HashSet<>();
+            Queue<NFA> pending = new LinkedList<>();
+            pending.add(this);
+            closure.add(this);
+            while (!pending.isEmpty()) {
+                NFA next = pending.poll();
+                closure.add(next);
+                for (Pair<CharRange, List<NFA>> transition : next.getTransitions()) {
+                    if (transition.getLeft().isEmpty()) {
+                        for (NFA reachable : transition.getRight()) {
+                            if (!closure.contains(reachable)) {
+                                pending.add(reachable);
+                                closure.add(reachable);
+                            }
+                        }
+                    }
+                }
+            }
+            this.epsilonClosure = closure;
+        }
+    }
+
+    /**
+     * Check a number of invariants.
+     *
+     * @throws IllegalStateException if the invariants are broken
+     */
+    protected void checkRep() {
+        for (NFA nfa : states) {
+            assert nfa.epsilonClosure != null : "NFA node " + nfa.state + " has null epsilon closure";
+            for (NFA reachable : nfa.epsilonClosure) {
+                assert states.contains(reachable) : "Epsilon transition to NFA node " + reachable.state + " not contained in states";
+            }
+            assert nfa.root != null : "NFA node " + state + " has null root";
+        }
     }
 }

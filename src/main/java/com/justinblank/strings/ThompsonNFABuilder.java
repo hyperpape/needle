@@ -33,6 +33,11 @@ class ThompsonNFABuilder {
             }
         }
         root.setStates(nfaStates);
+        for (NFA nfa : nfaStates) {
+            nfa.computeEpsilonClosure();
+        }
+        root.computeEpsilonClosure();
+        root.checkRep();
         return root;
     }
 
