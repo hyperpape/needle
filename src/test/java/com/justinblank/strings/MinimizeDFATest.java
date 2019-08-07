@@ -16,15 +16,16 @@ public class MinimizeDFATest {
     }
 
     private DFA fourStateMinimizableDFA() {
-        DFA dfa = new DFA(false);
-        DFA second1 = new DFA(false);
-        DFA second2 = new DFA(false);
-        DFA accepting = new DFA(true);
+        DFA dfa = DFA.root(false);
+        DFA second1 = new DFA(dfa, false, 1);
+        DFA second2 = new DFA(dfa, false, 2);
+        DFA accepting = new DFA(dfa, true, 3);
         dfa.addTransition(new CharRange('a', 'a'), second1);
         dfa.addTransition(new CharRange('b', 'b'), second2);
 
         second1.addTransition(new CharRange('c', 'c'), accepting);
         second2.addTransition(new CharRange('c', 'c'), accepting);
+        dfa.checkRep();
         return dfa;
     }
 
@@ -37,8 +38,8 @@ public class MinimizeDFATest {
 
     @Test
     public void testMinimizeMinimalDFA() {
-        DFA dfa = new DFA(false);
-        DFA second = new DFA(true);
+        DFA dfa = DFA.root(false);
+        DFA second = new DFA(dfa, true, 1);
         dfa.addTransition(new CharRange('a', 'a'), second);
 
         DFA minimized = MinimizeDFA.minimizeDFA(dfa);

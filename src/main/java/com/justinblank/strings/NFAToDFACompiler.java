@@ -9,6 +9,8 @@ import java.util.stream.Stream;
 public class NFAToDFACompiler {
 
     private Map<Set<NFA>, DFA> stateSets = new HashMap<>();
+    private int state = 1; // root will always be zero
+    private DFA root;
 
     private NFAToDFACompiler() {
     }
@@ -19,9 +21,9 @@ public class NFAToDFACompiler {
 
     private DFA _compile(NFA nfa) {
         Set<NFA> nfas = nfa.epsilonClosure();
-        DFA dfa = new DFA(nfas.stream().anyMatch(NFA::isAccepting));
-        addNFAStatesToDFA(nfas, dfa);
-        return dfa;
+        root = DFA.root(nfas.stream().anyMatch(NFA::isAccepting));
+        addNFAStatesToDFA(nfas, root);
+        return root;
     }
 
     private void addNFAStatesToDFA(Set<NFA> nfas, DFA dfa) {
@@ -37,12 +39,13 @@ public class NFAToDFACompiler {
             DFA targetDfa = stateSets.get(moves);
             if (targetDfa == null) {
                 boolean accepting = moves.stream().anyMatch(NFA::isAccepting);
-                targetDfa = new DFA(accepting);
+                targetDfa = new DFA(root, accepting, state++);
                 stateSets.put(moves, targetDfa);
                 addNFAStatesToDFA(moves, targetDfa);
             }
             dfa.addTransition(range, targetDfa);
         }
+        root.checkRep();
     }
 
     protected static List<CharRange> findCharRanges(List<NFA> nfas) {

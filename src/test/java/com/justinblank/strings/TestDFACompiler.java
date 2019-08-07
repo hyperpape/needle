@@ -12,7 +12,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledSimpleRegex() throws Exception {
-        DFA dfa = new DFA(true);
+        DFA dfa = new DFA(true, 0);
         dfa.addTransition(new CharRange('0', '9'), dfa);
         dfa.addTransition(new CharRange('A', 'Z'), dfa);
         dfa.addTransition(new CharRange('a', 'z'), dfa);
@@ -48,8 +48,8 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledDigitPlus() throws Exception {
-        DFA dfa = new DFA(false);
-        DFA accepting = new DFA(true);
+        DFA dfa = new DFA(false ,0);
+        DFA accepting = new DFA(true, 1);
         dfa.addTransition(new CharRange('0', '9'), accepting);
         accepting.addTransition(new CharRange('0', '9'), accepting);
 
@@ -63,7 +63,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledBMP() throws Exception {
-        DFA dfa = new DFA(true);
+        DFA dfa = new DFA(true, 1);
         dfa.addTransition(new CharRange('\u0600', '\u06FF'), dfa);
         Pattern pattern = DFACompiler.compile(dfa, "testDFACompiledBMP");
         assertTrue(pattern.matcher("\u0600").matches());

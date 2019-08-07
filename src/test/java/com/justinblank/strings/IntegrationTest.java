@@ -4,6 +4,7 @@ import com.justinblank.strings.RegexAST.Node;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class IntegrationTest {
@@ -16,11 +17,30 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testConcatenatedRangesWithRepetitionSearch() {
+        Node node = RegexParser.parse("[A-Za-z][A-Za-z0-9]*");
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
+        MatchResult result = dfa.search("ABC0123");
+        assertEquals(0, result.start);
+        assertEquals(7, result.end);
+    }
+
+    @Test
     public void testRanges() {
         Node node = RegexParser.parse("[A-Za-z]");
         DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("C"));
         assertTrue(dfa.matches("c"));
+        assertFalse(dfa.matches("5"));
+    }
+
+    @Test
+    public void testRangesSearch() {
+        Node node = RegexParser.parse("[A-Za-z]");
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
+        assertEquals(0, dfa.search("c").start);
+        assertEquals(1, dfa.search("c").end);
+        assertFalse(dfa.search("5").matched);
     }
 
     @Test
@@ -42,6 +62,29 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testDFARepetitionSearch() {
+        Node node = RegexParser.parse("C*");
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
+        assertTrue(dfa.search("").matched);
+        assertTrue(dfa.search("C").matched);
+        assertTrue(dfa.search("CCCCCC").matched);
+        assertTrue(dfa.search("DD").matched);
+        assertTrue(dfa.search("DDC").matched);
+        assertTrue(dfa.search("DDCCCCDD").matched);
+    }
+
+    @Test
+    public void testDFACountedRepetitionSearch() {
+        Node node = RegexParser.parse("C+");
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
+        assertTrue(dfa.search("C").matched);
+        assertTrue(dfa.search("CCCCCC").matched);
+        assertTrue(dfa.search("DDC").matched);
+        assertTrue(dfa.search("DDCCCCDD").matched);
+        assertFalse(dfa.search("DD").matched);
+    }
+
+    @Test
     public void testDFAAlternation() {
         Node node = RegexParser.parse("A|B");
         DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
@@ -51,12 +94,39 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testDFAAlternationSearch() {
+        Node node = RegexParser.parse("A|B");
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
+        assertTrue(dfa.search("A").matched);
+        assertTrue(dfa.search("B").matched);
+        MatchResult matchResult = dfa.search("AB");
+        assertEquals(0, matchResult.start);
+        assertEquals(1, matchResult.end);
+
+        matchResult = dfa.search("CDAB");
+        assertEquals(2, matchResult.start);
+        assertEquals(3, matchResult.end);
+    }
+
+    @Test
     public void testGroupedDFAAlternation() {
         Node node = RegexParser.parse("(AB)|(BA)");
         DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("BA"));
         assertFalse(dfa.matches("ABBA"));
+    }
+
+    @Test
+    public void testGroupedDFAAlternationSearch() {
+        Node node = RegexParser.parse("(AB)|(BA)");
+        DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
+        assertTrue(dfa.search("AB").matched);
+        assertTrue(dfa.search("BA").matched);
+
+        MatchResult result = dfa.search("ABBA");
+        assertEquals(0, result.start);
+        assertEquals(2, result.end);
     }
 
     @Test
@@ -71,6 +141,17 @@ public class IntegrationTest {
         assertTrue(dfa.matches("567"));
         assertFalse(dfa.matches(""));
         assertTrue(dfa.matches("32103210"));
+    }
+
+    @Test
+    public void testManyStateDFASearch() {
+        String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
+        DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.search("567").matched);
+        assertFalse(dfa.search("").matched);
+        assertTrue(dfa.search("32103210").matched);
     }
 
     @Test

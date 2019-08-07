@@ -12,7 +12,7 @@ public class TestDFA {
 
     @Test
     public void testDFAMatchingInterpreted() {
-        DFA dfa = new DFA(true);
+        DFA dfa = new DFA(true, 0);
         dfa.addTransition(new CharRange('0', '9'), dfa);
         dfa.addTransition(new CharRange('A', 'Z'), dfa);
         dfa.addTransition(new CharRange('a', 'z'), dfa);
@@ -34,10 +34,10 @@ public class TestDFA {
     }
 
     private DFA sampleDFA() {
-        DFA dfa = new DFA(false);
-        DFA second1 = new DFA(false);
-        DFA second2 = new DFA(false);
-        DFA accepting = new DFA(true);
+        DFA dfa = new DFA(false, 0);
+        DFA second1 = new DFA(false, 1);
+        DFA second2 = new DFA(false, 2);
+        DFA accepting = new DFA(true, 3);
         dfa.addTransition(new CharRange('a', 'a'), second1);
         dfa.addTransition(new CharRange('b', 'b'), second2);
 

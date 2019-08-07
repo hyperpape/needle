@@ -6,6 +6,8 @@ public class MatchResult {
     public final int start;
     public final int end;
 
+    protected static final MatchResult FAILURE = new MatchResult(false, 0, 0);
+
     MatchResult(boolean matched, int start, int end) {
         this.matched = matched;
         if (matched) {
@@ -17,5 +19,9 @@ public class MatchResult {
             this.start = -1000;
             this.end = -1000;
         }
+    }
+
+    static MatchResult failure() {
+        return FAILURE;
     }
 }

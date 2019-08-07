@@ -8,27 +8,38 @@ import java.util.stream.Collectors;
 // This implements Hopcroft's Minimization Algorithm
 class MinimizeDFA {
 
+    private int state = 1; // Account for the fact that root will be 0
+    private DFA root;
+
     public static DFA minimizeDFA(DFA dfa) {
+        MinimizeDFA minimizer = new MinimizeDFA();
         Set<Set<DFA>> partition = createPartition(dfa);
         Map<Set<DFA>, DFA> newDFAMap = new IdentityHashMap<>();
 
         for (DFA original : dfa.allStates()) {
-            DFA minimized = getOrCreateMinimizedState(partition, newDFAMap, original);
+            DFA minimized = minimizer.getOrCreateMinimizedState(partition, newDFAMap, original);
             for (Pair<CharRange, DFA> transition : original.getTransitions()) {
-                DFA next = getOrCreateMinimizedState(partition, newDFAMap, transition.getRight());
+                DFA next = minimizer.getOrCreateMinimizedState(partition, newDFAMap, transition.getRight());
                 minimized.addTransition(transition.getLeft(), next);
             }
         }
         DFA minimal = newDFAMap.get(target(partition, dfa));
         assert minimal.allStates().size() == partition.size();
+        minimal.checkRep();
         return minimal;
     }
 
-    private static DFA getOrCreateMinimizedState(Set<Set<DFA>> partition, Map<Set<DFA>, DFA> newDFAMap, DFA original) {
+    private DFA getOrCreateMinimizedState(Set<Set<DFA>> partition, Map<Set<DFA>, DFA> newDFAMap, DFA original) {
         Set<DFA> set = target(partition, original);
         DFA minimized = newDFAMap.get(set);
         if (minimized == null) {
-            minimized = new DFA(original.isAccepting());
+            if (root == null) {
+                minimized = DFA.root(original.isAccepting());
+                root = minimized;
+            }
+            else {
+                minimized = new DFA(root, original.isAccepting(), state++);
+            }
             newDFAMap.put(set, minimized);
         }
         return minimized;
