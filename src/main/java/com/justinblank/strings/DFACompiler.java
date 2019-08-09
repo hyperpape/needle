@@ -10,6 +10,8 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,12 +46,7 @@ public class DFACompiler {
     }
 
     public static Pattern compile(DFA dfa, String name) {
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        DFACompiler compiler = new DFACompiler(cw, name, dfa);
-        compiler.compile();
-
-        byte[] classBytes = cw.toByteArray();
+        byte[] classBytes = generateClassAsBytes(dfa, name);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(name, classBytes);
         Class<? extends Pattern> c = createPatternClass("Pattern"  + name, (Class<? extends Matcher>) matcherClass);
         try {
@@ -59,6 +56,19 @@ public class DFACompiler {
             // TODO: determine good exceptions/result types
             throw new RuntimeException(e);
         }
+    }
+
+    static byte[] generateClassAsBytes(DFA dfa, String name) {
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
+        DFACompiler compiler = new DFACompiler(cw, name, dfa);
+        compiler.compile();
+
+        return cw.toByteArray();
+    }
+
+    public static void writeClass(DFA dfa, String name, OutputStream os) throws IOException {
+        os.write(generateClassAsBytes(dfa, name));
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
