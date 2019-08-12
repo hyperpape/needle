@@ -10,6 +10,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -22,7 +23,6 @@ public class DFACompiler {
 
     protected static final String STATE_FIELD = "state";
     protected static final String CHAR_FIELD = "c";
-    protected static final String ACCEPTING_FIELD = "accepting";
     protected static final String LENGTH_FIELD = "length";
     protected static final String STRING_FIELD = "string";
     protected static final String INDEX_FIELD = "index";
@@ -81,7 +81,7 @@ public class DFACompiler {
         addFields();
         addCharConstants();
         addConstructor();
-        addIterMethod();
+        // addIterMethod();
         addMatchMethod();
         generateTransitionMethods();
         // current impl requires that accepted be called last
@@ -89,7 +89,6 @@ public class DFACompiler {
     }
 
     protected void addFields() {
-        this.classWriter.visitField(ACC_PRIVATE, ACCEPTING_FIELD, "Z", null, 0);
         this.classWriter.visitField(ACC_PRIVATE, INDEX_FIELD, "I", null,0);
         this.classWriter.visitField(ACC_PRIVATE, CHAR_FIELD, "C", null, null);
         this.classWriter.visitField(ACC_PRIVATE, STRING_FIELD, "Ljava/lang/String;", null, null);
@@ -102,21 +101,51 @@ public class DFACompiler {
 
         Label returnLabel = new Label();
         Label iterateLabel = new Label();
+        Label failLabel = new Label();
+
+
+        final int counterVar = 1;
+        final int lengthVar = 2;
+        final int stringVar = 3;
+        final int charVar = 4;
+
+        mv.visitInsn(ICONST_0);
+        mv.visitVarInsn(ISTORE, counterVar);
+
+        // push string to local var
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
+        mv.visitVarInsn(ASTORE, stringVar);
+        mv.visitVarInsn(ALOAD, stringVar);
+
+        // push string length to local var
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+        mv.visitVarInsn(ISTORE, lengthVar);
+        mv.visitVarInsn(ILOAD, lengthVar);
 
         mv.visitLabel(iterateLabel);
-        mv.visitVarInsn(ALOAD, 0);
 
-        // Move to next char, return if necessary
-        mv.visitMethodInsn(INVOKEVIRTUAL, className, "iterate", "()Z", false);
-        mv.visitInsn(ICONST_1);
+        // check state and return if need be
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        mv.visitInsn(ICONST_M1);
+        mv.visitJumpInsn(IF_ICMPEQ, failLabel);
+
+        // read next char, store in local var
+        mv.visitVarInsn(ILOAD, counterVar);
+        mv.visitVarInsn(ILOAD, lengthVar);
         mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
+        mv.visitVarInsn(ALOAD, stringVar);
+        mv.visitVarInsn(ILOAD, counterVar);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
+        mv.visitVarInsn(ISTORE, charVar);
+        mv.visitIincInsn(counterVar, 1);
 
         // dispatch to method associated with current state
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
         int labelCount = dfa.statesCount();
         Label[] stateLabels = new Label[labelCount];
-        Label failLabel = new Label();
         for (int i = 0; i < labelCount; i++) {
             stateLabels[i] = new Label();
         }
@@ -125,7 +154,8 @@ public class DFACompiler {
         for (int i = 0; i < labelCount; i++) {
             mv.visitLabel(stateLabels[i]);
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "()V", false);
+            mv.visitVarInsn(ILOAD, charVar);
+            mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "(C)V", false);
             mv.visitJumpInsn(GOTO, iterateLabel);
         }
 
@@ -137,16 +167,14 @@ public class DFACompiler {
         // check if the dfa had a match
         mv.visitLabel(returnLabel);
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "()V", false);
-        mv.visitIntInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, ACCEPTING_FIELD, "Z");
+        mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "()Z", false);
         mv.visitInsn(IRETURN);
         mv.visitMaxs(-1,-1);
         mv.visitEnd();
     }
 
     protected void addWasAcceptedMethod() {
-        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()V", null, null);
+        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
         BitSet acceptanceBits = new BitSet(dfaMethodMap.size());
         for (Map.Entry<DFA, Integer> e : dfaMethodMap.entrySet()) {
             if (e.getKey().isAccepting()) {
@@ -200,8 +228,7 @@ public class DFACompiler {
         mv.visitIntInsn(BIPUSH, 0);
         mv.visitLabel(returnLabel);
 
-        mv.visitFieldInsn(PUTFIELD, className, ACCEPTING_FIELD, "Z");
-        mv.visitInsn(RETURN);
+        mv.visitInsn(IRETURN);
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
     }
@@ -262,13 +289,10 @@ public class DFACompiler {
     }
 
     protected void generateTransitionMethod(DFA node, Integer transitionNumber) {
-        MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "()V", null, null);
+        MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(C)V", null, null);
 
         Label returnLabel = new Label();
         Label failLabel = new Label();
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, CHAR_FIELD, "C");
-        mv.visitVarInsn(ISTORE, 1);
         List<Pair<CharRange, DFA>> transitions = node.getTransitions();
         if (!transitions.isEmpty()) {
             if (transitions.size() > 1 || !transitions.get(0).getLeft().isSingleCharRange()) {
@@ -418,14 +442,6 @@ public class DFACompiler {
         mw.visitVarInsn(ALOAD, 1);
         mw.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
         mw.visitFieldInsn(PUTFIELD, className, LENGTH_FIELD, "I");
-        mw.visitVarInsn(ALOAD, 0);
-        if (dfa.isAccepting()) {
-            mw.visitInsn(ICONST_1);
-        }
-        else {
-            mw.visitInsn(ICONST_0);
-        }
-        mw.visitFieldInsn(PUTFIELD, className, ACCEPTING_FIELD, "Z");
         mw.visitInsn(RETURN);
         // this code uses a maximum of one stack element and one local variable
         mw.visitMaxs(1, 1);
@@ -454,6 +470,16 @@ public class DFACompiler {
 
     protected DFA getDFA() {
         return dfa;
+    }
+
+    public static void main(String[] args) {
+        try {
+            DFA dfa = NFAToDFACompiler.compile(new ThompsonNFABuilder().build(RegexParser.parse("[0-9]+")));
+            DFACompiler.writeClass(dfa, "DigitPattern", new FileOutputStream("/home/justin/code/BytecodeRegex/target/DigitPattern.class"));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 
