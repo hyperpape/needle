@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class MinimizeDFATest {
 
@@ -44,5 +45,34 @@ public class MinimizeDFATest {
 
         DFA minimized = MinimizeDFA.minimizeDFA(dfa);
         assertEquals(minimized.statesCount(), 2);
+    }
+
+    @Test
+    public void testMinimizeDFAHandlesSingleCharLiteral() {
+        assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("a")).matches("a"));
+    }
+
+    @Test
+    public void testMinimizeDFAHandlesMultiCharLiteral() {
+        assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("ab")).matches("ab"));
+    }
+
+    @Test
+    public void testMinimizeDFAHandlesAlternation() {
+        assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("[0-9]")).matches("2"));
+    }
+
+    @Test
+    public void testMinimizeDFAHandlesRepetition() {
+        DFA dfa = MinimizeDFA.minimizeDFA(DFA.createDFA("a*"));
+        assertTrue(dfa.matches("a"));
+    }
+
+    @Test
+    public void testCountedRepetition() {
+        DFA original = DFA.createDFA("1{0,2}");
+        assertTrue(original.matches("1"));
+        DFA dfa = MinimizeDFA.minimizeDFA(original);
+        assertTrue(dfa.matches("1"));
     }
 }
