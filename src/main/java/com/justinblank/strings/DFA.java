@@ -43,6 +43,11 @@ public class DFA {
         this.root.states.add(this);
     }
 
+    public static DFA createDFA(String regex) {
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
+        return NFAToDFACompiler.compile(nfa);
+    }
+
     protected void addTransition(CharRange charRange, DFA dfa) {
         assert !charRange.isEmpty() : "cannot add an epsilon transition to a DFA";
         transitions.add(Pair.of(charRange, dfa));
