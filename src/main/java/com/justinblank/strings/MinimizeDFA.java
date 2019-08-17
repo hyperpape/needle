@@ -11,7 +11,7 @@ class MinimizeDFA {
     private int state = 1; // Account for the fact that root will be 0
     private DFA root;
 
-    public static DFA minimizeDFA(DFA dfa) {
+    protected static DFA minimizeDFA(DFA dfa) {
         MinimizeDFA minimizer = new MinimizeDFA();
         Set<Set<DFA>> partition = createPartition(dfa);
         Map<Set<DFA>, DFA> newDFAMap = new IdentityHashMap<>();
@@ -23,17 +23,18 @@ class MinimizeDFA {
                 minimized.addTransition(transition.getLeft(), next);
             }
         }
-        DFA minimal = newDFAMap.get(target(partition, dfa));
-        assert minimal.allStates().size() == partition.size();
+        DFA minimal = newDFAMap.get(getContainingPartition(partition, dfa));
+        assert minimal.statesCount() == partition.size();
         minimal.checkRep();
         return minimal;
     }
 
     private DFA getOrCreateMinimizedState(Set<Set<DFA>> partition, Map<Set<DFA>, DFA> newDFAMap, DFA original) {
-        Set<DFA> set = target(partition, original);
+        Set<DFA> set = getContainingPartition(partition, original);
         DFA minimized = newDFAMap.get(set);
         if (minimized == null) {
             if (root == null) {
+                assert original.isRoot();
                 minimized = DFA.root(original.isAccepting());
                 root = minimized;
             }
@@ -50,8 +51,12 @@ class MinimizeDFA {
         Set<DFA> accepting = dfa.acceptingStates();
         Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
         nonAccepting.removeAll(accepting);
-        partition.add(accepting);
-        partition.add(nonAccepting);
+        if (!accepting.isEmpty()) {
+            partition.add(accepting);
+        }
+        if (!nonAccepting.isEmpty()) {
+            partition.add(nonAccepting);
+        }
         boolean changed = true;
         while (changed) {
             changed = false;
@@ -108,8 +113,8 @@ class MinimizeDFA {
             for (Pair<CharRange, DFA> secondTransition : second.getTransitions()) {
                 if (transition.getLeft().equals(secondTransition.getLeft())) {
                     DFA target = transition.getRight();
-                    DFA secondTarget = transition.getRight();
-                    if (target(partition, target) == target(partition, secondTarget)) {
+                    DFA secondTarget = secondTransition.getRight();
+                    if (getContainingPartition(partition, target) == getContainingPartition(partition, secondTarget)) {
                         matched = true;
                         break;
                     }
@@ -122,7 +127,7 @@ class MinimizeDFA {
         return true;
     }
 
-    protected static Set<DFA> target(Set<Set<DFA>> partition, DFA dfa) {
+    protected static Set<DFA> getContainingPartition(Set<Set<DFA>> partition, DFA dfa) {
         for (Set<DFA> set : partition) {
             if (set.contains(dfa)) {
                 return set;

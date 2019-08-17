@@ -50,6 +50,9 @@ public class DFA {
 
     protected void addTransition(CharRange charRange, DFA dfa) {
         assert !charRange.isEmpty() : "cannot add an epsilon transition to a DFA";
+        if (transitions.stream().anyMatch(t -> t.getLeft().equals(charRange))) {
+            return;
+        }
         transitions.add(Pair.of(charRange, dfa));
         // we trust that our character ranges don't overlap
         transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
@@ -230,5 +233,9 @@ public class DFA {
         assert states.stream().map(DFA::getStateNumber).count() == states.size();
         assert states.contains(this) : "root not included in states";
         assert transitions.stream().map(Pair::getRight).allMatch(dfa -> states.contains(dfa));
+    }
+
+    protected boolean isRoot() {
+        return this == root;
     }
 }
