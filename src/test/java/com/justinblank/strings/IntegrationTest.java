@@ -26,6 +26,18 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testAlternationWithRepetitionDFAMatchesOneRepetition() {
+        DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
+        assertTrue(dfa.matches("123"));
+    }
+
+    @Test
+    public void testAlternationWithRepetitionDFAMatchesMultipleRepetitions() {
+        DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
+        assertTrue(dfa.matches("123234234123"));
+    }
+
+    @Test
     public void testRanges() {
         Node node = RegexParser.parse("[A-Za-z]");
         DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
