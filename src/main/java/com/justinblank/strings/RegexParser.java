@@ -9,6 +9,7 @@ public class RegexParser {
     private int index = 0;
     private int parenDepth = 0;
     private String regex;
+    private Stack<Node> nodes = new Stack<>();
 
     protected RegexParser(String regex) {
         this.regex = regex;
@@ -18,107 +19,137 @@ public class RegexParser {
         return new RegexParser(regex)._parse();
     }
 
-    protected Node _parse() {
-        Node last = null;
+    private Node _parse() {
         while (index < regex.length()) {
             char c = takeChar();
-            Node current = null;
 
             switch (c) {
                 case '(':
-                    parenDepth++;
-                    current = _parse();
-                    if (parenDepth > 0 && peekRightParen()) {
-                        return current;
-                    }
-                    if (peekStar()) {
-                        current = new Repetition(current);
-                    }
-                    else if (peekPlus()) {
-                        current = new Concatenation(current, new Repetition(current));
-                    }
-                    if (last != null) {
-                        last = new Concatenation(last, current);
-                    } else {
-                        last = current;
-                    }
+                    nodes.push(LParenNode.getInstance());
                     break;
                 case '{':
+                    if (nodes.isEmpty()) {
+                        throw new IllegalStateException();
+                    }
                     int left = consumeInt();
                     char next = takeChar();
                     if (next != ',') {
                         throw new IllegalStateException("Expected ',' at " + index + ", but found " + next);
                     }
                     int right = consumeInt();
-                    last = new CountedRepetition(last, left, right);
-                    // TODO: error handling
+                    nodes.push(new CountedRepetition(nodes.pop(), left, right));
                     next = takeChar();
                     if (next != '}') {
-                        throw new IllegalStateException("Expected '}' at " + index + ", but found " + next);
+                        throw new IllegalStateException();
                     }
                     break;
                 case '?':
-                    if (last == null) {
-                        throw new IllegalStateException("? cannot be the first character in a regex");
+                    if (nodes.isEmpty()) {
+                        throw new IllegalStateException("");
                     }
-                    last = new CountedRepetition(last, 0, 1);
+                    nodes.push(new CountedRepetition(nodes.pop(), 0, 1));
                     break;
                 case '[':
-                    current = buildCharSet();
-                    if (peekStar()) {
-                        current = new Repetition(current);
-                    }
-                    else if (peekPlus()) {
-                        current = new Concatenation(current, new Repetition(current));
-                    }
-                    if (last != null) {
-                        last = new Concatenation(last, current);
-                    } else {
-                        last = current;
-                    }
+                    nodes.push(buildCharSet());
                     break;
                 case '+':
-                    last = new Concatenation(last, new Repetition(last));
+                    if (nodes.isEmpty()) {
+                        throw new IllegalStateException();
+                    }
+                    Node lastNode = nodes.pop();
+                    nodes.push(new Concatenation(lastNode, new Repetition(lastNode)));
                     break;
                 case '*':
-                    last = new Repetition(last);
-                    if (peekRightParen()) {
-                        return last;
-                    }
+                    nodes.push(new Repetition(nodes.pop()));
                     break;
                 case '|':
-                    last = new Alternation(last, _parse());
+                    assertNonEmpty("");
+                    Node last = nodes.peek();
+                    if (last instanceof CharRangeNode || last instanceof Concatenation || last instanceof RParenNode) {
+                        nodes.push(new Alternation(last, null));
+                    }
                     break;
                 case '}':
-                    throw new IllegalStateException("Encountered unmatched '}' char at index" + index);
+                    throw new IllegalStateException("Unbalanced '}' character");
                 case ')':
-                    if (parenDepth == 0) {
-                        throw new IllegalStateException("Encountered unmatched ')' char at index " + index);
-                    }
-                    else if (last != null) {
-                        return last;
-                    }
-                    // TODO: this fall-through is intentional?
+                    // TODO not strong enough check
+                    collapseParenNodes();
+                    break;
                 default:
-                    current = new CharRangeNode(c, c);
-                    if (last != null) {
-                        last = new Concatenation(last, current);
-                    } else {
-                        last = current;
+                    if (nodes.isEmpty()) {
+                        nodes.push(new CharRangeNode(c, c));
                     }
-                    if (peekRightParen()) {
-                        return last;
+                    else if (nodes.peek() instanceof CharRangeNode || nodes.peek() instanceof Concatenation) {
+                        nodes.push(new Concatenation(nodes.pop(), new CharRangeNode(c, c)));
+                    }
+                    else {
+                        nodes.push(new CharRangeNode(c, c));
                     }
             }
         }
-        if (parenDepth > 0) {
-            throw new IllegalStateException("Parsing failed: unmatched (");
+        Node node = nodes.pop();
+        if (node instanceof LParenNode) {
+            throw new IllegalStateException("Unbalanced '('");
         }
-        // TODO: handle empty regex
-        else if (last == null) {
-            throw new IllegalStateException("Parsing failed: empty regex");
+        while (!nodes.isEmpty()) {
+            Node next = nodes.pop();
+            if (next instanceof Alternation && ((Alternation) next).right == null) {
+                Alternation alt = (Alternation) next;
+                assertNonEmpty("Alternation needed something to alternate");
+                Node nextNext = nodes.pop();
+                node = new Alternation(node, nextNext);
+            }
+            else {
+                node = new Concatenation(next, node);
+            }
         }
-        return last;
+        return node;
+    }
+
+    private void collapseParenNodes() {
+        assertNonEmpty("found unbalanced ')'");
+        Node node = null;
+        while (!(nodes.peek() instanceof LParenNode)) {
+            Node next = nodes.pop();
+            if (node == null) {
+                node = next;
+            }
+            else if (next instanceof Alternation) {
+                Alternation alt = (Alternation) next;
+                assertNonEmpty("found '|' with no preceding content");
+                Node nextNext = nodes.pop();
+                if (nextNext instanceof LParenNode) {
+                    throw new IllegalStateException("");
+                }
+                node = new Alternation(alt.left, node);
+            }
+            else {
+                node = new Concatenation(next, node);
+            }
+            assertNonEmpty("found unbalanced ')'");
+        }
+        nodes.pop(); // remove the left paren
+        if (node != null) {
+            nodes.push(node);
+        }
+    }
+
+    private void assertNonEmpty(String s) {
+        if (nodes.isEmpty()) {
+            throw new IllegalStateException(s);
+        }
+    }
+
+    private void addAlternationToNodes(Stack<Node> nodes) {
+        if (nodes.isEmpty()) {
+            throw new IllegalStateException();
+        }
+        Node right = nodes.pop();
+        if (nodes.isEmpty()) {
+            throw new IllegalStateException();
+        }
+        Node left = nodes.pop();
+        nodes.push(new Alternation(left, right));
     }
 
     private char takeChar() {
@@ -234,5 +265,13 @@ public class RegexParser {
             return true;
         }
         return false;
+    }
+
+    enum ParseContext {
+        PAREN,
+        ALTERNATION,
+        RANGE,
+        CHARS,
+        COUNTED
     }
 }

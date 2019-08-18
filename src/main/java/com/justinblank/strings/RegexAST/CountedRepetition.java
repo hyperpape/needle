@@ -24,6 +24,11 @@ public class CountedRepetition extends Node {
     }
 
     @Override
+    protected int depth() {
+        return 1 + node.depth();
+    }
+
+    @Override
     public Factorization bestFactors() {
         return Factorization.empty();
     }

@@ -9,6 +9,11 @@ import static org.junit.Assert.assertFalse;
 
 public class IntegrationTest {
 
+    // TODO: Parser change fixed a bug. Previous version had fewer states than it should've, larger state space causes
+    //  massive slowdown, see if this can be fixed
+    public static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)){1,24}";
+    // public static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,24}";
+
     @Test
     public void testConcatenatedRangesWithRepetition() {
         Node node = RegexParser.parse("[A-Za-z][A-Za-z0-9]*");
@@ -121,12 +126,55 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testDFAAlternationThreeOptions() {
+        DFA dfa = DFA.createDFA("A|B|C");
+        assertTrue(dfa.matches("B"));
+    }
+
+    @Test
     public void testGroupedDFAAlternation() {
         Node node = RegexParser.parse("(AB)|(BA)");
         DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("BA"));
         assertFalse(dfa.matches("ABBA"));
+    }
+
+    @Test
+    public void testDFAAlternationThreeGroupsSameSize() {
+        DFA dfa = DFA.createDFA("(AB)|(BC)|(CD)");
+        assertTrue(dfa.matches("BC"));
+    }
+
+    @Test
+    public void testDFAAlternationThreeGroupsDifferentSizes() {
+        DFA dfa = DFA.createDFA("(AB)|(BC)|(CDE)");
+        assertTrue(dfa.matches("BC"));
+    }
+
+    @Test
+    public void testDFAAlternationGroupsWithRepetition() {
+        DFA dfa = DFA.createDFA("((AB)|(BC)){1,2}");
+        assertFalse(dfa.matches(""));
+        assertTrue(dfa.matches("AB"));
+        assertFalse(dfa.matches("DE"));
+        assertTrue(dfa.matches("ABBC"));
+        assertFalse(dfa.matches("ABBCAB"));
+    }
+
+    @Test
+    public void testGroupedDFAAlternationWithDifferentSizedGroupsAndRepetitions() {
+        String regex = "((A)|(B)|(CD)){1,2}";
+        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
+        assertTrue(nfa.matches("AB"));
+        DFA dfa = DFA.createDFA(regex);
+        assertFalse(dfa.matches(""));
+        assertTrue(dfa.matches("A"));
+        assertTrue(dfa.matches("B"));
+        assertTrue(dfa.matches("CD"));
+
+        assertTrue(dfa.matches("AB"));
+        assertTrue(dfa.matches("ACD"));
     }
 
     @Test
@@ -143,16 +191,16 @@ public class IntegrationTest {
 
     @Test
     public void testManyStateRegex() {
-        String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
+        String regexString = MANY_STATE_REGEX_STRING;
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("567"));
-        assertTrue(nfa.matches("32103210"));
+        assertTrue(nfa.matches("456"));
+        assertTrue(nfa.matches("234234"));
         assertFalse(nfa.matches(""));
         DFA dfa = NFAToDFACompiler.compile(nfa);
-        assertTrue(dfa.matches("567"));
+        assertTrue(dfa.matches("456"));
         assertFalse(dfa.matches(""));
-        assertTrue(dfa.matches("32103210"));
+        assertTrue(dfa.matches("234234"));
     }
 
     @Test

@@ -20,6 +20,11 @@ public class Concatenation extends Node {
         return head.minLength() + tail.minLength();
     }
 
+    @Override
+    protected int depth() {
+        return 1 + Math.max(head.depth(), tail.depth());
+    }
+
     public Factorization bestFactors() {
         Factorization left = head.bestFactors();
         Factorization right = tail.bestFactors();

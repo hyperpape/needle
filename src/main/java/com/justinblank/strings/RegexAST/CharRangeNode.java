@@ -23,6 +23,11 @@ public class CharRangeNode extends Node {
         return 1;
     }
 
+    @Override
+    protected int depth() {
+        return 0;
+    }
+
     public Factorization bestFactors() {
         if (this.range.getStart() == this.range.getEnd()) {
             return Factorization.fromChar(this.range.getStart());
