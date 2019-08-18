@@ -16,7 +16,8 @@ public class NFAToDFACompiler {
     }
 
     public static DFA compile(NFA nfa) {
-        return new NFAToDFACompiler()._compile(nfa);
+        DFA dfa = new NFAToDFACompiler()._compile(nfa);
+        return MinimizeDFA.minimizeDFA(dfa);
     }
 
     private DFA _compile(NFA nfa) {
