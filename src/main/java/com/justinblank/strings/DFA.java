@@ -225,14 +225,23 @@ public class DFA {
      * @throws IllegalStateException if the invariants are broken
      */
     protected void checkRep() {
-        assert states.stream().
-                flatMap(dfa -> dfa.getTransitions().stream()).
-                map(Pair::getRight).
-                allMatch(reachable -> states.contains(reachable)) : "Some state was unreachable";
+        assert allStatesReachable() : "Some state was unreachable";
         assert states.stream().allMatch(dfa -> dfa.root == this);
         assert states.stream().map(DFA::getStateNumber).count() == states.size();
         assert states.contains(this) : "root not included in states";
         assert transitions.stream().map(Pair::getRight).allMatch(dfa -> states.contains(dfa));
+    }
+
+    private boolean allStatesReachable() {
+        for (DFA dfa : states) {
+            for (Pair<CharRange, DFA> transition : dfa.transitions) {
+                DFA target = transition.getRight();
+                if (target.stateNumber > states.size() || states.get(target.stateNumber) != target) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     protected boolean isRoot() {
