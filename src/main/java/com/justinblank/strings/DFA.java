@@ -209,7 +209,7 @@ public class DFA {
 
     @Override
     public int hashCode() {
-        return Objects.hash(stateNumber);
+        return stateNumber;
     }
 
     /**
