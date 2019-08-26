@@ -19,6 +19,10 @@ public class NFA {
         this.state = index;
     }
 
+    public static NFA createNFA(String regex) {
+        return ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
+    }
+
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
         transitions.add(Pair.of(charRange, nfas));
         // we trust that our character ranges don't overlap
