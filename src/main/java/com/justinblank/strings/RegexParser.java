@@ -17,7 +17,16 @@ public class RegexParser {
     }
 
     public static Node parse(String regex) {
-        return new RegexParser(regex)._parse();
+        try {
+            return new RegexParser(regex)._parse();
+        }
+        catch (RegexSyntaxException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            // Any other exception is a bug, wrap and rethrow
+            throw new RegexSyntaxException("Unexpected error while parsing regex ' " + regex + "' ", e);
+        }
     }
 
     private Node _parse() {
@@ -25,6 +34,10 @@ public class RegexParser {
             char c = takeChar();
 
             switch (c) {
+                case '^':
+                    throw new RegexSyntaxException("'^' not supported yet");
+                case '$':
+                    throw new RegexSyntaxException("'$' not supported yet");
                 case '(':
                     nodes.push(LParenNode.getInstance());
                     break;
@@ -71,6 +84,9 @@ public class RegexParser {
                     collapseLiterals();
                     Node last = nodes.pop();
                     nodes.push(new Alternation(last, null));
+                    break;
+                case '\\':
+                    nodes.push(parseEscapeSequence());
                     break;
                 case '}':
                     throw new RegexSyntaxException("Unbalanced '}' character");
@@ -186,6 +202,90 @@ public class RegexParser {
         }
     }
 
+    private Node parseEscapeSequence() {
+        if (index >= regex.length()) {
+            throw new RegexSyntaxException("'\' character with nothing following it at index" + (index - 1));
+        }
+        char c = takeChar();
+        switch (c) {
+            case 'a': {
+                return new CharRangeNode('\u0007', '\u0007');
+            }
+            case 'A': {
+                throw new RegexSyntaxException("\\A not supported yet");
+            }
+            case 'B': {
+                throw new RegexSyntaxException("\\B not supported yet");
+            }
+            case 'b': {
+                throw new RegexSyntaxException("\\b not supported yet");
+            }
+            case 'c': {
+                throw new RegexSyntaxException("\\c not supported yet");
+            }
+            case 'd': {
+                return new CharRangeNode('0', '9');
+            }
+            case 'D': {
+                return Alternation.complement(List.of(new CharRangeNode('0', '9')));
+            }
+            case 'e': {
+                return new CharRangeNode('\u001B', '\u001B');
+            }
+            case 'f': {
+                return new CharRangeNode('\u000C', '\u000C');
+            }
+            case 'G': {
+                throw new RegexSyntaxException("\\G not supported yet");
+            }
+            case 'h': {
+                return Alternation.ofChars(" \u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\200a\u202f\u205f\u3000");
+            }
+            case 'p': {
+                throw new RegexSyntaxException("\\p not supported yet");
+            }
+            case 's': {
+                return Alternation.ofChars(" \t\n\u000B\f\r");
+            }
+            case 'S': {
+                return Alternation.complement(" \t\n\u000B\f\r");
+            }
+            case 't': {
+                return new CharRangeNode('\t', '\t');
+            }
+            case 'w': {
+                var digits = new CharRangeNode('0', '9');
+                var alpha1 = new CharRangeNode('a', 'z');
+                var alpha2 = new CharRangeNode('A', 'Z');
+                var underscore = new CharRangeNode('_', '_');
+                return new Alternation(digits, new Alternation(underscore, new Alternation(alpha1, alpha2)));
+            }
+            case 'W': {
+                var digits = new CharRangeNode('0', '9');
+                var alpha1 = new CharRangeNode('a', 'z');
+                var alpha2 = new CharRangeNode('A', 'Z');
+                var underscore = new CharRangeNode('_', '_');
+                return Alternation.complement(List.of(digits, underscore, alpha1, alpha2));
+            }
+            case 'x': {
+                return parseHexadecimal();
+            }
+            case 'Z': {
+                throw new RegexSyntaxException("\\Z not supported yet");
+            }
+            case 'z': {
+                throw new RegexSyntaxException("\\z not supported yet");
+            }
+            case '0': {
+                return parseOctal();
+            }
+            case '\\': {
+                return new CharRangeNode('\\', '\\');
+            }
+        }
+        throw new RegexSyntaxException("Escape with unrecognized escaped character: '" + c + "'");
+    }
+
     private char takeChar() {
         return regex.charAt(index++);
     }
@@ -206,6 +306,46 @@ public class RegexParser {
             throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
         }
         throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
+    }
+
+    private Node parseOctal() {
+        int count = 0;
+        var str = new StringBuilder();
+        while (count < 4 && peekOctal()) {
+            var c = takeChar();
+            count++;
+            str.append(c);
+        }
+        if (count > 3) {
+            throw new RegexSyntaxException("Wrong number of hex chars: " + count);
+        }
+        if (count > 2) {
+            char first = str.charAt(0);
+            if (first > '3') {
+                throw new RegexSyntaxException("Octals must not be larger than 0377");
+            }
+        }
+        if (count == 0) {
+            throw new RegexSyntaxException("Illegal octal escape at index " + (index - 1));
+        }
+        int i = Integer.decode("0" + str);
+        return new CharRangeNode((char) i, (char) i);
+    }
+
+    private Node parseHexadecimal() {
+        int count = 0;
+        var str = new StringBuilder();
+        while (count < 4 && peekHex()) {
+            var c = takeChar();
+            count++;
+            str.append(c);
+        }
+        // TODO: figure out syntax
+        if (count != 2) {
+            throw new IllegalStateException("Wrong number of hex chars: " + count);
+        }
+        int i = Integer.decode("0x" + str);
+        return new CharRangeNode((char) i, (char) i);
     }
 
     private Node buildCharSet() {
@@ -295,5 +435,64 @@ public class RegexParser {
         List<CharRange> charRanges = new ArrayList<>(ranges);
         characters.stream().map(c -> new CharRange(c, c)).forEach(charRanges::add);
         return CharRange.compact(charRanges);
+    }
+
+    private boolean peekStar() {
+        if (index < regex.length() && regex.charAt(index) == '*') {
+            index++;
+            return true;
+        }
+        return false;
+    }
+
+    private boolean peekPlus() {
+        if (index < regex.length() && regex.charAt(index) == '+') {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean peekChar() {
+        return index < regex.length();
+    }
+
+    private boolean peekOctal() {
+        if (index < regex.length()) {
+            char c = regex.charAt(index);
+            if (c >= '0' && c <= '7') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean peekHex() {
+        if (index < regex.length()) {
+            char c = regex.charAt(index);
+            if (c >= '0' && c <= '9') {
+                return true;
+            }
+            if (c >= 'A' && c <= 'F') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean tryTakeRightParen() {
+        if (parenDepth > 0 && index < regex.length() && regex.charAt(index) == ')') {
+            index++;
+            parenDepth--;
+            return true;
+        }
+        return false;
+    }
+
+    enum ParseContext {
+        PAREN,
+        ALTERNATION,
+        RANGE,
+        CHARS,
+        COUNTED
     }
 }

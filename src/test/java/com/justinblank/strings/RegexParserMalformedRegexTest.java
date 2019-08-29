@@ -1,11 +1,15 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.regex.Pattern;
 
 import static com.justinblank.strings.RegexParser.parse;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 public class RegexParserMalformedRegexTest {
 
@@ -150,6 +154,36 @@ public class RegexParserMalformedRegexTest {
     @Test(expected = RegexSyntaxException.class)
     public void testPlusLeading() {
         Node node = parse("+a");
+    }
+
+    @Test
+    public void testBadEscapes() {
+        char[] badChars = new char[]{'A', 'b', 'B', 'c', 'C', 'E', 'F', 'g', 'G', 'H', 'i', 'I', 'j', 'J', 'k', 'K',
+                'l', 'L', 'm', 'M', 'n', 'N', 'o', 'O', 'p', 'P', 'q', 'Q', 'r', 'R', 'T', 'u', 'U', 'v', 'V', 'X',
+                'y', 'Y', 'z', 'Z'};
+        for (char c : badChars) {
+            expectError("\\" + c);
+        }
+    }
+
+    @Test
+    public void testFailsOddNumberOfBackslashes() {
+        for (int i = 1; i < 20; i += 2) {
+            String escapes = "\\".repeat(i);
+            expectError(escapes);
+            expectError("abcd" + escapes);
+
+        }
+    }
+
+    public static void expectError(String regexString) {
+        try {
+            NFA.createNFA(regexString);
+        }
+        catch (RegexSyntaxException e) {
+            return;
+        }
+        Assert.fail("Expected RegexSyntaxException from regex: '" + regexString + "'");
     }
 
 }

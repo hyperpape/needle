@@ -50,7 +50,6 @@ public class IntegrationTest {
         dfa = DFA.createDFA("[^A-Za-z][A-Za-z0-9]*");
         result = dfa.search("%ABC0123");
         assertEquals(MatchResult.success(0, 8), result);
-
     }
 
     @Test
