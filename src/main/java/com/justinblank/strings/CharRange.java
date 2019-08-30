@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-public class CharRange {
+public class CharRange implements Comparable<CharRange> {
     private final char start;
     private final char end;
     private final boolean empty;
@@ -141,5 +141,20 @@ public class CharRange {
     @Override
     public int hashCode() {
         return Objects.hash(start, end);
+    }
+
+    @Override
+    public int compareTo(CharRange o) {
+        if (isEmpty()) {
+            return o.isEmpty() ? 0 : -1;
+        }
+        else if (o.isEmpty()) {
+            return 1;
+        }
+        int cmp = start - o.start;
+        if (cmp == 0) {
+            cmp = end - o.end;
+        }
+        return cmp;
     }
 }

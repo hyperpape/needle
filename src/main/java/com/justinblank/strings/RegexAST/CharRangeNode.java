@@ -3,7 +3,7 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.CharRange;
 import com.justinblank.strings.Factorization;
 
-public class CharRangeNode extends Node {
+public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
 
     private final CharRange range;
 
@@ -30,5 +30,10 @@ public class CharRangeNode extends Node {
 
     public Factorization bestFactors() {
         return Factorization.fromRange(this.range.getStart(), this.range.getEnd());
+    }
+
+    @Override
+    public int compareTo(CharRangeNode o) {
+        return range.compareTo(o.range);
     }
 }
