@@ -37,7 +37,9 @@ public final class SearchMethods {
         else if (allAscii(strings)) {
             return AsciiAhoCorasickBuilder.buildAhoCorasick(strings);
         }
-        throw new UnsupportedOperationException("Multistring matching is not yet implemented for non-ascii patterns");
+        else {
+            return UnicodeAhoCorasickBuilder.buildAhoCorasick(strings);
+        }
     }
 
     // I keep double-checking StringUtils for where I missed this

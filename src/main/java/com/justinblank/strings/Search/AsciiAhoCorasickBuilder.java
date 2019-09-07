@@ -3,7 +3,7 @@ package com.justinblank.strings.Search;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AsciiAhoCorasickBuilder {
+class AsciiAhoCorasickBuilder {
 
     ASCIITrie root;
     private List<ASCIITrie> nodes = new ArrayList<>();

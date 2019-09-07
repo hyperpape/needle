@@ -1,5 +1,6 @@
 package com.justinblank.strings.Search;
 
+// Note that the name refers to the patterns this class works with. It should match non-ASCII strings.
 class ASCIIAhoCorasick implements SearchMethod {
 
     private final ASCIITrie trie;
