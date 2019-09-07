@@ -117,7 +117,7 @@ class ThompsonNFABuilder {
             nfaStates.add(end);
         }
         else {
-            throw new IllegalStateException("");
+            throw new IllegalStateException("Unhandled ast node type=" + ast.getClass().getSimpleName());
         }
         return nfa;
     }

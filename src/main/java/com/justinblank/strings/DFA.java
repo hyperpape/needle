@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -44,8 +45,14 @@ public class DFA {
     }
 
     public static DFA createDFA(String regex) {
-        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
-        return NFAToDFACompiler.compile(nfa);
+        Node node = RegexParser.parse(regex);
+        try {
+            NFA nfa = ThompsonNFABuilder.createNFA(node);
+            return NFAToDFACompiler.compile(nfa);
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to create dfa from string '" + regex + "'", e);
+        }
     }
 
     protected void addTransition(CharRange charRange, DFA dfa) {
