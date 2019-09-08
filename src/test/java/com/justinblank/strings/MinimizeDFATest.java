@@ -2,6 +2,8 @@ package com.justinblank.strings;
 
 import org.junit.Test;
 
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -12,8 +14,8 @@ public class MinimizeDFATest {
     @Test
     public void testPartition() {
         DFA dfa = fourStateMinimizableDFA();
-        Set<Set<DFA>> partition = MinimizeDFA.createPartition(dfa);
-        assertEquals(partition.size(), 3);
+        Map<DFA, Set<DFA>> partition = MinimizeDFA.createPartition(dfa);
+        assertEquals(new HashSet<>(partition.values()).size(), 3);
     }
 
     private DFA fourStateMinimizableDFA() {

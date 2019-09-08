@@ -13,7 +13,7 @@ class MinimizeDFA {
 
     protected static DFA minimizeDFA(DFA dfa) {
         MinimizeDFA minimizer = new MinimizeDFA();
-        Set<Set<DFA>> partition = createPartition(dfa);
+        Map<DFA, Set<DFA>> partition = createPartition(dfa);
         Map<Set<DFA>, DFA> newDFAMap = new IdentityHashMap<>();
 
         for (DFA original : dfa.allStates()) {
@@ -23,14 +23,14 @@ class MinimizeDFA {
                 minimized.addTransition(transition.getLeft(), next);
             }
         }
-        DFA minimal = newDFAMap.get(getContainingPartition(partition, dfa));
-        assert minimal.statesCount() == partition.size();
+        DFA minimal = newDFAMap.get(partition.get(dfa));
+        assert minimal.statesCount() == new HashSet<>(partition.values()).size();
         minimal.checkRep();
         return minimal;
     }
 
-    private DFA getOrCreateMinimizedState(Set<Set<DFA>> partition, Map<Set<DFA>, DFA> newDFAMap, DFA original) {
-        Set<DFA> set = getContainingPartition(partition, original);
+    private DFA getOrCreateMinimizedState(Map<DFA, Set<DFA>> partition, Map<Set<DFA>, DFA> newDFAMap, DFA original) {
+        Set<DFA> set = partition.get(original);
         DFA minimized = newDFAMap.get(set);
         if (minimized == null) {
             if (root == null) {
@@ -46,27 +46,38 @@ class MinimizeDFA {
         return minimized;
     }
 
-    protected static Set<Set<DFA>> createPartition(DFA dfa) {
-        Set<Set<DFA>> partition = new HashSet<>();
+    protected static Map<DFA, Set<DFA>> createPartition(DFA dfa) {
+        Map<DFA, Set<DFA>> partition = new HashMap<>();
         Set<DFA> accepting = dfa.acceptingStates();
         Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
         nonAccepting.removeAll(accepting);
         if (!accepting.isEmpty()) {
-            partition.add(accepting);
+            for (DFA acceptingDFA : accepting) {
+                partition.put(acceptingDFA, accepting);
+            }
         }
         if (!nonAccepting.isEmpty()) {
-            partition.add(nonAccepting);
+            for (DFA nonAcceptingDFA : nonAccepting) {
+                partition.put(nonAcceptingDFA, nonAccepting);
+            }
         }
         boolean changed = true;
         while (changed) {
             changed = false;
-            for (Set<DFA> set : partition) {
-                Optional<List<Set<DFA>>> splitted = split(partition, set);
-                if (splitted.isPresent()) {
-                    changed = true;
-                    partition.remove(set);
-                    partition.addAll(splitted.get());
-                    break;
+            Set<Set<DFA>> seen = new HashSet<>();
+            for (Set<DFA> set : partition.values()) {
+                if (set.size() > 1 && !seen.contains(set)) {
+                    seen.add(set);
+                    Optional<List<Set<DFA>>> splitted = split(partition, set);
+                    if (splitted.isPresent()) {
+                        changed = true;
+                        for (Set<DFA> part : splitted.get()) {
+                            for (DFA thing : part) {
+                                partition.put(thing, part);
+                            }
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -74,8 +85,8 @@ class MinimizeDFA {
         return partition;
     }
 
-    protected static boolean allNonEmpty(Set<Set<DFA>> partition) {
-        for (Set<DFA> subset : partition) {
+    protected static boolean allNonEmpty(Map<DFA, Set<DFA>> partition) {
+        for (Set<DFA> subset : partition.values()) {
             if (subset.isEmpty()) {
                 return false;
             }
@@ -83,11 +94,8 @@ class MinimizeDFA {
         return true;
     }
 
-    protected static Optional<List<Set<DFA>>> split(Set<Set<DFA>> partition, Set<DFA> set) {
+    protected static Optional<List<Set<DFA>>> split(Map<DFA, Set<DFA>>partition, Set<DFA> set) {
         List<Set<DFA>> split = null;
-        if (set.size() < 2) {
-            return Optional.empty();
-        }
         Iterator<DFA> dfa = set.iterator();
         DFA first = dfa.next();
         Set<DFA> other = set.stream().
@@ -104,35 +112,24 @@ class MinimizeDFA {
         return Optional.empty();
     }
 
-    protected static boolean equivalent(Set<Set<DFA>> partition, DFA first, DFA second) {
+    protected static boolean equivalent(Map<DFA, Set<DFA>> partition, DFA first, DFA second) {
         if (first.getTransitions().size() != second.getTransitions().size()) {
             return false;
         }
-        for (Pair<CharRange, DFA> transition : first.getTransitions()) {
-            boolean matched = false;
-            for (Pair<CharRange, DFA> secondTransition : second.getTransitions()) {
-                if (transition.getLeft().equals(secondTransition.getLeft())) {
-                    DFA target = transition.getRight();
-                    DFA secondTarget = secondTransition.getRight();
-                    if (getContainingPartition(partition, target) == getContainingPartition(partition, secondTarget)) {
-                        matched = true;
-                        break;
-                    }
-                }
-            }
-            if (!matched) {
+        Iterator<Pair<CharRange, DFA>> firstIter = first.getTransitions().iterator();
+        Iterator<Pair<CharRange, DFA>> secondIter = second.getTransitions().iterator();
+        while (firstIter.hasNext()) {
+            Pair<CharRange, DFA> firstTransition = firstIter.next();
+            Pair<CharRange, DFA> secondTransition = secondIter.next();
+            if (!firstTransition.getLeft().equals(secondTransition.getLeft())) {
                 return false;
+            }
+            else if (firstTransition.getRight() != secondTransition.getRight()) {
+                if (partition.get(firstTransition.getRight()) != partition.get(secondTransition.getRight())) {
+                    return false;
+                }
             }
         }
         return true;
-    }
-
-    protected static Set<DFA> getContainingPartition(Set<Set<DFA>> partition, DFA dfa) {
-        for (Set<DFA> set : partition) {
-            if (set.contains(dfa)) {
-                return set;
-            }
-        }
-        return null;
     }
 }
