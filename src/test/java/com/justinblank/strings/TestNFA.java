@@ -114,18 +114,4 @@ public class TestNFA {
         assertFalse(nfa.matches("aba"));
         checkMatch(nfa, "aba", 0, 2);
     }
-
-    @Test
-    public void testTerminalStates() {
-        NFA nfa = NFATestUtil.aSTAR_aORb_();
-        Set<NFA> terminals = nfa.terminalStates();
-        assertNotEquals(terminals.size(), 0);
-    }
-
-    @Test
-    public void testCircularTerminalStates() {
-        NFA nfa = NFATestUtil._0to9AtoZatoz_STAR();
-        Set<NFA> terminals = nfa.terminalStates();
-        assertNotEquals(terminals.size(), 0);
-    }
 }

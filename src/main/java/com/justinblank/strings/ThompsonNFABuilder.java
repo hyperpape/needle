@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -49,7 +50,7 @@ class ThompsonNFABuilder {
             nfaStates.add(tail);
             NFA head = createPartial(c.head);
             nfaStates.add(head);
-            for (NFA terminal : head.terminalStates()) {
+            for (NFA terminal : findTerminalStates(head)) {
                 terminal.addTransitions(CharRange.emptyRange(), Collections.singletonList((tail)));
             }
             nfa = head;
@@ -59,7 +60,7 @@ class ThompsonNFABuilder {
             NFA child = createPartial(r.node);
             nfa = child;
             NFA end = new NFA(false, index++);
-            for (NFA terminal : nfa.terminalStates()) {
+            for (NFA terminal : findTerminalStates(nfa)) {
                 terminal.addEpsilonTransition(nfa);
                 terminal.addEpsilonTransition(end);
             }
@@ -78,7 +79,7 @@ class ThompsonNFABuilder {
             int repetition = 0;
             for (; repetition < countedRepetition.min; repetition++) {
                 NFA child2 = createPartial(countedRepetition.node);
-                for (NFA terminal : child.terminalStates()) {
+                for (NFA terminal : findTerminalStates(child)) {
                     terminal.addEpsilonTransition(child2);
                 }
                 child = child2;
@@ -86,7 +87,7 @@ class ThompsonNFABuilder {
             }
             for (; repetition < countedRepetition.max; repetition++) {
                 NFA child2 = createPartial(countedRepetition.node);
-                for (NFA terminal : child.terminalStates()) {
+                for (NFA terminal : findTerminalStates(child)) {
                     terminal.addEpsilonTransition(child2);
                     terminal.addEpsilonTransition(end);
                 }
@@ -105,9 +106,8 @@ class ThompsonNFABuilder {
             nfa.addTransitions(CharRange.emptyRange(), List.of(left, right));
             NFA end = new NFA(false, index++);
             nfaStates.add(end);
-            left.terminalStates().forEach(n -> n.addEpsilonTransition(end));
-            right.terminalStates().forEach(n -> n.addEpsilonTransition(end));
-            // nfaStates.add(nfa);
+            findTerminalStates(left).forEach(n -> n.addEpsilonTransition(end));
+            findTerminalStates(right).forEach(n -> n.addEpsilonTransition(end));
         }
         else if (ast instanceof CharRangeNode) {
             CharRangeNode range = (CharRangeNode) ast;
@@ -120,6 +120,33 @@ class ThompsonNFABuilder {
             throw new IllegalStateException("Unhandled ast node type=" + ast.getClass().getSimpleName());
         }
         return nfa;
+    }
+
+    protected Set<NFA> findTerminalStates(NFA targetNFA) {
+        Set<NFA> terminals = new HashSet<>();
+        Set<NFA> seen = new HashSet<>();
+        Queue<NFA> pending = new LinkedList<>();
+        pending.add(targetNFA);
+        seen.add(targetNFA);
+        if (targetNFA.getTransitions().isEmpty()) {
+            terminals.add(targetNFA);
+        }
+        while (!pending.isEmpty()) {
+            NFA nfa = pending.poll();
+            seen.add(nfa);
+            for (Pair<CharRange, List<NFA>> transition : nfa.getTransitions()) {
+                for (NFA reachable : transition.getRight()) {
+                    if (!seen.contains(reachable)) {
+                        if (reachable.isTerminal()) {
+                            terminals.add(reachable);
+                        }
+                        pending.add(reachable);
+                        seen.add(reachable);
+                    }
+                }
+            }
+        }
+        return terminals;
     }
 
 }

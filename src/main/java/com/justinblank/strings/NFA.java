@@ -221,41 +221,6 @@ public class NFA {
         return bs;
     }
 
-    protected Set<NFA> terminalStates() {
-        Set<NFA> terminals = new HashSet<>();
-        if (states != null) {
-            for (NFA nfa : states) {
-                if (nfa.isTerminal()) {
-                    terminals.add(nfa);
-                }
-            }
-            return terminals;
-        }
-        Set<NFA> seen = new HashSet<>();
-        Queue<NFA> pending = new LinkedList<>();
-        pending.add(this);
-        // TODO: kinda hacky
-        if (this.getTransitions().isEmpty()) {
-            terminals.add(this);
-        }
-        while (!pending.isEmpty()) {
-            NFA nfa = pending.poll();
-            if (!seen.contains(nfa)) {
-                nfa.getTransitions().stream().
-                        flatMap(p -> p.getRight().stream()).
-                        filter(p -> !seen.contains(p)).
-                        forEach(transitionNFA -> {
-                            if (transitionNFA.isTerminal()) {
-                                terminals.add(transitionNFA);
-                            }
-                            pending.add(transitionNFA);
-                        });
-                seen.add(nfa);
-            }
-        }
-        return terminals;
-    }
-
     public Set<NFA> allStates() {
         Set<NFA> seen = new HashSet<>();
         Queue<NFA> pending = new LinkedList<>();
