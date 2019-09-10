@@ -12,10 +12,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledSimpleRegex() throws Exception {
-        DFA dfa = new DFA(true, 0);
-        dfa.addTransition(new CharRange('0', '9'), dfa);
-        dfa.addTransition(new CharRange('A', 'Z'), dfa);
-        dfa.addTransition(new CharRange('a', 'z'), dfa);
+        DFA dfa = DFA.createDFA("[0-9A-Za-z]*");
 
         Pattern pattern = DFACompiler.compile(dfa, "TestName");
         Matcher instance = pattern.matcher("AB09");
@@ -48,10 +45,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledDigitPlus() throws Exception {
-        DFA dfa = new DFA(false ,0);
-        DFA accepting = new DFA(true, 1);
-        dfa.addTransition(new CharRange('0', '9'), accepting);
-        accepting.addTransition(new CharRange('0', '9'), accepting);
+        DFA dfa = DFA.createDFA("[0-9]+");
 
         Pattern pattern = DFACompiler.compile(dfa, "testDFACompiledDigitPlus");
         Matcher instance = pattern.matcher("0");
@@ -63,8 +57,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledBMP() throws Exception {
-        DFA dfa = new DFA(true, 1);
-        dfa.addTransition(new CharRange('\u0600', '\u06FF'), dfa);
+        DFA dfa = DFA.createDFA("[\u0600-\u06FF]");
         Pattern pattern = DFACompiler.compile(dfa, "testDFACompiledBMP");
         assertTrue(pattern.matcher("\u0600").matches());
         assertFalse(pattern.matcher("AB{").matches());

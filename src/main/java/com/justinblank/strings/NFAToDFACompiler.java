@@ -48,7 +48,6 @@ public class NFAToDFACompiler {
             }
             dfa.addTransition(range, targetDfa);
         }
-        root.checkRep();
     }
 
     protected static List<CharRange> findCharRanges(List<NFA> nfas) {

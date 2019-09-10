@@ -181,24 +181,10 @@ public class DFA {
     }
 
     public Set<DFA> allStates() {
-        Set<DFA> seen = new LinkedHashSet<>();
-        Queue<DFA> pending = new LinkedList<>();
-        pending.add(this);
-        while (!pending.isEmpty()) {
-            DFA current = pending.poll();
-            seen.add(current);
-            for (Pair<CharRange, DFA> transition : current.getTransitions()) {
-                DFA next = transition.getRight();
-                if (!seen.contains(next)) {
-                    pending.add(next);
-                    seen.add(next);
-                }
-            }
-        }
-        return seen;
+        return new HashSet<>(states);
     }
 
-    public Set<DFA> acceptingStates() {
+    protected Set<DFA> acceptingStates() {
         return allStates().stream().filter(DFA::isAccepting).collect(Collectors.toSet());
     }
 
@@ -233,6 +219,8 @@ public class DFA {
      */
     protected void checkRep() {
         assert allStatesReachable() : "Some state was unreachable";
+        assert allStates().containsAll(states);
+        assert states.containsAll(allStates());
         assert states.stream().allMatch(dfa -> dfa.root == this);
         assert states.stream().map(DFA::getStateNumber).count() == states.size();
         assert states.contains(this) : "root not included in states";
