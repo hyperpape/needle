@@ -47,20 +47,7 @@ class MinimizeDFA {
     }
 
     protected static Map<DFA, Set<DFA>> createPartition(DFA dfa) {
-        Map<DFA, Set<DFA>> partition = new HashMap<>();
-        Set<DFA> accepting = dfa.acceptingStates();
-        Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
-        nonAccepting.removeAll(accepting);
-        if (!accepting.isEmpty()) {
-            for (DFA acceptingDFA : accepting) {
-                partition.put(acceptingDFA, accepting);
-            }
-        }
-        if (!nonAccepting.isEmpty()) {
-            for (DFA nonAcceptingDFA : nonAccepting) {
-                partition.put(nonAcceptingDFA, nonAccepting);
-            }
-        }
+        Map<DFA, Set<DFA>> partition = initialPartition(dfa);
         boolean changed = true;
         while (changed) {
             changed = false;
@@ -85,6 +72,24 @@ class MinimizeDFA {
         return partition;
     }
 
+    private static Map<DFA, Set<DFA>> initialPartition(DFA dfa) {
+        Map<DFA, Set<DFA>> partition = new HashMap<>();
+        Set<DFA> accepting = dfa.acceptingStates();
+        Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
+        nonAccepting.removeAll(accepting);
+        if (!accepting.isEmpty()) {
+            for (DFA acceptingDFA : accepting) {
+                partition.put(acceptingDFA, accepting);
+            }
+        }
+        if (!nonAccepting.isEmpty()) {
+            for (DFA nonAcceptingDFA : nonAccepting) {
+                partition.put(nonAcceptingDFA, nonAccepting);
+            }
+        }
+        return partition;
+    }
+
     protected static boolean allNonEmpty(Map<DFA, Set<DFA>> partition) {
         for (Set<DFA> subset : partition.values()) {
             if (subset.isEmpty()) {
@@ -95,12 +100,14 @@ class MinimizeDFA {
     }
 
     protected static Optional<List<Set<DFA>>> split(Map<DFA, Set<DFA>>partition, Set<DFA> set) {
-        List<Set<DFA>> split = null;
         Iterator<DFA> dfa = set.iterator();
         DFA first = dfa.next();
-        Set<DFA> other = set.stream().
-                    filter(second -> second != first && !equivalent(partition, first, second)).
-                    collect(Collectors.toSet());
+        Set<DFA> other = new HashSet<>(set.size());
+        for (DFA second : set) {
+            if (second != first && !equivalent(partition, first, second)) {
+                other.add(second);
+            }
+        }
         if (!other.isEmpty()) {
             List<Set<DFA>> splitted = new ArrayList<>();
             splitted.add(other);
