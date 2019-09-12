@@ -13,6 +13,8 @@ public class NFATestUtil {
      */
     public static NFA aSTAR_aORb_() {
         NFA nfa = new NFA(false, 0);
+        nfa.setRoot(nfa);
+
         List<NFA> postTransition = new ArrayList<>();
         postTransition.add(nfa);
         NFA penultimate = new NFA(false, 1);
@@ -24,7 +26,6 @@ public class NFATestUtil {
         penultimate.addTransitions(new CharRange('a', 'b'), Collections.singletonList(other));
 
         // crappy book-keeping
-        nfa.setRoot(nfa);
         nfa.setStates(Arrays.asList(nfa, penultimate, other));
         other.computeEpsilonClosure();
         nfa.computeEpsilonClosure();

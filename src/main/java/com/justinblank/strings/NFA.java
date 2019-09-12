@@ -25,6 +25,9 @@ public class NFA {
     }
 
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
+        for (NFA nfa : nfas) {
+            nfa.root = this.root;
+        }
         transitions.add(Pair.of(charRange, nfas));
         // we trust that our character ranges don't overlap
         transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
@@ -118,7 +121,7 @@ public class NFA {
             // If any of our states can accept, we've found a match.
             // Keep searching for a longer match, but store the current start and end indices
             // we will no longer consider anything that starts after this starting location
-            boolean accepting = current.stream().anyMatch(NFA::isAccepting);
+            boolean accepting = hasAcceptingState(current);
             if (accepting) {
                 lastStart = computeLastStart(stateMap, i);
                 lastEnd = i;
@@ -177,6 +180,15 @@ public class NFA {
 
         boolean matched = current.stream().anyMatch(NFA::isAccepting);
         return new MatchResult(matched, lastStart, i);
+    }
+
+    protected static boolean hasAcceptingState(Collection<NFA> nfas) {
+        for (NFA nfa : nfas) {
+            if (nfa.isAccepting()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected int computeLastStart(Map<NFA, Integer> stateMap, int i) {
@@ -264,9 +276,14 @@ public class NFA {
     }
 
     public boolean isTerminal() {
-        return getTransitions().stream().
-                flatMap(pair -> pair.getRight().stream()).
-                allMatch(this::equals);
+        for (Pair<CharRange, List<NFA>> pair : getTransitions()) {
+            for (NFA target : pair.getRight()) {
+                if (target != this) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public int hashCode() {
@@ -283,27 +300,37 @@ public class NFA {
 
     protected void computeEpsilonClosure() {
         if (this.epsilonClosure == null) {
+            BitSet seen = new BitSet(root.states.size());
+            BitSet pending = new BitSet(root.states.size());
+
             Set<NFA> closure = new HashSet<>();
-            Queue<NFA> pending = new LinkedList<>();
-            pending.add(this);
+            pending.set(this.state);
+            seen.set(this.state);
+
             closure.add(this);
             while (!pending.isEmpty()) {
-                NFA next = pending.poll();
+                int index = pending.nextSetBit(0);
+                pending.clear(index);
+                epsilonClosureIndices.set(index);
+
+                NFA next = root.states.get(index);
                 closure.add(next);
                 for (Pair<CharRange, List<NFA>> transition : next.getTransitions()) {
                     if (transition.getLeft().isEmpty()) {
                         for (NFA reachable : transition.getRight()) {
-                            if (!closure.contains(reachable)) {
-                                pending.add(reachable);
-                                closure.add(reachable);
+                            if (!seen.get(reachable.state)) {
+                                seen.set(reachable.state);
+                                pending.set(reachable.state);
                             }
                         }
                     }
                 }
             }
-            this.epsilonClosure = closure;
-            for (NFA nfa : epsilonClosure) {
-                epsilonClosureIndices.set(nfa.state);
+            if (closure.isEmpty()) {
+                this.epsilonClosure = Collections.emptySet();
+            }
+            else {
+                this.epsilonClosure = closure;
             }
         }
     }

@@ -101,7 +101,7 @@ public class DFA {
         int[] newStateStarts = null;
         // the starting index of a successful match. May be set multiple times, but can only ever decrease.
         int matchStart = Integer.MAX_VALUE;
-        // the final index of a succcesful. May be set multiple times, but should only ever increase.
+        // the final index of a successful match. May be set multiple times, but should only ever increase.
         int matchEnd = Integer.MIN_VALUE;
         if (accepting) {
             matchStart = 0;

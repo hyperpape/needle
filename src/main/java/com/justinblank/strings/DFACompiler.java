@@ -398,7 +398,7 @@ public class DFACompiler {
 
     }
 
-        protected void addCharConstants() {
+    protected void addCharConstants() {
         AtomicInteger constCount = new AtomicInteger(0);
         dfa.allStates().stream().map(DFA::getTransitions).flatMap(List::stream).map(Pair::getLeft).forEach(charRange -> {
             if (charRange.getStart() > 128) {

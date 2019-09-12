@@ -3,8 +3,6 @@ package com.justinblank.strings;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class NFAToDFACompiler {
 
@@ -24,24 +22,20 @@ public class NFAToDFACompiler {
 
     private DFA _compile(NFA nfa) {
         Set<NFA> nfas = nfa.epsilonClosure();
-        root = DFA.root(nfas.stream().anyMatch(NFA::isAccepting));
+        root = DFA.root(NFA.hasAcceptingState(nfas));
         addNFAStatesToDFA(nfas, root);
         return root;
     }
 
     private void addNFAStatesToDFA(Set<NFA> nfas, DFA dfa) {
-        for (NFA nfa : nfas) {
-            nfa.computeEpsilonClosure();
-        }
         Set<NFA> epsilonClosure = NFA.epsilonClosure(nfas);
-        Stream<NFA> nfaStream = epsilonClosure.stream();
-        List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(nfaStream.collect(Collectors.toList())));
+        List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(new ArrayList<>(epsilonClosure)));
         for (CharRange range : ranges) {
             // choice of start/end is arbitrary
             Set<NFA> moves = NFA.epsilonClosure(transition(epsilonClosure, range.getStart()));
             DFA targetDfa = stateSets.get(moves);
             if (targetDfa == null) {
-                boolean accepting = moves.stream().anyMatch(NFA::isAccepting);
+                boolean accepting = NFA.hasAcceptingState(moves);
                 targetDfa = new DFA(root, accepting, state++);
                 stateSets.put(moves, targetDfa);
                 addNFAStatesToDFA(moves, targetDfa);
@@ -66,7 +60,11 @@ public class NFAToDFACompiler {
     protected Set<NFA> transition(Collection<NFA> nfaStates, char c) {
         Set<NFA> transitionStates = new HashSet<>();
         for (NFA source : nfaStates) {
-            source.transition(c).stream().forEach(i -> transitionStates.add(nfa.getState(i)));
+            BitSet bs = source.transition(c);
+            int set = -1;
+            for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
+                transitionStates.add(nfa.getState(i));
+            }
         }
         return transitionStates;
     }

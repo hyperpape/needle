@@ -3,7 +3,6 @@ package com.justinblank.strings;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 // This implements Hopcroft's Minimization Algorithm
 class MinimizeDFA {
@@ -73,7 +72,7 @@ class MinimizeDFA {
     }
 
     private static Map<DFA, Set<DFA>> initialPartition(DFA dfa) {
-        Map<DFA, Set<DFA>> partition = new HashMap<>();
+        Map<DFA, Set<DFA>> partition = new HashMap<>(dfa.statesCount());
         Set<DFA> accepting = dfa.acceptingStates();
         Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
         nonAccepting.removeAll(accepting);
