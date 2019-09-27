@@ -37,6 +37,9 @@ public class DFACompiler {
     private final Map<Character, String> rangeConstants = new HashMap<>();
 
     protected DFACompiler(ClassWriter classWriter, String className, DFA dfa) {
+        if (dfa.statesCount() > Short.MAX_VALUE) {
+            throw new IllegalArgumentException("Can't compile DFAs with more than " + Short.MAX_VALUE + " states");
+        }
         this.classWriter = classWriter;
         this.className = className;
         this.dfa = dfa;
