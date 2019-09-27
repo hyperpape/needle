@@ -30,6 +30,7 @@ public class DFACompiler {
     public static final int MAX_STATES_FOR_SWITCH = 8;
 
     private Map<DFA, Integer> dfaMethodMap = new IdentityHashMap<>();
+    private Map<Integer, DFA> stateMap = new HashMap<>();
     private int methodCount = 0;
     private String className;
     private ClassWriter classWriter;
@@ -87,8 +88,8 @@ public class DFACompiler {
         addCharConstants();
         addConstructor();
         // addIterMethod();
-        addMatchMethod();
         generateTransitionMethods();
+        addMatchMethod();
         // current impl requires that accepted be called last
         List<DFA> acceptingStates = getAcceptingStates();
         if (acceptingStates.size() > MAX_STATES_FOR_SWITCH) {
@@ -131,6 +132,10 @@ public class DFACompiler {
         final int lengthVar = 2;
         final int stringVar = 3;
         final int charVar = 4;
+        final int stateVar = 5;
+
+        mv.visitInsn(ICONST_0);
+        mv.visitVarInsn(ISTORE, stateVar);
 
         mv.visitInsn(ICONST_0);
         mv.visitVarInsn(ISTORE, counterVar);
@@ -142,22 +147,23 @@ public class DFACompiler {
         mv.visitVarInsn(ALOAD, stringVar);
 
         // push string length to local var
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "length", "()I", false);
+        // TODO: use field instead of virtual call
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
         mv.visitVarInsn(ISTORE, lengthVar);
         mv.visitVarInsn(ILOAD, lengthVar);
 
         mv.visitLabel(iterateLabel);
 
         // check state and return if need be
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        mv.visitVarInsn(ILOAD, stateVar);
         mv.visitInsn(ICONST_M1);
         mv.visitJumpInsn(IF_ICMPEQ, failLabel);
 
         // read next char, store in local var
         mv.visitVarInsn(ILOAD, counterVar);
         mv.visitVarInsn(ILOAD, lengthVar);
-        mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
+        mv.visitJumpInsn(IF_ICMPGE, returnLabel);
         mv.visitVarInsn(ALOAD, stringVar);
         mv.visitVarInsn(ILOAD, counterVar);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
@@ -165,8 +171,7 @@ public class DFACompiler {
         mv.visitIincInsn(counterVar, 1);
 
         // dispatch to method associated with current state
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        mv.visitVarInsn(ILOAD, stateVar);
         int labelCount = dfa.statesCount();
         Label[] stateLabels = new Label[labelCount];
         for (int i = 0; i < labelCount; i++) {
@@ -176,9 +181,28 @@ public class DFACompiler {
 
         for (int i = 0; i < labelCount; i++) {
             mv.visitLabel(stateLabels[i]);
+            boolean selfTransitioning = stateMap.get(i).hasSelfTransition();
+
+            if (selfTransitioning) {
+                mv.visitVarInsn(ALOAD, 0);
+                mv.visitVarInsn(ILOAD, counterVar);
+                mv.visitFieldInsn(PUTFIELD, className, INDEX_FIELD, "I");
+            }
             mv.visitVarInsn(ALOAD, 0);
             mv.visitVarInsn(ILOAD, charVar);
-            mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "(C)V", false);
+            if (selfTransitioning) {
+                mv.visitVarInsn(ILOAD, counterVar);
+                mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "(CI)I", false);
+            }
+            else {
+                mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "(C)I", false);
+            }
+            mv.visitVarInsn(ISTORE, stateVar);
+            if (selfTransitioning) {
+                mv.visitVarInsn(ALOAD, 0);
+                mv.visitFieldInsn(GETFIELD, className, INDEX_FIELD, "I");
+                mv.visitVarInsn(ISTORE, counterVar);
+            }
             mv.visitJumpInsn(GOTO, iterateLabel);
         }
 
@@ -190,17 +214,17 @@ public class DFACompiler {
         // check if the dfa had a match
         mv.visitLabel(returnLabel);
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "()Z", false);
+        mv.visitVarInsn(ILOAD, stateVar);
+        mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "(I)Z", false);
         mv.visitInsn(IRETURN);
         mv.visitMaxs(-1,-1);
         mv.visitEnd();
     }
 
     private void addSingleStateAcceptedMethod(List<DFA> acceptingStates) {
-        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "(I)Z", null, null);
         int acceptingState = acceptingStates.get(0).getStateNumber();
+        mv.visitVarInsn(ILOAD, 1);
         pushShortInt(mv, acceptingState);
         Label success = new Label();
         mv.visitJumpInsn(IF_ICMPEQ, success);
@@ -214,7 +238,8 @@ public class DFACompiler {
     }
 
     private void addSmallWasAcceptedMethod(List<DFA> acceptingStates) {
-        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
+        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "(I)Z", null, null);
+        mv.visitVarInsn(ILOAD, 1);
         Label[] labels = new Label[acceptingStates.size()];
         for (int i = 0; i < labels.length; i++) {
             labels[i] = new Label();
@@ -224,8 +249,6 @@ public class DFACompiler {
             keys[i] = acceptingStates.get(i).getStateNumber();
         }
         Label noMatch = new Label();
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
         mv.visitLookupSwitchInsn(noMatch, keys, labels);
         for (int i = 0; i < labels.length; i++) {
             mv.visitLabel(labels[i]);
@@ -240,7 +263,7 @@ public class DFACompiler {
     }
 
     private void addLargeWasAcceptedMethod() {
-        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
+        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "(I)Z", null, null);
         BitSet acceptanceBits = new BitSet(dfaMethodMap.size());
         for (Map.Entry<DFA, Integer> e : dfaMethodMap.entrySet()) {
             if (e.getKey().isAccepting()) {
@@ -255,8 +278,7 @@ public class DFACompiler {
         for (int i = 0; i < places.length; i++) {
             labels[i + 1] = new Label();
         }
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        mv.visitVarInsn(ILOAD, 1);
         mv.visitInsn(DUP);
         mv.visitIntInsn(BIPUSH, 8);
         mv.visitInsn(IREM); // stack = state, state % 8
@@ -355,24 +377,87 @@ public class DFACompiler {
     }
 
     protected void generateTransitionMethod(DFA node, Integer transitionNumber) {
-        MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(C)V", null, null);
+        MethodVisitor mv;
+        boolean hasSelfTransition = node.hasSelfTransition();
+        if (hasSelfTransition) {
+            mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(CI)I", null, null);
+        }
+        else {
+            mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(C)I", null, null);
+        }
 
+        final int charVar = 1;
+        final int positionVar = 2;
+        final int lengthVar = 3;
+        final int stateVar = 4;
+
+        // put state in var
+        if (hasSelfTransition) {
+            mv.visitIntInsn(SIPUSH, transitionNumber);
+        }
+        else {
+            mv.visitIntInsn(SIPUSH, -1);
+        }
+        mv.visitVarInsn(ISTORE, stateVar);
+        // put length in var
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
+        mv.visitVarInsn(ISTORE, lengthVar);
+
+        Label startLabel = new Label();
+        Label iterLabel = new Label();
+        Label pushStateBeforeReturnLabel = new Label();
         Label returnLabel = new Label();
         Label failLabel = new Label();
+
+        mv.visitLabel(startLabel);
+        if (!hasSelfTransition) {
+            iterLabel = pushStateBeforeReturnLabel;
+        }
+
         List<Pair<CharRange, DFA>> transitions = node.getTransitions();
         if (!transitions.isEmpty()) {
             if (transitions.size() > 1 || !transitions.get(0).getLeft().isSingleCharRange()) {
-                generateTransitionJumps(node, mv, returnLabel, failLabel);
+                generateTransitionJumps(node, mv, iterLabel, failLabel);
             } else {
-                generateSingleCharTransition(node, mv, returnLabel, failLabel);
+                generateSingleCharTransition(node, mv, iterLabel, failLabel);
             }
         }
+
+        if (hasSelfTransition) {
+            // check state and return if need be
+            mv.visitLabel(iterLabel);
+            mv.visitVarInsn(ILOAD, stateVar);
+            pushShortInt(mv, transitionNumber);
+            mv.visitJumpInsn(IF_ICMPNE, pushStateBeforeReturnLabel);
+            // check position and return if need be
+            mv.visitIincInsn(positionVar, 1);
+            mv.visitVarInsn(ILOAD, positionVar);
+            mv.visitVarInsn(ILOAD, lengthVar);
+            mv.visitJumpInsn(IF_ICMPGE, pushStateBeforeReturnLabel);
+
+            // now load char var
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
+            mv.visitVarInsn(ILOAD, positionVar);
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
+            mv.visitVarInsn(ISTORE, charVar);
+            mv.visitJumpInsn(GOTO, startLabel);
+        }
+
+        mv.visitLabel(pushStateBeforeReturnLabel);
+        mv.visitVarInsn(ILOAD, stateVar);
+        mv.visitJumpInsn(GOTO, returnLabel);
+
         mv.visitLabel(failLabel);
-        mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(ICONST_M1);
-        mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD, "I");
         mv.visitLabel(returnLabel);
-        mv.visitInsn(RETURN);
+        if (hasSelfTransition) {
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitVarInsn(ILOAD, positionVar);
+            mv.visitFieldInsn(PUTFIELD, className, INDEX_FIELD, "I");
+        }
+        mv.visitInsn(IRETURN);
 
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
@@ -406,10 +491,11 @@ public class DFACompiler {
         mv.visitJumpInsn(GOTO, failLabel);
         for (Map.Entry<DFA, Label> e : transitionTargets.entrySet()) {
             mv.visitLabel(e.getValue());
-            mv.visitVarInsn(ALOAD, 0);
             int nextState = methodDesignator(e.getKey());
+
             pushShortInt(mv, nextState);
-            mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD,  "I");
+            mv.visitVarInsn(ISTORE, 4);
+            // pushShortInt(mv, nextState);
             mv.visitJumpInsn(GOTO, returnLabel);
         }
     }
@@ -425,11 +511,10 @@ public class DFACompiler {
             mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getStart()), "C");
         }
         mv.visitJumpInsn(IF_ICMPNE, failLabel);
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitIntInsn(BIPUSH, methodDesignator(next));
-        mv.visitFieldInsn(PUTFIELD, className, STATE_FIELD, "I");
+        pushShortInt(mv, methodDesignator(next));
+        mv.visitVarInsn(ISTORE, 4);
+        // pushShortInt(mv, methodDesignator(next));
         mv.visitJumpInsn(GOTO, returnLabel);
-
     }
 
     protected void addCharConstants() {
@@ -454,6 +539,7 @@ public class DFACompiler {
 
     protected Integer methodDesignator(DFA right) {
         Integer stateNumber = dfaMethodMap.computeIfAbsent(right, d -> methodCount++);
+        stateMap.put(dfaMethodMap.get(right), right);
         if (stateNumber > 1 << 15) {
             // TODO: decide best approach to large state automata
             throw new IllegalStateException("Too many states");
