@@ -26,6 +26,8 @@ public class DFACompiler {
     protected static final String LENGTH_FIELD = "length";
     protected static final String STRING_FIELD = "string";
     protected static final String INDEX_FIELD = "index";
+    // TODO: measure threshold, 8 is just a random choice
+    public static final int MAX_STATES_FOR_SWITCH = 8;
 
     private Map<DFA, Integer> dfaMethodMap = new IdentityHashMap<>();
     private int methodCount = 0;
@@ -85,7 +87,26 @@ public class DFACompiler {
         addMatchMethod();
         generateTransitionMethods();
         // current impl requires that accepted be called last
-        addWasAcceptedMethod();
+        List<DFA> acceptingStates = getAcceptingStates();
+        if (acceptingStates.size() > MAX_STATES_FOR_SWITCH) {
+            addLargeWasAcceptedMethod();
+        }
+        else if (acceptingStates.size() > 1) {
+            addSmallWasAcceptedMethod(acceptingStates);
+        }
+        else {
+            addSingleStateAcceptedMethod(acceptingStates);
+        }
+    }
+
+    private List<DFA> getAcceptingStates() {
+        List<DFA> acceptingStates = new ArrayList<>();
+        for (Map.Entry<DFA, Integer> e : dfaMethodMap.entrySet()) {
+            if (e.getKey().isAccepting()) {
+                acceptingStates.add(e.getKey());
+            }
+        }
+        return acceptingStates;
     }
 
     protected void addFields() {
@@ -173,7 +194,55 @@ public class DFACompiler {
         mv.visitEnd();
     }
 
-    protected void addWasAcceptedMethod() {
+    private void addSingleStateAcceptedMethod(List<DFA> acceptingStates) {
+        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        int acceptingState = acceptingStates.get(0).getStateNumber();
+        if (acceptingState <= 255) {
+            mv.visitIntInsn(BIPUSH, acceptingState);
+        }
+        else {
+            throw new UnsupportedOperationException("Not implemented");
+        }
+        Label success = new Label();
+        mv.visitJumpInsn(IF_ICMPEQ, success);
+        mv.visitInsn(ICONST_0);
+        mv.visitInsn(IRETURN);
+        mv.visitLabel(success);
+        mv.visitInsn(ICONST_1);
+        mv.visitInsn(IRETURN);
+        mv.visitMaxs(-1,-1);
+        mv.visitEnd();
+    }
+
+    private void addSmallWasAcceptedMethod(List<DFA> acceptingStates) {
+        MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
+        Label[] labels = new Label[acceptingStates.size()];
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = new Label();
+        }
+        int[] keys = new int[acceptingStates.size()];
+        for (int i = 0; i < acceptingStates.size(); i++) {
+            keys[i] = acceptingStates.get(i).getStateNumber();
+        }
+        Label noMatch = new Label();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, className, STATE_FIELD, "I");
+        mv.visitLookupSwitchInsn(noMatch, keys, labels);
+        for (int i = 0; i < labels.length; i++) {
+            mv.visitLabel(labels[i]);
+            mv.visitInsn(ICONST_1);
+            mv.visitInsn(IRETURN);
+        }
+        mv.visitLabel(noMatch);
+        mv.visitInsn(ICONST_0);
+        mv.visitInsn(IRETURN);
+        mv.visitMaxs(-1,-1);
+        mv.visitEnd();
+    }
+
+    private void addLargeWasAcceptedMethod() {
         MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "()Z", null, null);
         BitSet acceptanceBits = new BitSet(dfaMethodMap.size());
         for (Map.Entry<DFA, Integer> e : dfaMethodMap.entrySet()) {
