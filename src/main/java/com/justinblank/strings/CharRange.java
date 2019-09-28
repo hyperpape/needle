@@ -10,8 +10,10 @@ public class CharRange {
     private final char end;
     private final boolean empty;
 
+    private static final CharRange EMPTY_RANGE = new CharRange();
+
     public static CharRange emptyRange() {
-        return new CharRange();
+        return EMPTY_RANGE;
     }
 
     public CharRange(char start, char end) {
