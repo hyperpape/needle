@@ -188,6 +188,15 @@ public class DFA {
         return allStates().stream().filter(DFA::isAccepting).collect(Collectors.toSet());
     }
 
+    protected boolean hasSelfTransition() {
+        for (Pair<CharRange, DFA> transition : transitions) {
+            if (transition.getRight() == this) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public int getStateNumber() {
         return stateNumber;
     }
