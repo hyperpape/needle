@@ -11,6 +11,34 @@ import static org.junit.Assert.assertTrue;
 public class TestDFACompiler {
 
     @Test
+    public void testSingleCharLiteralRegex() throws Exception {
+        DFA dfa = DFA.createDFA("a");
+
+        Pattern pattern = DFACompiler.compile(dfa, "SingleCharRegex");
+        Matcher instance = pattern.matcher("a");
+        assertTrue(instance.matches());
+
+        assertFalse(pattern.matcher("b").matches());
+        assertFalse(pattern.matcher("ab").matches());
+        assertFalse(pattern.matcher("ba").matches());
+        assertFalse(pattern.matcher("AB{").matches());
+    }
+
+    @Test
+    public void testMultiCharLiteralRegex() {
+        DFA dfa = DFA.createDFA("abc");
+        Pattern pattern = DFACompiler.compile(dfa, "MultiCharLiteralRegex");
+        Matcher instance = pattern.matcher("abc");
+        assertTrue(instance.matches());
+
+        assertFalse(pattern.matcher("d").matches());
+        assertFalse(pattern.matcher("abcd").matches());
+        assertFalse(pattern.matcher("dabc").matches());
+        assertFalse(pattern.matcher("AB{").matches());
+    }
+
+
+    @Test
     public void testDFACompiledSimpleRegex() throws Exception {
         DFA dfa = DFA.createDFA("[0-9A-Za-z]*");
 
