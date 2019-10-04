@@ -1,20 +1,24 @@
-Compiling string matching algorithms directly to Java bytecodes.
+String searching/matching algorithms in Java. Where effective, the
+library compiles those algorithms to bytecode to improve matching
+speed.
 
-Includes an NFA/DFA interpreter, a regex -> NFA parser, an NFA -> DFA
-compiler, and a DFA -> bytecode compiler. Unicode support is currently limited
-to the BMP.
+This is an early experiment. Byte compiled regexes only support full
+string matching, not searching. Most character classes and other
+options are not yet implemented. There's not yet a reasonable public
+API.
 
-Very very early experiment.
+### Unicode
+
+Currently limited to the BMP
 
 ### Performance
 
-In principle generating classes specialized for a particular automaton
-should be capable of outperforming Java regular expressions, which are
-not specialized.
-
-In practice, I have done minimal performance testing. The string
-algorithms in Search perform worse than indexOf, which is a hotspot
-intrinsic.
+- the NFA class is extremely slow, much slower than Java regexes
+- the DFA class is sometimes faster than Java regexes, but often slower
+- byte compiled regexes are faster than Java regexes in many cases, but not all
+- compilation performance is quite bad
+- single string search algorithms perform worse than indexOf, which is a
+hotspot intrinsic
 
 ### Building
 
