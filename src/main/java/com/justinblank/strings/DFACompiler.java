@@ -470,13 +470,19 @@ public class DFACompiler {
             Label transitionLabel = transitionTargets.computeIfAbsent(transition.getRight(), d -> new Label());
             CharRange charRange = transition.getLeft();
             mv.visitVarInsn(ILOAD, 1);
-            pushCharConst(mv, charRange.getStart());
-            mv.visitJumpInsn(IF_ICMPLT, failLabel);
+            if (charRange.isSingleCharRange()) {
+                pushCharConst(mv, charRange.getStart());
+                mv.visitJumpInsn(IF_ICMPEQ, transitionLabel);
+            }
+            else {
+                pushCharConst(mv, charRange.getStart());
+                mv.visitJumpInsn(IF_ICMPLT, failLabel);
 
-            pushCharConst(mv, charRange.getEnd());
+                pushCharConst(mv, charRange.getEnd());
 
-            mv.visitIntInsn(ILOAD, 1);
-            mv.visitJumpInsn(IF_ICMPGE, transitionLabel);
+                mv.visitIntInsn(ILOAD, 1);
+                mv.visitJumpInsn(IF_ICMPGE, transitionLabel);
+            }
         }
         mv.visitJumpInsn(GOTO, failLabel);
         for (Map.Entry<DFA, Label> e : transitionTargets.entrySet()) {
