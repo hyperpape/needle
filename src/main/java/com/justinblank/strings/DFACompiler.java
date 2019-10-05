@@ -470,20 +470,10 @@ public class DFACompiler {
             Label transitionLabel = transitionTargets.computeIfAbsent(transition.getRight(), d -> new Label());
             CharRange charRange = transition.getLeft();
             mv.visitVarInsn(ILOAD, 1);
-            if (charRange.getStart() <= 128) {
-                mv.visitIntInsn(BIPUSH, charRange.getStart());
-            }
-            else {
-                mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getStart()), "C");
-            }
+            pushCharConst(mv, charRange.getStart());
             mv.visitJumpInsn(IF_ICMPLT, failLabel);
 
-            if (charRange.getEnd() <= 128) {
-                mv.visitIntInsn(BIPUSH, charRange.getEnd());
-            }
-            else {
-                mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getEnd()), "C");
-            }
+            pushCharConst(mv, charRange.getEnd());
 
             mv.visitIntInsn(ILOAD, 1);
             mv.visitJumpInsn(IF_ICMPGE, transitionLabel);
@@ -500,16 +490,25 @@ public class DFACompiler {
         }
     }
 
+    /**
+     * Push a char constant onto the stack. Requires that the character has already been added to rangeconstants.
+     * @param mv the current method visitor
+     * @param c the character constant
+     */
+    private void pushCharConst(MethodVisitor mv, char c) {
+        if ((int) c <= Short.MAX_VALUE) {
+            pushShortInt(mv, (int) c);
+        }
+        else {
+            mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(c), "C");
+        }
+    }
+
     private void generateSingleCharTransition(DFA node, MethodVisitor mv, Label returnLabel, Label failLabel) {
         CharRange charRange = node.getTransitions().get(0).getLeft();
         DFA next = node.getTransitions().get(0).getRight();
         mv.visitVarInsn(ILOAD, 1);
-        if (charRange.getStart() <= 128) {
-            mv.visitIntInsn(BIPUSH, charRange.getStart());
-        }
-        else {
-            mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(charRange.getStart()), "C");
-        }
+        pushCharConst(mv, charRange.getStart());
         mv.visitJumpInsn(IF_ICMPNE, failLabel);
         pushShortInt(mv, methodDesignator(next));
         mv.visitVarInsn(ISTORE, 4);
@@ -520,14 +519,14 @@ public class DFACompiler {
     protected void addCharConstants() {
         AtomicInteger constCount = new AtomicInteger(0);
         dfa.allStates().stream().map(DFA::getTransitions).flatMap(List::stream).map(Pair::getLeft).forEach(charRange -> {
-            if (charRange.getStart() > 128) {
+            if (charRange.getStart() > Short.MAX_VALUE) {
                 rangeConstants.computeIfAbsent(charRange.getStart(), c -> {
                     String constName = "CHAR_CONST_" + constCount.incrementAndGet();
                     classWriter.visitField(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, constName, "C", null, charRange.getStart());
                     return constName;
                 });
             }
-            if (charRange.getEnd() > 128) {
+            if (charRange.getEnd() > Short.MAX_VALUE) {
                 rangeConstants.computeIfAbsent(charRange.getEnd(), c -> {
                     String constName = "CHAR_CONST_" + constCount.incrementAndGet();
                     classWriter.visitField(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, constName, "C", null, charRange.getEnd());
