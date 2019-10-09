@@ -417,10 +417,16 @@ public class DFACompiler {
 
         List<Pair<CharRange, DFA>> transitions = node.getTransitions();
         if (!transitions.isEmpty()) {
-            if (transitions.size() > 1 || !transitions.get(0).getLeft().isSingleCharRange()) {
-                generateTransitionJumps(node, mv, iterLabel, failLabel);
-            } else {
+            if (transitions.size() == 1 && transitions.get(0).getLeft().isSingleCharRange()) {
                 generateSingleCharTransition(node, mv, iterLabel, failLabel);
+            }
+            else {
+                if (node.charCount() <= MAX_STATES_FOR_SWITCH) {
+                    generateSwitchTransitions(node, mv, iterLabel, failLabel);
+                }
+                else {
+                    generateTransitionJumps(node, mv, iterLabel, failLabel);
+                }
             }
         }
 
@@ -461,6 +467,51 @@ public class DFACompiler {
 
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
+    }
+
+    private void generateSwitchTransitions(DFA node, MethodVisitor mv, Label iterLabel, Label failLabel) {
+        Map<DFA, Label> transitionTargets = new HashMap<>();
+        int[] chars = getChars(node);
+        Label[] labels = makeLabelsForCollection(node.getTransitions());
+
+        mv.visitVarInsn(ILOAD, 1);
+
+        mv.visitLookupSwitchInsn(failLabel, chars, labels);
+        int index = 0;
+        for (Pair<CharRange, DFA> transition : node.getTransitions()) {
+            mv.visitLabel(labels[index++]);
+            int nextState = methodDesignator(transition.getRight());
+
+            pushShortInt(mv, nextState);
+            mv.visitVarInsn(ISTORE, 4);
+            mv.visitJumpInsn(GOTO, iterLabel);
+        }
+    }
+
+    private int[] getChars(DFA node) {
+        int[] chars = new int[node.charCount()];
+        int i = 0;
+        for (Pair<CharRange, DFA> pair : node.getTransitions()) {
+            if (pair.getLeft().isSingleCharRange()) {
+                chars[i++] = pair.getLeft().getStart();
+            }
+            else {
+                CharRange range = pair.getLeft();
+                int c = range.getStart();
+                while (c <= range.getEnd()) {
+                    chars[i++] = c++;
+                }
+            }
+        }
+        return chars;
+    }
+
+    private Label[] makeLabelsForCollection(Collection<?> collection) {
+        Label[] labels = new Label[collection.size()];
+        for (int i = 0; i < collection.size(); i++) {
+            labels[i] = new Label();
+        }
+        return labels;
     }
 
     private void generateTransitionJumps(DFA node, MethodVisitor mv, Label returnLabel, Label failLabel) {

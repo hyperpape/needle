@@ -197,6 +197,14 @@ public class DFA {
         return false;
     }
 
+    protected int charCount() {
+        int chars = 0;
+        for (Pair<CharRange, DFA> transition : transitions) {
+            chars += 1 + (int) transition.getLeft().getEnd() - (int) transition.getLeft().getStart();
+        }
+        return chars;
+    }
+
     public int getStateNumber() {
         return stateNumber;
     }
