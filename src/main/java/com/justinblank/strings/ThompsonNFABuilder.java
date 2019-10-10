@@ -122,26 +122,26 @@ class ThompsonNFABuilder {
         return nfa;
     }
 
-    protected Set<NFA> findTerminalStates(NFA targetNFA) {
-        Set<NFA> terminals = new HashSet<>();
-        Set<NFA> seen = new HashSet<>();
+    protected List<NFA> findTerminalStates(NFA targetNFA) {
+        List<NFA> terminals = new ArrayList<>();
+        BitSet seen = new BitSet(nfaStates.size());
         Queue<NFA> pending = new LinkedList<>();
         pending.add(targetNFA);
-        seen.add(targetNFA);
+        seen.set(targetNFA.getState());
         if (targetNFA.getTransitions().isEmpty()) {
             terminals.add(targetNFA);
         }
         while (!pending.isEmpty()) {
             NFA nfa = pending.poll();
-            seen.add(nfa);
+            seen.set(nfa.getState());
             for (Pair<CharRange, List<NFA>> transition : nfa.getTransitions()) {
                 for (NFA reachable : transition.getRight()) {
-                    if (!seen.contains(reachable)) {
+                    if (!seen.get(reachable.getState())) {
                         if (reachable.isTerminal()) {
                             terminals.add(reachable);
                         }
                         pending.add(reachable);
-                        seen.add(reachable);
+                        seen.set(reachable.getState());
                     }
                 }
             }
