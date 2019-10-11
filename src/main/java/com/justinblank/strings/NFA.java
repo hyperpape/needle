@@ -14,6 +14,7 @@ public class NFA {
     private List<Pair<CharRange, List<NFA>>> transitions = new ArrayList<>();
     private Set<NFA> epsilonClosure;
     private BitSet epsilonClosureIndices = new BitSet();
+    private boolean isTerminal = true;
 
     protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
@@ -27,6 +28,13 @@ public class NFA {
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
         for (NFA nfa : nfas) {
             nfa.root = this.root;
+        }
+        if (isTerminal) {
+            for (NFA nfa : nfas) {
+                if (nfa != this) {
+                    isTerminal = false;
+                }
+            }
         }
         transitions.add(Pair.of(charRange, nfas));
         // we trust that our character ranges don't overlap
@@ -241,14 +249,7 @@ public class NFA {
     }
 
     public boolean isTerminal() {
-        for (Pair<CharRange, List<NFA>> pair : getTransitions()) {
-            for (NFA target : pair.getRight()) {
-                if (target != this) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return isTerminal;
     }
 
     public int hashCode() {
