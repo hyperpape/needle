@@ -13,7 +13,9 @@ class ThompsonNFABuilder {
 
     public static NFA createNFA(Node ast) {
         ThompsonNFABuilder builder = new ThompsonNFABuilder();
-        return builder.build(ast);
+        NFA nfa = builder.build(ast);
+        nfa.regexInstrs = ThompsonRegexInstrBuilder.createNFA(ast);
+        return nfa;
     }
 
     protected NFA build(Node ast) {

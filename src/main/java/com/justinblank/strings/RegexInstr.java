@@ -3,11 +3,10 @@ package com.justinblank.strings;
 public class RegexInstr {
 
     enum Opcode {
-        Char,
-        CharRange,
-        Jump,
-        Split,
-        Match;
+        CHAR_RANGE,
+        JUMP,
+        SPLIT,
+        MATCH;
     }
 
     final Opcode opcode;
@@ -25,63 +24,34 @@ public class RegexInstr {
     }
 
     static RegexInstr jump(int target) {
-        return new RegexInstr(Opcode.Jump, 'a', 'a', target, -1);
+        return new RegexInstr(Opcode.JUMP, 'a', 'a', target, -1);
     }
 
     static RegexInstr split(int target1, int target2) {
-        return new RegexInstr(Opcode.Split, 'a', 'a', target1, target2);
+        return new RegexInstr(Opcode.SPLIT, 'a', 'a', target1, target2);
     }
 
     static RegexInstr charRange(char c1, char c2) {
-        return new RegexInstr(Opcode.CharRange, c1, c2, -1, -1);
+        return new RegexInstr(Opcode.CHAR_RANGE, c1, c2, -1, -1);
     }
 
     static RegexInstr match() {
-        return new RegexInstr(Opcode.Match, 'a', 'a', -1, -1);
+        return new RegexInstr(Opcode.MATCH, 'a', 'a', -1, -1);
     }
 
     public String toString() {
-        if (opcode.equals(Opcode.Match)) {
+        if (opcode.equals(Opcode.MATCH)) {
             return "Match";
         }
-        else if (opcode.equals(Opcode.Jump)) {
+        else if (opcode.equals(Opcode.JUMP)) {
             return "Jump: " + target1;
         }
-        else if (opcode.equals(Opcode.Split)) {
+        else if (opcode.equals(Opcode.SPLIT)) {
             return "Split: " + target1 + "," + target2;
         }
         else {
             return "Char: " + start + ", "+ end;
         }
     }
-//    static class Char extends RegexInstr {
-//        private final char c;
-//
-//        public Char(char c) {
-//            this.c = c;
-//        }
-//    }
-//
-//    static class Match extends RegexInstr {
-//    }
-//
-//    static class Jump extends RegexInstr {
-//        private final int target;
-//
-//        public Jump(int i) {
-//            target = i;
-//        }
-//    }
-//
-//    static class Split extends RegexInstr {
-//        private final int target1;
-//        private final int target2;
-//
-//        public Split(int target1, int target2) {
-//            this.target1 = target1;
-//            this.target2 = target2;
-//        }
-//    }
-
 }
 

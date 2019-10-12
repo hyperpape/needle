@@ -1,9 +1,11 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+
+import static com.justinblank.strings.RegexInstr.Opcode.JUMP;
+import static com.justinblank.strings.RegexInstr.Opcode.SPLIT;
 
 public class ThompsonRegexInstrBuilder {
 
@@ -14,7 +16,25 @@ public class ThompsonRegexInstrBuilder {
     protected List<RegexInstr> build(Node ast) {
         List<RegexInstr> regex = createPartial(ast, new ArrayList<>());
         regex.add(RegexInstr.match());
+        // assert checkRep(regex);
         return regex;
+    }
+
+    private boolean checkRep(List<RegexInstr> regex) {
+        for (int i = 0; i < regex.size(); i++) {
+            RegexInstr instr = regex.get(i);
+            if (instr.opcode == JUMP) {
+                // Useless to jump to immediately following instruction
+                // TODO: update the builder and implement this check
+                // assert instr.target1 != i + 1;
+                assert regex.get(instr.target1).opcode != JUMP;
+            }
+            if (instr.opcode == SPLIT) {
+                assert regex.get(instr.target1).opcode != JUMP;
+                assert regex.get(instr.target2).opcode != JUMP;
+            }
+        }
+        return true;
     }
 
     protected List<RegexInstr> createPartial(Node ast, List<RegexInstr> instrs) {

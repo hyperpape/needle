@@ -4,6 +4,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
+import static com.justinblank.strings.RegexInstr.Opcode.*;
+
 public class NFA {
 
     private NFA root;
@@ -15,6 +17,7 @@ public class NFA {
     private Set<NFA> epsilonClosure;
     private BitSet epsilonClosureIndices = new BitSet();
     private boolean isTerminal = true;
+    List<RegexInstr> regexInstrs;
 
     protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
@@ -92,27 +95,60 @@ public class NFA {
 
     public boolean matches(String s) {
         int length = s.length();
-        BitSet current = new BitSet();
-        current.or(epsilonClosureIndices);
+        List<Integer> states = new ArrayList<>();
+        states.add(0);
+        // TODO: Ensure target of a jump is never another jump, and simplify
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            BitSet newCurrent = new BitSet();
-            int state = 0;
-            int setBit = current.nextSetBit(0);
-            while (setBit != -1) {
-                NFA nfa = root.states.get(setBit);
-                newCurrent.or(nfa.transition(c));
-                setBit = current.nextSetBit(setBit + 1);
+            List<Integer> newStates = new ArrayList<>();
+            for (int stateIndex = 0; stateIndex < states.size(); stateIndex++) {
+                int examinedState = states.get(stateIndex);
+                RegexInstr regexInstr = regexInstrs.get(examinedState);
+                RegexInstr.Opcode opcode = regexInstr.opcode;
+                // Current matches came from the previous iteration and should be ignored
+                if (opcode == MATCH) {
+                    continue;
+                }
+                if (opcode == JUMP) {
+                    states.add(regexInstr.target1);
+                    continue;
+                }
+                else if (opcode == SPLIT) {
+                    states.add(regexInstr.target1);
+                    states.add(regexInstr.target2);
+                    continue;
+                }
+                if (c >= regexInstr.start && c <= regexInstr.end) {
+                    newStates.add(examinedState + 1);
+                }
             }
-            current = newCurrent;
+            states = newStates;
         }
-        int setBit = current.nextSetBit(0);
-        while (setBit != -1) {
-            NFA nfa = root.states.get(setBit);
-            if (nfa.accepting) {
+        for (int i = 0; i < states.size(); i++) {
+            int stateIndex = states.get(i);
+            RegexInstr instr = regexInstrs.get(stateIndex);
+            if (instr.opcode == JUMP) {
+                states.add(instr.target1);
+                continue;
+            }
+
+            if (instr.opcode == MATCH) {
                 return true;
             }
-            setBit = current.nextSetBit(setBit + 1);
+            else if (instr.opcode == SPLIT) {
+                if (regexInstrs.get(instr.target1).opcode == MATCH) {
+                    return true;
+                }
+                else {
+                    states.add(instr.target1);
+                }
+                if (regexInstrs.get(instr.target2).opcode == MATCH) {
+                    return true;
+                }
+                else {
+                    states.add(instr.target2);
+                }
+            }
         }
         return false;
     }
