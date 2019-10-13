@@ -1,3 +1,5 @@
+https://travis-ci.org/hyperpape/StringMatching.svg?branch=master
+
 String searching/matching algorithms in Java. Where effective, the
 library compiles those algorithms to bytecode to improve matching
 speed.
