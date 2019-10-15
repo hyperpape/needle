@@ -15,4 +15,9 @@ public class ThompsonRegexInstrBuilderTest {
     public void testCompilesMultiRange() {
         assertNotNull(ThompsonRegexInstrBuilder.createNFA(RegexParser.parse("[A-Za-z]")));
     }
+
+    @Test
+    public void testCompilesAlternations() {
+        assertNotNull(ThompsonRegexInstrBuilder.createNFA(RegexParser.parse("(123)|(234){0,1}")));
+    }
 }
