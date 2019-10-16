@@ -110,10 +110,11 @@ public class NFA {
                     continue;
                 }
                 if (opcode == JUMP) {
-                    states.add(regexInstr.target1);
-                    continue;
+                    examinedState = regexInstr.target1;
+                    regexInstr = regexInstrs.get(examinedState);
+                    opcode = regexInstr.opcode;
                 }
-                else if (opcode == SPLIT) {
+                if (opcode == SPLIT) {
                     states.add(regexInstr.target1);
                     states.add(regexInstr.target2);
                     continue;
@@ -124,12 +125,15 @@ public class NFA {
             }
             states = newStates;
         }
+        return statesMatched(states);
+    }
+
+    private boolean statesMatched(List<Integer> states) {
         for (int i = 0; i < states.size(); i++) {
             int stateIndex = states.get(i);
             RegexInstr instr = regexInstrs.get(stateIndex);
             if (instr.opcode == JUMP) {
-                states.add(instr.target1);
-                continue;
+                instr = regexInstrs.get(instr.target1);
             }
 
             if (instr.opcode == MATCH) {
