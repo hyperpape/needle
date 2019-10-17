@@ -147,7 +147,6 @@ public class DFACompiler {
         mv.visitVarInsn(ALOAD, stringVar);
 
         // push string length to local var
-        // TODO: use field instead of virtual call
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
         mv.visitVarInsn(ISTORE, lengthVar);
@@ -172,6 +171,7 @@ public class DFACompiler {
 
         // dispatch to method associated with current state
         mv.visitVarInsn(ILOAD, stateVar);
+        boolean largeMethod = dfa.statesCount() > 1000 * 1000; // Placeholder for testing
         int labelCount = dfa.statesCount();
         Label[] stateLabels = new Label[labelCount];
         for (int i = 0; i < labelCount; i++) {
@@ -203,7 +203,12 @@ public class DFACompiler {
                 mv.visitFieldInsn(GETFIELD, className, INDEX_FIELD, "I");
                 mv.visitVarInsn(ISTORE, counterVar);
             }
-            mv.visitJumpInsn(GOTO, iterateLabel);
+            if (!largeMethod) {
+                mv.visitJumpInsn(GOTO, iterateLabel);
+            }
+            else {
+                mv.visitJumpInsn(GOTO, iterateLabel);
+            }
         }
 
         // handle case of failure
@@ -318,43 +323,6 @@ public class DFACompiler {
 
         mv.visitInsn(IRETURN);
         mv.visitMaxs(-1, -1);
-        mv.visitEnd();
-    }
-
-    protected void addIterMethod() {
-        MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, "iterate","()Z", null, null);
-
-        // Bounds check
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, INDEX_FIELD, "I");
-        mv.visitVarInsn(ISTORE, 1);
-        mv.visitVarInsn(ILOAD, 1);
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
-        Label iterationDone = new Label();
-        mv.visitJumpInsn(IF_ICMPGE, iterationDone);
-
-        // Retrieve next char
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
-        mv.visitVarInsn(ILOAD, 1);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
-        mv.visitFieldInsn(PUTFIELD, className, CHAR_FIELD, "C");
-
-        // Increment index
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitIincInsn(1, 1);
-        mv.visitVarInsn(ILOAD, 1);
-        mv.visitFieldInsn(PUTFIELD, className, INDEX_FIELD, "I");
-
-        mv.visitInsn(ICONST_0);
-        mv.visitInsn(IRETURN);
-
-        mv.visitLabel(iterationDone);
-        mv.visitInsn(ICONST_1);
-        mv.visitInsn(IRETURN);
-        mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
 
