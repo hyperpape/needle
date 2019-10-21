@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.util.SparseSet;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -95,14 +96,14 @@ public class NFA {
 
     public boolean matches(String s) {
         int length = s.length();
-        List<Integer> states = new ArrayList<>();
-        states.add(0);
-        // TODO: Ensure target of a jump is never another jump, and simplify
+        SparseSet currentStates = new SparseSet(states.size() - 1);
+        currentStates.add(0);
+        SparseSet newStates = new SparseSet(states.size() - 1);
+
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            List<Integer> newStates = new ArrayList<>();
-            for (int stateIndex = 0; stateIndex < states.size(); stateIndex++) {
-                int examinedState = states.get(stateIndex);
+            for (int stateIndex = 0; stateIndex < currentStates.size(); stateIndex++) {
+                int examinedState = currentStates.getByIndex(stateIndex);
                 RegexInstr regexInstr = regexInstrs.get(examinedState);
                 RegexInstr.Opcode opcode = regexInstr.opcode;
                 // Current matches came from the previous iteration and should be ignored
@@ -115,22 +116,25 @@ public class NFA {
                     opcode = regexInstr.opcode;
                 }
                 if (opcode == SPLIT) {
-                    states.add(regexInstr.target1);
-                    states.add(regexInstr.target2);
+                    currentStates.add(regexInstr.target1);
+                    currentStates.add(regexInstr.target2);
                     continue;
                 }
                 if (c >= regexInstr.start && c <= regexInstr.end) {
                     newStates.add(examinedState + 1);
                 }
             }
-            states = newStates;
+            SparseSet tmp = currentStates;
+            currentStates = newStates;
+            newStates = tmp;
+            newStates.clear();
         }
-        return statesMatched(states);
+        return statesMatched(currentStates);
     }
 
-    private boolean statesMatched(List<Integer> states) {
+    private boolean statesMatched(SparseSet states) {
         for (int i = 0; i < states.size(); i++) {
-            int stateIndex = states.get(i);
+            int stateIndex = states.getByIndex(i);
             RegexInstr instr = regexInstrs.get(stateIndex);
             if (instr.opcode == JUMP) {
                 instr = regexInstrs.get(instr.target1);
