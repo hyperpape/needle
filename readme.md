@@ -1,10 +1,11 @@
 ![Badge](https://travis-ci.org/hyperpape/StringMatching.svg?branch=master)
+![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
 String searching/matching algorithms in Java. Where effective, the
 library compiles those algorithms to bytecode to improve matching
 speed.
 
-This is an early experiment. Byte compiled regexes only support full
+This is an early experiment. Bytecode compiled regexes only support full
 string matching, not searching. Most character classes and other
 options are not yet implemented. There's not yet a reasonable public
 API.
