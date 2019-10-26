@@ -475,8 +475,13 @@ public class DFACompiler {
     }
 
     private Label[] makeLabelsForCollection(Collection<?> collection) {
-        Label[] labels = new Label[collection.size()];
-        for (int i = 0; i < collection.size(); i++) {
+        int labelSize = collection.size();
+        return makeLabels(labelSize);
+    }
+
+    private Label[] makeLabels(int labelSize) {
+        Label[] labels = new Label[labelSize];
+        for (int i = 0; i < labelSize; i++) {
             labels[i] = new Label();
         }
         return labels;
