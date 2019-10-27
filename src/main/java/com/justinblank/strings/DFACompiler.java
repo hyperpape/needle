@@ -90,6 +90,9 @@ public class DFACompiler {
         // addIterMethod();
         generateTransitionMethods();
         addMatchMethod();
+        if (isLargeStateCount()) {
+            generateStateGroupMethods();
+        }
         // current impl requires that accepted be called last
         List<DFA> acceptingStates = getAcceptingStates();
         if (acceptingStates.size() > MAX_STATES_FOR_SWITCH) {
@@ -100,6 +103,35 @@ public class DFACompiler {
         }
         else {
             addSingleStateAcceptedMethod(acceptingStates);
+        }
+    }
+
+    private void generateStateGroupMethods() {
+        for (int i = 0; i < (dfa.statesCount() / 64) + 1; i++) {
+            MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, "stateGroup" + i, "(CII)I", null, null);
+            MatchingVars vars = new MatchingVars(1, 2, 3);
+            Label returnLabel = new Label();
+            Label failLabel = new Label();
+
+            int startState = i * 64;
+            int endState = Math.min((i + 1) * 64, dfa.statesCount());
+            Label[] stateLabels = makeLabels(endState - startState);
+
+            mv.visitVarInsn(ILOAD, vars.stateVar);
+            mv.visitTableSwitchInsn(startState, endState - 1, failLabel, stateLabels);
+            for (int j = startState; j < endState; j++) {
+                mv.visitLabel(stateLabels[j - startState]);
+                stateMatch(mv, vars, j, j);
+                mv.visitJumpInsn(GOTO, returnLabel);
+            }
+            mv.visitLabel(failLabel);
+            mv.visitInsn(ICONST_M1);
+            mv.visitInsn(IRETURN);
+            mv.visitLabel(returnLabel);
+            mv.visitIntInsn(ILOAD, vars.stateVar); // TODO: decide if it's better to avoid this store/load
+            mv.visitInsn(IRETURN);
+            mv.visitMaxs(-1,-1);
+            mv.visitEnd();
         }
     }
 
@@ -133,6 +165,8 @@ public class DFACompiler {
         final int stringVar = 3;
         final int charVar = 4;
         final int stateVar = 5;
+
+        MatchingVars vars = new MatchingVars( 4, 1, 5);
 
         mv.visitInsn(ICONST_0);
         mv.visitVarInsn(ISTORE, stateVar);
@@ -171,44 +205,31 @@ public class DFACompiler {
 
         // dispatch to method associated with current state
         mv.visitVarInsn(ILOAD, stateVar);
-        boolean largeMethod = dfa.statesCount() > 1000 * 1000; // Placeholder for testing
+        boolean largeStateCount = isLargeStateCount();
         int labelCount = dfa.statesCount();
+        if (largeStateCount) {
+            labelCount = labelCount / 64;
+        }
         Label[] stateLabels = new Label[labelCount];
         for (int i = 0; i < labelCount; i++) {
             stateLabels[i] = new Label();
+        }
+        if (largeStateCount) {
+            pushShortInt(mv, 64);
+            mv.visitInsn(IDIV);
         }
         mv.visitTableSwitchInsn(0, labelCount - 1, failLabel, stateLabels);
 
         for (int i = 0; i < labelCount; i++) {
             mv.visitLabel(stateLabels[i]);
-            boolean selfTransitioning = stateMap.get(i).hasSelfTransition();
-
-            if (selfTransitioning) {
-                mv.visitVarInsn(ALOAD, 0);
-                mv.visitVarInsn(ILOAD, counterVar);
-                mv.visitFieldInsn(PUTFIELD, className, INDEX_FIELD, "I");
+            int start = i;
+            int end = i;
+            if (largeStateCount) {
+                start *= 64;
+                end += 64;
             }
-            mv.visitVarInsn(ALOAD, 0);
-            mv.visitVarInsn(ILOAD, charVar);
-            if (selfTransitioning) {
-                mv.visitVarInsn(ILOAD, counterVar);
-                mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "(CI)I", false);
-            }
-            else {
-                mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + i, "(C)I", false);
-            }
-            mv.visitVarInsn(ISTORE, stateVar);
-            if (selfTransitioning) {
-                mv.visitVarInsn(ALOAD, 0);
-                mv.visitFieldInsn(GETFIELD, className, INDEX_FIELD, "I");
-                mv.visitVarInsn(ISTORE, counterVar);
-            }
-            if (!largeMethod) {
-                mv.visitJumpInsn(GOTO, iterateLabel);
-            }
-            else {
-                mv.visitJumpInsn(GOTO, iterateLabel);
-            }
+            stateMatch(mv, vars, start, end);
+            mv.visitJumpInsn(GOTO, iterateLabel);
         }
 
         // handle case of failure
@@ -224,6 +245,42 @@ public class DFACompiler {
         mv.visitInsn(IRETURN);
         mv.visitMaxs(-1,-1);
         mv.visitEnd();
+    }
+
+    // TODO: better name
+    private void stateMatch(MethodVisitor mv, MatchingVars vars, int start, int end) {
+        boolean selfTransitioning = stateMap.get(start).hasSelfTransition();
+        boolean largeStateCount = start != end;
+
+        if (selfTransitioning || largeStateCount) {
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitVarInsn(ILOAD, vars.counterVar);
+            mv.visitFieldInsn(PUTFIELD, className, INDEX_FIELD, "I");
+        }
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitVarInsn(ILOAD, vars.charVar);
+        if (largeStateCount) {
+            mv.visitVarInsn(ILOAD, vars.counterVar);
+            mv.visitVarInsn(ILOAD, vars.stateVar);
+            mv.visitMethodInsn(INVOKEVIRTUAL, className, "stateGroup" + (start / 64), "(CII)I", false);
+        }
+        else if (selfTransitioning) {
+            mv.visitVarInsn(ILOAD, vars.counterVar);
+            mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + start, "(CI)I", false);
+        }
+        else {
+            mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + start, "(C)I", false);
+        }
+        mv.visitVarInsn(ISTORE, vars.stateVar);
+        if (selfTransitioning || largeStateCount) {
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitFieldInsn(GETFIELD, className, INDEX_FIELD, "I");
+            mv.visitVarInsn(ISTORE, vars.counterVar);
+        }
+    }
+
+    private boolean isLargeStateCount() {
+        return dfa.statesCount() > 64;
     }
 
     private void addSingleStateAcceptedMethod(List<DFA> acceptingStates) {
