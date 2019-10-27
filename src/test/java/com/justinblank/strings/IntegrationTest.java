@@ -204,6 +204,20 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testManyStateRegexWithLiteralAddOn() {
+        String regexString = MANY_STATE_REGEX_STRING + "ab";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
+        assertTrue(nfa.matches("456ab"));
+        assertTrue(nfa.matches("234234ab"));
+        assertFalse(nfa.matches(""));
+        DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.matches("456ab"));
+        assertFalse(dfa.matches(""));
+        assertTrue(dfa.matches("234234ab"));
+    }
+
+    @Test
     public void testManyStateDFASearch() {
         String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
         Node node = RegexParser.parse(regexString);
