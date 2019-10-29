@@ -204,7 +204,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testManyStateRegexWithLiteralAddOn() {
+    public void testManyStateRegexWithLiteralSuffix() {
         String regexString = MANY_STATE_REGEX_STRING + "ab";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
@@ -215,6 +215,20 @@ public class IntegrationTest {
         assertTrue(dfa.matches("456ab"));
         assertFalse(dfa.matches(""));
         assertTrue(dfa.matches("234234ab"));
+    }
+
+    @Test
+    public void testRepetitionWithLiteralSuffix() {
+        String regexString = "((12)|(23)){1,2}" + "ab";
+        Node node = RegexParser.parse(regexString);
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
+        assertTrue(nfa.matches("12ab"));
+        assertTrue(nfa.matches("23ab"));
+        assertFalse(nfa.matches(""));
+        DFA dfa = NFAToDFACompiler.compile(nfa);
+        assertTrue(dfa.matches("12ab"));
+        assertFalse(dfa.matches(""));
+        assertTrue(dfa.matches("23ab"));
     }
 
     @Test

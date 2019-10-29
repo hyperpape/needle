@@ -1,6 +1,8 @@
 package com.justinblank.strings;
 
 import com.justinblank.classloader.MyClassLoader;
+import com.justinblank.strings.RegexAST.Node;
+import junit.framework.TestCase;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
@@ -69,6 +71,24 @@ public class TestDFACompiler {
 
         assertFalse(pattern.matcher("").matches());
         assertFalse(pattern.matcher("059{").matches());
+    }
+
+    @Test
+    public void testRepetitionWithLiteralSuffix() {
+        String regexString = "((12)|(23)){1,2}" + "ab";
+        Pattern pattern = DFACompiler.compileString(regexString, "GroupedRepetitionWithLiteralSuffix");
+        assertTrue(pattern.matcher("12ab").matches());
+        assertTrue(pattern.matcher("2323ab").matches());
+        assertFalse(pattern.matcher("").matches());
+    }
+
+    @Test
+    public void testManyStateRegexWithLiteralSuffix() {
+        String regexString = IntegrationTest.MANY_STATE_REGEX_STRING + "ab";
+        Pattern pattern = DFACompiler.compileString(regexString, "ManyStateRegexWithLiteralSuffix");
+        assertTrue(pattern.matcher("123ab").matches());
+        assertTrue(pattern.matcher("234234ab").matches());
+        assertFalse(pattern.matcher("").matches());
     }
 
     @Test

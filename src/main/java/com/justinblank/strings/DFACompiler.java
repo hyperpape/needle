@@ -31,7 +31,6 @@ public class DFACompiler {
 
     private Map<DFA, Integer> dfaMethodMap = new IdentityHashMap<>();
     private Map<Integer, DFA> stateMap = new HashMap<>();
-    private int methodCount = 0;
     private String className;
     private ClassWriter classWriter;
     private DFA dfa;
@@ -107,7 +106,7 @@ public class DFACompiler {
     }
 
     private void generateStateGroupMethods() {
-        for (int i = 0; i < (dfa.statesCount() / 64) + 1; i++) {
+        for (int i = 0; i < getStateGroupCount(); i++) {
             MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, "stateGroup" + i, "(CII)I", null, null);
             MatchingVars vars = new MatchingVars(1, 2, 3);
             Label returnLabel = new Label();
@@ -208,7 +207,7 @@ public class DFACompiler {
         boolean largeStateCount = isLargeStateCount();
         int labelCount = dfa.statesCount();
         if (largeStateCount) {
-            labelCount = labelCount / 64;
+            labelCount = getStateGroupCount();
         }
         Label[] stateLabels = new Label[labelCount];
         for (int i = 0; i < labelCount; i++) {
@@ -281,6 +280,10 @@ public class DFACompiler {
 
     private boolean isLargeStateCount() {
         return dfa.statesCount() > 64;
+    }
+
+    private int getStateGroupCount() {
+        return 1 + dfa.statesCount() / 64;
     }
 
     private void addSingleStateAcceptedMethod(List<DFA> acceptingStates) {
@@ -624,7 +627,7 @@ public class DFACompiler {
     }
 
     protected Integer methodDesignator(DFA right) {
-        Integer stateNumber = dfaMethodMap.computeIfAbsent(right, d -> methodCount++);
+        Integer stateNumber = dfaMethodMap.computeIfAbsent(right, d -> d.getStateNumber());
         stateMap.put(dfaMethodMap.get(right), right);
         if (stateNumber > 1 << 15) {
             // TODO: decide best approach to large state automata
