@@ -387,20 +387,8 @@ public class DFACompiler {
     }
 
     protected void generateTransitionMethods() {
-        Set<DFA> seen = new HashSet<>();
-        Queue<DFA> pending = new LinkedList<>();
-        pending.add(dfa);
-        seen.add(dfa);
-
-        while (!pending.isEmpty()) {
-            DFA next = pending.poll();
-            for (Pair<CharRange, DFA> toAdd : next.getTransitions()) {
-                if (!seen.contains(toAdd.getRight())) {
-                    seen.add(toAdd.getRight());
-                    pending.add(toAdd.getRight());
-                }
-            }
-            generateTransitionMethod(next, methodDesignator(next));
+        for (DFA target : dfa.allStates()) {
+            generateTransitionMethod(target, methodDesignator(target));
         }
     }
 
