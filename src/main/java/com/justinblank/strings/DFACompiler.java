@@ -248,7 +248,7 @@ public class DFACompiler {
 
     // TODO: better name
     private void stateMatch(MethodVisitor mv, MatchingVars vars, int start, int end) {
-        boolean selfTransitioning = stateMap.get(start).hasSelfTransition();
+        boolean selfTransitioning = start == end && stateMap.get(start).hasSelfTransition();
         boolean largeStateCount = start != end;
 
         if (selfTransitioning || largeStateCount) {
