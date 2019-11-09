@@ -16,12 +16,10 @@ Currently limited to the BMP
 
 ### Performance
 
-- the NFA class is extremely slow, much slower than Java regexes
+- the NFA class is often vastly slower than than Java regexes, though not always
 - the DFA class is sometimes faster than Java regexes, but often slower
 - byte compiled regexes are faster than Java regexes in many cases, but not all
 - compilation performance is quite bad
-- single string search algorithms perform worse than indexOf, which is a
-hotspot intrinsic
 
 ### Building
 
