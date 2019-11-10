@@ -1,5 +1,7 @@
 package com.justinblank.strings;
 
+import java.util.Objects;
+
 public class MatchResult {
 
     public final boolean matched;
@@ -21,7 +23,35 @@ public class MatchResult {
         }
     }
 
-    static MatchResult failure() {
+    public static MatchResult failure() {
         return FAILURE;
+    }
+
+    public static MatchResult success(int start, int end) {
+        return new MatchResult(true, start, end);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MatchResult that = (MatchResult) o;
+        return matched == that.matched &&
+                start == that.start &&
+                end == that.end;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(matched, start, end);
+    }
+
+    @Override
+    public String toString() {
+        return "MatchResult{" +
+                "matched=" + matched +
+                ", start=" + start +
+                ", end=" + end +
+                '}';
     }
 }
