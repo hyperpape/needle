@@ -1,5 +1,7 @@
 package com.justinblank.strings.Search;
 
+import com.justinblank.strings.MatchResult;
+
 class UnicodeAhoCorasick implements SearchMethod {
 
     private final Trie trie;
@@ -8,11 +10,40 @@ class UnicodeAhoCorasick implements SearchMethod {
         this.trie = trie;
     }
 
+    public boolean matches(String s) {
+        // TODO: this isn't actually good for perf...could search entire string for matching
+        MatchResult result = find(s, 0, s.length(), true);
+        return result.matched && result.start == 0 && result.end == s.length();
+    }
+
     @Override
-    public int findIndex(String s) {
+    public MatchResult find(String s) {
+        return find(s, 0, s.length());
+    }
+
+    @Override
+    public MatchResult find(String s, int start, int end) {
+        return find(s, start, end, false);
+    }
+
+    public MatchResult find(String s, int start, int end, boolean anchored) {
         int length = s.length();
+        if (start > length) {
+            throw new IndexOutOfBoundsException("starting index " + start + " is out of bounds");
+        }
+        if (end > length) {
+            throw new IndexOutOfBoundsException("ending index " + end + " is out of bounds");
+        }
         Trie current = this.trie;
-        for (int i = 0; i < length; i++) {
+        int lastStart = -1;
+        int lastEnd = -1;
+        for (int i = start; i < length; i++) {
+            if (anchored && i > start && current == trie) {
+                if (lastEnd > -1) {
+                    return MatchResult.success(lastStart, lastEnd);
+                }
+                return MatchResult.failure();
+            }
             char c = s.charAt(i);
                 Trie next = current.next(c);
                 while (next == null) {
@@ -29,10 +60,17 @@ class UnicodeAhoCorasick implements SearchMethod {
                 }
                 current = next;
                 if (current.accepting) {
-                    return i - current.length;
+                    int potentialLastStart = i - current.length + 1;
+                    if (lastStart == -1 || potentialLastStart <= lastStart) {
+                        lastEnd = i;
+                        lastStart = potentialLastStart;
+                    }
                 }
         }
+        if (lastEnd > -1) {
+            return MatchResult.success(lastStart, lastEnd + 1);
+        }
 
-        return -1;
+        return MatchResult.failure();
     }
 }

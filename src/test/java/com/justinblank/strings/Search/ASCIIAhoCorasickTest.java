@@ -1,5 +1,6 @@
 package com.justinblank.strings.Search;
 
+import com.justinblank.strings.MatchResult;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -18,12 +19,36 @@ public class ASCIIAhoCorasickTest {
     private static final String LITERAL_3 = "cd";
 
     @Test
-    public void testSingleStringPattern() {
+    public void testSingleStringPatternContainedIn() {
         List<String> patterns = List.of(LITERAL_1);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
         assertTrue(method.containedIn(LITERAL_1));
+        assertTrue(method.containedIn("a" + LITERAL_1));
+        assertTrue(method.containedIn(LITERAL_1 + "a"));
         assertFalse(method.containedIn("de"));
+    }
+
+    @Test
+    public void testSingleStringPatternMatches() {
+        List<String> patterns = List.of(LITERAL_1);
+        SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
+        assertNotNull(method);
+        assertTrue(method.matches(LITERAL_1));
+        assertFalse(method.matches("a" + LITERAL_1));
+        assertFalse(method.matches(LITERAL_1 + "a"));
+        assertFalse(method.containedIn("de"));
+    }
+
+    @Test
+    public void testSingleStringPatternMatchResult() {
+        List<String> patterns = List.of(LITERAL_1);
+        SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
+        assertNotNull(method);
+        assertEquals(MatchResult.success(0, 2), method.find(LITERAL_1));
+        assertEquals(MatchResult.success(1, 3), method.find("a" + LITERAL_1));
+        assertEquals(MatchResult.success(0, 2), method.find(LITERAL_1 + "a"));
+        assertFalse(method.find("de").matched);
     }
 
     @Test

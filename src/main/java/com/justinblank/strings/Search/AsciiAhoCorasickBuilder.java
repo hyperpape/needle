@@ -10,18 +10,22 @@ class AsciiAhoCorasickBuilder {
     private List<ASCIITrie> nodes = new ArrayList<>();
 
     protected static SearchMethod buildAhoCorasick(List<String> strings) {
-        return new AsciiAhoCorasickBuilder().build(strings);
+        ASCIITrie trie = new AsciiAhoCorasickBuilder().build(strings, true);
+        ASCIITrie partialTrie = new AsciiAhoCorasickBuilder().build(strings, false);
+        return new ASCIIAhoCorasick(trie, partialTrie);
     }
 
-    protected SearchMethod build(List<String> strings) {
+    protected ASCIITrie build(List<String> strings, boolean complete) {
         ASCIITrie trie = new ASCIITrie(0);
         root = trie;
         root.root = root;
         nodes.add(root);
         buildTrieStructure(strings, trie);
         nodes.sort(Comparator.comparing(ASCIITrie::length));
-        addFullTransitions();
-        return new ASCIIAhoCorasick(trie);
+        if (complete) {
+            addFullTransitions();
+        }
+        return trie;
     }
 
     private void buildTrieStructure(List<String> strings, ASCIITrie trie) {
@@ -31,7 +35,7 @@ class AsciiAhoCorasickBuilder {
                 char c = s.charAt(i);
                 ASCIITrie next = current.followers[(int) c];
                 if (next == null) {
-                    next = new ASCIITrie(i);
+                    next = new ASCIITrie(i + 1);
                     nodes.add(next);
                     next.root = root;
                     current.addFollower(c, next);
@@ -83,7 +87,11 @@ class AsciiAhoCorasickBuilder {
             ASCIITrie down = trie.supplier;
             while (down != null) {
                 if (down.followers[transition] != null) {
-                    node.supplier = down;
+                    node.supplier = down.followers[transition];
+                    if (node.supplier.accepting && !node.accepting) {
+                        node.accepting = true;
+                        node.length = node.supplier.length;
+                    }
                     break;
                 }
                 down = down.supplier;

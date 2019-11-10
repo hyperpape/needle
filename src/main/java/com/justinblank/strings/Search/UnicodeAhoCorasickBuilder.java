@@ -31,7 +31,7 @@ public class UnicodeAhoCorasickBuilder{
                 char c = s.charAt(i);
                 Trie next = current.next(c);
                 if (next == null) {
-                    next = new Trie(i);
+                    next = new Trie(i + 1);
                     nodes.add(next);
                     next.root = root;
                     current.addFollower(c, next);
@@ -68,7 +68,11 @@ public class UnicodeAhoCorasickBuilder{
             Trie down = trie.supplier;
             while (down != null) {
                 if (down.next(transition) != null) {
-                    node.supplier = down;
+                    node.supplier = down.next(transition);
+                    if (node.supplier.accepting && !node.accepting) {
+                        node.accepting = true;
+                        node.length = node.supplier.length;
+                    }
                     break;
                 }
                 down = down.supplier;
