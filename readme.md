@@ -1,8 +1,9 @@
 ![Badge](https://travis-ci.org/hyperpape/StringMatching.svg?branch=master)
 ![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
-String searching/matching algorithms in Java. Where effective, the
-library compiles those algorithms to bytecode to improve matching
+String searching/matching algorithms in Java, including multi-string
+matching and searching, and regular expressions. Where effective, the
+library compiles those algorithms to bytecode to improve performance
 speed.
 
 This is an early experiment. Bytecode compiled regexes only support full
