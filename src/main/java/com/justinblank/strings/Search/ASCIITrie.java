@@ -19,4 +19,8 @@ class ASCIITrie {
     void markAccepting() {
         this.accepting = true;
     }
+
+    int length() {
+        return length;
+    }
 }

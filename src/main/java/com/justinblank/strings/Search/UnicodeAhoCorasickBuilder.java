@@ -1,6 +1,7 @@
 package com.justinblank.strings.Search;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class UnicodeAhoCorasickBuilder{
@@ -18,6 +19,7 @@ public class UnicodeAhoCorasickBuilder{
         root.root = root;
         nodes.add(root);
         buildTrieStructure(strings, trie);
+        nodes.sort(Comparator.comparing(Trie::length));
         addSuppliers();
         return new UnicodeAhoCorasick(trie);
     }

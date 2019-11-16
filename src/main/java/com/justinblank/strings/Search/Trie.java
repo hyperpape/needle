@@ -25,4 +25,8 @@ class Trie {
     void markAccepting() {
         this.accepting = true;
     }
+
+    int length() {
+        return length;
+    }
 }

@@ -1,6 +1,7 @@
 package com.justinblank.strings.Search;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 class AsciiAhoCorasickBuilder {
@@ -18,6 +19,7 @@ class AsciiAhoCorasickBuilder {
         root.root = root;
         nodes.add(root);
         buildTrieStructure(strings, trie);
+        nodes.sort(Comparator.comparing(ASCIITrie::length));
         addFullTransitions();
         return new ASCIIAhoCorasick(trie);
     }
