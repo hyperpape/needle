@@ -273,25 +273,6 @@ public class NFA {
         return bs;
     }
 
-    public Set<NFA> allStates() {
-        Set<NFA> seen = new HashSet<>();
-        Queue<NFA> pending = new LinkedList<>();
-        pending.add(this);
-        while (!pending.isEmpty()) {
-            NFA current = pending.poll();
-            seen.add(current);
-            for (Pair<CharRange, List<NFA>> transition : current.getTransitions()) {
-                List<NFA> states = transition.getRight();
-                for (NFA next : states) {
-                    if (!seen.contains(next)) {
-                        pending.add(next);
-                    }
-                }
-            }
-        }
-        return seen;
-    }
-
     public boolean isTerminal() {
         return isTerminal;
     }
