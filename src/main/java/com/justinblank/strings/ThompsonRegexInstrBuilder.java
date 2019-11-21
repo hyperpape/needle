@@ -125,6 +125,12 @@ public class ThompsonRegexInstrBuilder {
             CharRange range = ((CharRangeNode) ast).range();
             instrs.add(RegexInstr.charRange(range.getStart(), range.getEnd()));
         }
+        else if (ast instanceof LiteralNode) {
+            String s = ((LiteralNode) ast).getLiteral();
+            for (int i = 0; i < s.length(); i++) {
+                instrs.add(RegexInstr.charRange(s.charAt(i), s.charAt(i)));
+            }
+        }
         else {
             throw new IllegalStateException("Unhandled ast node type=" + ast.getClass().getSimpleName());
         }

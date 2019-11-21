@@ -14,21 +14,21 @@ public class RegexParserTest {
     public void testSingleChar() {
         Node node = parse("a");
         assertNotNull(node);
-        assertTrue(node instanceof CharRangeNode);
+        assertTrue(node instanceof LiteralNode);
     }
 
     @Test
     public void testTwoCharConcatenation() {
         Node node = parse("ab");
         assertNotNull(node);
-        assertTrue(node instanceof Concatenation);
+        assertTrue(node instanceof LiteralNode);
     }
 
     @Test
     public void testMultipleCharConcatenation() {
         Node node = parse("abcdef");
         assertNotNull(node);
-        assertTrue(node instanceof Concatenation);
+        assertTrue(node instanceof LiteralNode);
     }
 
     @Test
@@ -127,7 +127,7 @@ public class RegexParserTest {
     public void testSuperfluousParentheses() {
         Node node = parse("((1))");
         assertNotNull(node);
-        assertTrue(node instanceof CharRangeNode);
+        assertTrue(node instanceof LiteralNode);
     }
 
     @Test
@@ -194,8 +194,8 @@ public class RegexParserTest {
         assertNotNull(node);
         assertTrue(node instanceof Alternation);
         Alternation alt = (Alternation) node;
-        assertTrue(alt.left instanceof CharRangeNode);
-        assertTrue(alt.right instanceof Concatenation);
+        assertTrue(alt.left instanceof LiteralNode);
+        assertTrue(alt.right instanceof LiteralNode);
     }
 
     @Test
@@ -215,7 +215,7 @@ public class RegexParserTest {
     public void testConcatenatedParens() {
         Node node = parse("(AB)(CD)");
         assertNotNull(node);
-        assertTrue(node instanceof Concatenation);
+        assertTrue(node instanceof LiteralNode);
     }
 
     @Test
@@ -229,7 +229,7 @@ public class RegexParserTest {
     public void testParseLongRegexes() {
         Node node = parse("a".repeat(30000));
         assertNotNull(node);
-        assertTrue(node instanceof Concatenation);
+        assertTrue(node instanceof LiteralNode);
     }
 
     @Test
@@ -240,6 +240,6 @@ public class RegexParserTest {
         Node head = ((Concatenation) node).head;
         Node tail = ((Concatenation) node).tail;
         assertTrue(head instanceof CountedRepetition);
-        assertTrue(tail instanceof Concatenation);
+        assertTrue(tail instanceof LiteralNode);
     }
 }

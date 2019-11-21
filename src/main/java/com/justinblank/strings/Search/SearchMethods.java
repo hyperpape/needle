@@ -7,6 +7,9 @@ public final class SearchMethods {
     private SearchMethods() {}
 
     public static SearchMethod makeSearchMethod(List<String> strings) {
+        if (strings.isEmpty()) {
+            throw new IllegalArgumentException("Cannot create SearchMethod using empty list of strings");
+        }
         if (allAscii(strings)) {
             return AsciiAhoCorasickBuilder.buildAhoCorasick(strings);
         }

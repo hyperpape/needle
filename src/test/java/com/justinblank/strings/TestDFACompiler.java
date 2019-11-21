@@ -110,4 +110,13 @@ public class TestDFACompiler {
         assertTrue(pattern.matcher("\u0600").matches());
         assertFalse(pattern.matcher("AB{").matches());
     }
+
+    @Test
+    public void testDFACompiledAlternationOfLiterals() throws Exception {
+        Pattern pattern = DFACompiler.compileString("A|BCD|E", "alternation1");
+        assertTrue(pattern.matcher("A").matches());
+        assertTrue(pattern.matcher("BCD").matches());
+        assertTrue(pattern.matcher("E").matches());
+        assertFalse(pattern.matcher("F").matches());
+    }
 }

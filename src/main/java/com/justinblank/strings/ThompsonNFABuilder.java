@@ -118,6 +118,22 @@ class ThompsonNFABuilder {
             nfa.addTransitions(range.range(), Collections.singletonList(end));
             nfaStates.add(end);
         }
+        else if (ast instanceof LiteralNode) {
+            nfa = new NFA(false, index++);
+            NFA current = nfa;
+            String s = ((LiteralNode) ast).getLiteral();
+            for (int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                NFA next = new NFA(false, index++);
+                current.addTransitions(new CharRange(c, c), Collections.singletonList(next));
+                nfaStates.add(current);
+                current = next;
+            }
+            NFA end = new NFA(false, index++);
+            current.addTransitions(CharRange.emptyRange(), Collections.singletonList(end));
+            nfaStates.add(current);
+            nfaStates.add(end);
+        }
         else {
             throw new IllegalStateException("Unhandled ast node type=" + ast.getClass().getSimpleName());
         }

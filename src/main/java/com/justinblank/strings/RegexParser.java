@@ -65,7 +65,7 @@ public class RegexParser {
                 case '|':
                     assertNonEmpty("");
                     Node last = nodes.peek();
-                    if (last instanceof CharRangeNode || last instanceof Concatenation || last instanceof RParenNode) {
+                    if (last instanceof CharRangeNode || last instanceof Concatenation || last instanceof LiteralNode || last instanceof RParenNode) {
                         nodes.push(new Alternation(last, null));
                     }
                     break;
@@ -77,13 +77,16 @@ public class RegexParser {
                     break;
                 default:
                     if (nodes.isEmpty()) {
-                        nodes.push(new CharRangeNode(c, c));
+                        nodes.push(LiteralNode.fromChar(c));
+                    }
+                    else if (nodes.peek() instanceof LiteralNode) {
+                        ((LiteralNode) nodes.peek()).append(c);
                     }
                     else if (nodes.peek() instanceof CharRangeNode || nodes.peek() instanceof Concatenation) {
                         nodes.push(new Concatenation(nodes.pop(), new CharRangeNode(c, c)));
                     }
                     else {
-                        nodes.push(new CharRangeNode(c, c));
+                        nodes.push(LiteralNode.fromChar(c));
                     }
             }
         }
@@ -98,6 +101,9 @@ public class RegexParser {
                 assertNonEmpty("Alternation needed something to alternate");
                 Node nextNext = nodes.pop();
                 node = new Alternation(node, nextNext);
+            }
+            else if (next instanceof LiteralNode && node instanceof LiteralNode) {
+                node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
             }
             else {
                 node = new Concatenation(next, node);

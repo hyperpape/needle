@@ -30,8 +30,11 @@ public class Factorization {
     }
 
     private Factorization(char c) {
+        this(String.valueOf(c));
+    }
+
+    private Factorization(String s) {
         this();
-        String s = String.valueOf(c);
         all.add(s);
         suffixes.add(s);
         prefixes.add(s);
@@ -40,6 +43,10 @@ public class Factorization {
 
     public static Factorization fromChar(char c) {
         return new Factorization(c);
+    }
+
+    public static Factorization fromString(String string) {
+        return new Factorization(string);
     }
 
     public static Factorization empty() {

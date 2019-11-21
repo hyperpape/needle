@@ -32,4 +32,9 @@ public class Alternation extends Node {
         leftFactors.alternate(rightFactors);
         return leftFactors;
     }
+
+    @Override
+    public boolean isAlternationOfLiterals() {
+        return left.isAlternationOfLiterals() && right.isAlternationOfLiterals();
+    }
 }
