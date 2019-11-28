@@ -74,4 +74,17 @@ public class SparseSet {
         Objects.checkIndex(n, count);
         return this.dense[n + 1] - 1;
     }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (int i = 0; i < count; i++) {
+            sb.append(this.dense[i + 1] - 1);
+            if (i + 1 < count) {
+                sb.append(", ");
+            }
+        }
+        sb.append(']');
+        return sb.toString();
+    }
 }

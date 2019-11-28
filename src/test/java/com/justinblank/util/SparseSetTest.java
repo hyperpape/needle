@@ -119,6 +119,12 @@ public class SparseSetTest {
         });
     }
 
+    @Test
+    public void canAddMax() {
+        SparseSet set = new SparseSet(10);
+        set.add(10);
+    }
+
     @Test(expected = IndexOutOfBoundsException.class)
     public void checkOutOfBoundsAdd() {
         SparseSet set = new SparseSet(10);
@@ -129,5 +135,51 @@ public class SparseSetTest {
     public void checkOutOfBoundsGetByIndex() {
         SparseSet sparseSet = new SparseSet(10);
         sparseSet.getByIndex(1);
+    }
+
+    @Test
+    public void testToString() {
+        SparseSet set = new SparseSet(10);
+        assertEquals("[]", set.toString());
+        set.add(10);
+        set.add(8);
+        assertEquals("[10, 8]", set.toString());
+        set.add(7);
+        assertEquals("[10, 8, 7]", set.toString());
+        set.clear();
+        assertEquals("[]", set.toString());
+    }
+
+    @Test
+    public void testToStringSequences() {
+        Gen<List<Integer>> gen = new ListsDSL().of(new IntegersDSL().between(0, 301)).ofSizeBetween(0, 100);
+        qt().forAll(gen).check((integers) -> {
+            Set<Integer> referenceSet = new HashSet<>();
+            SparseSet sparseSet = new SparseSet(100);
+            for (Integer i : integers) {
+                if (i < 100) {
+                    referenceSet.add(i);
+                    sparseSet.add(i);
+                } else if (i < 200) {
+                    referenceSet.remove(i - 100);
+                    sparseSet.remove(i - 100);
+                } else if (i < 300) {
+                    boolean refContained = referenceSet.contains(i - 200);
+                    boolean sparseContained = sparseSet.contains(i - 200);
+                    if (refContained != sparseContained) {
+                        return false;
+                    }
+                } else if (i == 301) {
+                    referenceSet.clear();
+                    sparseSet.clear();
+                }
+                for (Integer contained : referenceSet) {
+                    if (!sparseSet.toString().contains(contained.toString())) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
     }
 }
