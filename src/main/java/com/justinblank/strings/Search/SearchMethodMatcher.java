@@ -10,7 +10,7 @@ public class SearchMethodMatcher implements Matcher {
     private final SearchMethod method;
     private final String s;
 
-    SearchMethodMatcher(SearchMethod method, String s) {
+    public SearchMethodMatcher(SearchMethod method, String s) {
         Objects.requireNonNull(method, s);
         this.method = method;
         this.s = s;

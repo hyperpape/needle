@@ -1,5 +1,7 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.Search.SearchMethod;
+import com.justinblank.strings.Search.SearchMethodMatcher;
 import com.justinblank.util.SparseSet;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -7,7 +9,7 @@ import java.util.*;
 
 import static com.justinblank.strings.RegexInstr.Opcode.*;
 
-public class NFA {
+public class NFA implements SearchMethod {
 
     private NFA root;
     private final int state;
@@ -37,6 +39,7 @@ public class NFA {
             for (NFA nfa : nfas) {
                 if (nfa != this) {
                     isTerminal = false;
+                    break;
                 }
             }
         }
@@ -98,6 +101,7 @@ public class NFA {
         int length = s.length();
         SparseSet currentStates = new SparseSet(states.size() - 1);
         currentStates.add(0);
+        // TODO: document why size - 1, or maybe fix it
         SparseSet newStates = new SparseSet(states.size() - 1);
 
         for (int i = 0; i < length; i++) {
@@ -114,13 +118,14 @@ public class NFA {
                     examinedState = regexInstr.target1;
                     regexInstr = regexInstrs.get(examinedState);
                     opcode = regexInstr.opcode;
+                    // intentional fallthrough...I think?
                 }
                 if (opcode == SPLIT) {
                     currentStates.add(regexInstr.target1);
                     currentStates.add(regexInstr.target2);
                     continue;
                 }
-                if (c >= regexInstr.start && c <= regexInstr.end) {
+                if (opcode != MATCH && c >= regexInstr.start && c <= regexInstr.end) {
                     newStates.add(examinedState + 1);
                 }
             }
@@ -130,6 +135,45 @@ public class NFA {
             newStates.clear();
         }
         return statesMatched(currentStates);
+    }
+
+    @Override
+    public Matcher matcher(String s) {
+        return new SearchMethodMatcher(this, s);
+    }
+
+    @Override
+    public boolean containedIn(String s) {
+        return find(s).matched;
+    }
+
+    private MatchResult matchResult(SparseSet states, int[] stateOrigins, int currentIndex) {
+        for (int i = 0; i < states.size(); i++) {
+            int stateIndex = states.getByIndex(i);
+            RegexInstr instr = regexInstrs.get(stateIndex);
+            if (instr.opcode == JUMP) {
+                instr = regexInstrs.get(instr.target1);
+            }
+
+            if (instr.opcode == MATCH) {
+                return MatchResult.success(stateOrigins[stateIndex], currentIndex);
+            }
+            else if (instr.opcode == SPLIT) {
+                if (regexInstrs.get(instr.target1).opcode == MATCH) {
+                    return MatchResult.success(stateOrigins[instr.target1], currentIndex);
+                }
+                else {
+                    states.add(instr.target1);
+                }
+                if (regexInstrs.get(instr.target2).opcode == MATCH) {
+                    return MatchResult.success(stateOrigins[instr.target2], currentIndex);
+                }
+                else {
+                    states.add(instr.target2);
+                }
+            }
+        }
+        return MatchResult.failure();
     }
 
     private boolean statesMatched(SparseSet states) {
@@ -161,77 +205,109 @@ public class NFA {
         return false;
     }
 
-    public MatchResult search(String s) {
+    @Override
+    public int findIndex(String s) {
+        MatchResult result = find(s);
+        return result.start;
+    }
+
+    @Override
+    public MatchResult find(String s) {
+        return find(s, 0, s.length(), false);
+    }
+
+    @Override
+    public MatchResult find(String s, int start, int end) {
+        return find(s, start, end, false);
+    }
+
+    public MatchResult find(String s, int start, int end, boolean anchored) {
         int length = s.length();
+        if (start > length) {
+            throw new IndexOutOfBoundsException("starting index " + start + " is out of bounds");
+        }
+        if (end > length) {
+            throw new IndexOutOfBoundsException("ending index " + end + " is out of bounds");
+        }
+        int i = start;
         int lastStart = Integer.MAX_VALUE;
         int lastEnd = -1;
-        int i = 0;
-        Set<NFA> initial = epsilonClosure();
-        Set<NFA> current = initial;
-        Map<NFA, Integer> stateMap = new HashMap<>();
-        for (; i < length; i++) {
-            // If any of our states can accept, we've found a match.
-            // Keep searching for a longer match, but store the current start and end indices
-            // we will no longer consider anything that starts after this starting location
-            boolean accepting = hasAcceptingState(current);
-            if (accepting) {
-                lastStart = computeLastStart(stateMap, i);
-                lastEnd = i;
-            }
-
-            current.addAll(initial);
-            final int currentIndex = i;
+        SparseSet activeStates = new SparseSet(states.size());
+        SparseSet newStates = new SparseSet(states.size());
+        int[] stateOrigins = new int[states.size()];
+        Arrays.fill(stateOrigins, Integer.MAX_VALUE);
+        int[] newStateOrigins = new int[states.size()];
+        Arrays.fill(newStateOrigins, Integer.MAX_VALUE);
+        for (; i < end; i++) {
             char c = s.charAt(i);
-            Set<NFA> next = new HashSet<>();
-            Map<NFA, Integer> newStateMap = new HashMap<>();
-            Map<NFA, Integer> existingStateMap = stateMap;
-            for (NFA node : current) {
-                BitSet bitSet = node.transition(c);
-                bitSet.stream().forEach(nfaIndex -> {
-                    newStateMap.compute(states.get(nfaIndex), (nfa, start) -> {
-                        if (start == null) {
-                            start = currentIndex;
-                        }
-                        int startingPoint = Math.min(start, existingStateMap.getOrDefault(node, currentIndex));
-                        if (startingPoint == Integer.MAX_VALUE) {
-                            throw new IllegalStateException("");
-                        }
-                        return startingPoint;
-                    });
-                });
+            activeStates.add(0);
+            // If we have returned to the initial state, during the course of a match, i.e. with a*b matching "aaab", we
+            // should not override the match in progress. Otherwise, start over, to search for
+            if (stateOrigins[0] == Integer.MAX_VALUE && !anchored || i == start) {
+                stateOrigins[0] = i;
             }
-            // Now, only keep states if they can match a range shorter than the current longest match
-            final int currentLastStart = lastStart;
-            stateMap.clear();
-            newStateMap.forEach((key, value) -> {
-                if (value <= currentLastStart) {
-                    next.add(key);
-                    stateMap.put(key, value);
+            for (int j = 0; j < activeStates.size(); j++) {
+                int currentState = activeStates.getByIndex(j);
+                int origin = stateOrigins[currentState];
+                if (anchored && origin > start) {
+                    continue; // TODO: better to stop here, or never to add?
                 }
-            });
-            current = next;
-        }
-        boolean accepting = current.stream().anyMatch(NFA::isAccepting);
-        if (accepting) {
-            int thisStart = i;
-            for (Map.Entry<NFA, Integer> e : stateMap.entrySet()) {
-                if (e.getKey().accepting) {
-                    thisStart = Math.min(thisStart, e.getValue());
+                RegexInstr instr = this.regexInstrs.get(currentState);
+                int target1 = instr.target1;
+                switch (instr.opcode) {
+                    case JUMP:
+                        activeStates.add(target1);
+                        stateOrigins[target1] = Math.min(stateOrigins[target1], origin);
+                        break;
+                    case MATCH:
+                        if (origin < lastStart) {
+                            lastStart = origin;
+                            lastEnd = i;
+                        }
+                        break;
+                    case SPLIT:
+                        activeStates.add(target1);
+                        stateOrigins[target1] = Math.min(stateOrigins[target1], origin);
+                        int target2 = instr.target2;
+                        activeStates.add(target2);
+                        stateOrigins[target2] = Math.min(stateOrigins[target2], origin);
+                        break;
+                    case CHAR_RANGE:
+                        // 25 mg every 6 hours
+                        if (instr.start <= c && instr.end >= c) {
+                            int next = currentState + 1;
+                            newStates.add(next);
+                            newStateOrigins[next] = Math.min(newStateOrigins[next], origin);
+                        }
                 }
             }
-            if (lastStart == Integer.MAX_VALUE) {
-                lastStart = thisStart;
-            }
-            if (lastStart > thisStart) {
-                return new MatchResult(true, lastStart, lastEnd);
+            SparseSet tempStates = activeStates;
+            activeStates = newStates;
+            newStates = tempStates;
+            newStates.clear();
+            int[] tempOrigins = stateOrigins;
+            stateOrigins = newStateOrigins;
+            newStateOrigins = tempOrigins;
+            Arrays.fill(newStateOrigins, Integer.MAX_VALUE);
+        }
+        for (int j = 0; j < activeStates.size(); j++) {
+            int state = activeStates.getByIndex(j);
+            if (this.regexInstrs.get(state).opcode == MATCH) {
+                int origin = stateOrigins[state];
+                if (origin < lastStart) {
+                    lastStart = origin;
+                    lastEnd = i;
+                }
             }
         }
-        else if (lastStart != Integer.MAX_VALUE) {
-            return new MatchResult(true, lastStart, lastEnd);
+        if (lastEnd > -1) {
+            return MatchResult.success(lastStart, lastEnd);
         }
+        return matchResult(activeStates, stateOrigins, i);
+    }
 
-        boolean matched = current.stream().anyMatch(NFA::isAccepting);
-        return new MatchResult(matched, lastStart, i);
+    public MatchResult search(String s) {
+        return find(s);
     }
 
     protected static boolean hasAcceptingState(Collection<NFA> nfas) {
