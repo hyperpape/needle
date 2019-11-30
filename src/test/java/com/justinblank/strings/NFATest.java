@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -81,7 +82,7 @@ public class NFATest {
     public void testAsciiSingleStringOverlappingFalseStart() {
         String needle = "aab";
         String haystack = "aaab";
-        NFA nfa = NFA.createNFA(needle);
+        SearchMethod nfa = NFA.createNFA(needle);
         assertTrue(nfa.containedIn(haystack));
         assertFalse(nfa.matches(haystack));
         assertEquals(MatchResult.success(1, 4), nfa.find(haystack));
@@ -133,7 +134,7 @@ public class NFATest {
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         Gen<String> haystackStrings = SMALL_ALPHABET.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, haystackStrings).check((l, s, h) -> {
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(h);
             if (result.matched) {
                 String needle = h.substring(result.start, result.end);
@@ -147,7 +148,7 @@ public class NFATest {
         manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, LARGE_DATA_SIZE);
         haystackStrings = new StringsDSL().ascii().ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, haystackStrings).check((l, s, h) -> {
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(h);
             if (result.matched) {
                 String needle = h.substring(result.start, result.end);
@@ -163,7 +164,7 @@ public class NFATest {
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         Gen<String> haystackStrings = SMALL_BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, haystackStrings).check((l, s, h) -> {
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(h);
             if (result.matched) {
                 String needle = h.substring(result.start, result.end);
@@ -176,7 +177,7 @@ public class NFATest {
         manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, LARGE_DATA_SIZE);
         haystackStrings = NON_METACHAR_BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, haystackStrings).check((l, s, h) -> {
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(h);
             if (result.matched) {
                 String needle = h.substring(result.start, result.end);
@@ -189,14 +190,14 @@ public class NFATest {
     @Test
     public void testAsciiCollidingNeedlesInMiddleOfHaystack() {
         List<String> strings = Arrays.asList("aa", "baaa");
-        NFA nfa = createNFA(strings);
+        SearchMethod nfa = createNFA(strings);
         assertTrue(nfa.containedIn("abaab"));
     }
 
     @Test
     public void testOtherHaystackCollision() {
         List<String> strings = Arrays.asList("aabaa", "acaaaa", "aaaa");
-        NFA nfa = NFA.createNFA("(" + String.join(")|(", strings) + ")");
+        SearchMethod nfa = NFA.createNFA("(" + String.join(")|(", strings) + ")");
         assertTrue(nfa.containedIn("aabaa"));
         assertTrue(nfa.containedIn("aca" + "aabaa" + "aca"));
     }
@@ -219,7 +220,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(newTargetString);
             if (!result.matched) {
                 return false;
@@ -233,7 +234,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, LARGE_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method =  createNFA(l);
+            SearchMethod method =  createNFA(l);
             MatchResult result = method.find(newTargetString);
             if (!result.matched) {
                 return false;
@@ -250,7 +251,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(newTargetString, s.length(), newTargetString.length());
             if (!result.matched) {
                 return false;
@@ -264,7 +265,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, LARGE_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method =  createNFA(l);
+            SearchMethod method =  createNFA(l);
             MatchResult result = method.find(newTargetString, s.length(), newTargetString.length());
             if (!result.matched) {
                 return false;
@@ -281,7 +282,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(newTargetString);
             if (!result.matched) {
                 return false;
@@ -295,7 +296,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, LARGE_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(newTargetString);
             if (!result.matched) {
                 return false;
@@ -312,7 +313,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(newTargetString, s.length(), newTargetString.length());
             if (!result.matched) {
                 return false;
@@ -326,7 +327,7 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, LARGE_DATA_SIZE)).check((l, s, i) -> {
             String targetString = l.get(i % l.size());
             String newTargetString = s + targetString + s;
-            NFA method = createNFA(l);
+            SearchMethod method = createNFA(l);
             MatchResult result = method.find(newTargetString, s.length(), newTargetString.length());
             if (!result.matched) {
                 return false;
@@ -340,7 +341,7 @@ public class NFATest {
         return "(" + String.join(")|(", strings) + ")";
     }
 
-    private static NFA createNFA(List<String> strings) {
+    private static SearchMethod createNFA(List<String> strings) {
         return NFA.createNFA(joinLiterals(strings));
     }
 }

@@ -27,7 +27,7 @@ public class NFA implements SearchMethod {
         this.state = index;
     }
 
-    public static NFA createNFA(String regex) {
+    public static SearchMethod createNFA(String regex) {
         return ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
     }
 
