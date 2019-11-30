@@ -1,7 +1,9 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.Search.SearchMethod;
 import com.justinblank.strings.Search.SearchMethodMatcher;
+import com.justinblank.strings.Search.SearchMethods;
 import com.justinblank.util.SparseSet;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -28,7 +30,13 @@ public class NFA implements SearchMethod {
     }
 
     public static SearchMethod createNFA(String regex) {
-        return ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
+        Node parse = RegexParser.parse(regex);
+        if (Node.isAhoCorasickPattern(parse)) {
+            List<String> strings = new ArrayList<>();
+            Node.extractLiterals(parse, strings);
+            return SearchMethods.makeSearchMethod(strings);
+        }
+        return ThompsonNFABuilder.createNFA(parse);
     }
 
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
