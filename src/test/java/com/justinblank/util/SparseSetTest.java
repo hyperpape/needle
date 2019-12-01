@@ -17,6 +17,8 @@ public class SparseSetTest {
     @Test
     public void testSparseSetAddAndClear() {
         SparseSet sparseSet = new SparseSet(10);
+        assertEquals(10, sparseSet.capacity());
+
         sparseSet.add(0);
         assertTrue(sparseSet.contains(0));
         sparseSet.clear();
@@ -83,12 +85,14 @@ public class SparseSetTest {
             SparseSet sparseSet = new SparseSet(100);
             for (Integer i : integers) {
                 if (i < 100) {
-                    referenceSet.add(i);
-                    sparseSet.add(i);
+                    if (referenceSet.add(i) != sparseSet.add(i)) {
+                        return false;
+                    }
                 }
                 else if (i < 200) {
-                    referenceSet.remove(i - 100);
-                    sparseSet.remove(i - 100);
+                   if (referenceSet.remove(i - 100) != sparseSet.remove(i - 100)) {
+                       return false;
+                   }
                 }
                 else if (i < 300) {
                     boolean refContained = referenceSet.contains(i - 200);
@@ -158,8 +162,11 @@ public class SparseSetTest {
             SparseSet sparseSet = new SparseSet(100);
             for (Integer i : integers) {
                 if (i < 100) {
-                    referenceSet.add(i);
-                    sparseSet.add(i);
+                    boolean refSetAdd = referenceSet.add(i);
+                    boolean sparseSetAdd = sparseSet.add(i);
+                    if (refSetAdd != sparseSetAdd) {
+                        return false;
+                    }
                 } else if (i < 200) {
                     referenceSet.remove(i - 100);
                     sparseSet.remove(i - 100);

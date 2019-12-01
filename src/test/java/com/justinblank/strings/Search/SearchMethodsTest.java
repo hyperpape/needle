@@ -4,6 +4,7 @@ import com.justinblank.strings.MatchResult;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
+import org.quicktheories.generators.BooleansDSL;
 import org.quicktheories.generators.IntegersDSL;
 import org.quicktheories.generators.ListsDSL;
 import org.quicktheories.generators.StringsDSL;

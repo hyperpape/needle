@@ -63,9 +63,9 @@ public class RegexParser {
                     nodes.push(new Repetition(nodes.pop()));
                     break;
                 case '|':
-                    assertNonEmpty("");
+                    assertNonEmpty("'|' cannot be the final character in a regex");
                     Node last = nodes.peek();
-                    if (last instanceof CharRangeNode || last instanceof Concatenation || last instanceof LiteralNode || last instanceof RParenNode) {
+                    if (last instanceof CharRangeNode || last instanceof Concatenation || last instanceof LiteralNode) {
                         nodes.push(new Alternation(last, null));
                     }
                     break;
@@ -146,18 +146,6 @@ public class RegexParser {
         }
     }
 
-    private void addAlternationToNodes(Stack<Node> nodes) {
-        if (nodes.isEmpty()) {
-            throw new IllegalStateException();
-        }
-        Node right = nodes.pop();
-        if (nodes.isEmpty()) {
-            throw new IllegalStateException();
-        }
-        Node left = nodes.pop();
-        nodes.push(new Alternation(left, right));
-    }
-
     private char takeChar() {
         return regex.charAt(index++);
     }
@@ -172,12 +160,7 @@ public class RegexParser {
             }
             takeChar();
         }
-        if (index >= regex.length()) {
-            throw new IllegalStateException("");
-        }
-        else {
-            throw new IllegalStateException("Expected number, found " + regex.substring(initialIndex, index));
-        }
+        throw new IllegalStateException("Expected number, found " + regex.substring(initialIndex, index));
     }
 
     private Node buildCharSet() {
