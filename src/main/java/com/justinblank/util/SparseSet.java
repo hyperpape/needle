@@ -13,7 +13,9 @@ public class SparseSet {
 
     private int count;
     private int max;
+    // Dense stores the reverse index. If the value here points back to the other array, we have located our value
     private final int[] dense;
+    // The primary array: to set/search for n, we set/read the value in this array at index n, then look at dense
     private final int[] other;
 
     public SparseSet(int n) {
@@ -56,6 +58,18 @@ public class SparseSet {
         int effectiveIndex = n + 1;
         int denseLocation = this.other[effectiveIndex];
         return denseLocation <= count && this.dense[denseLocation] == effectiveIndex;
+    }
+
+    public int indexOf(int n) {
+        if (n > max) {
+            return -1;
+        }
+        int effectiveIndex = n + 1;
+        int denseLocation = this.other[effectiveIndex];
+        if (denseLocation <= count && this.dense[denseLocation] == effectiveIndex) {
+            return denseLocation - 1;
+        }
+        return -1;
     }
 
     public void clear() {

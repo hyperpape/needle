@@ -114,7 +114,11 @@ public class SparseSetTest {
                     }
                 }
                 for (int j = 0; j < sparseSet.size(); j++) {
-                    if (!referenceSet.contains(sparseSet.getByIndex(j))) {
+                    int n = sparseSet.getByIndex(j);
+                    if (!referenceSet.contains(n)) {
+                        return false;
+                    }
+                    if (sparseSet.indexOf(n) != j) {
                         return false;
                     }
                 }
