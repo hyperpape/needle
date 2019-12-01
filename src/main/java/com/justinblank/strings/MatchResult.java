@@ -2,7 +2,7 @@ package com.justinblank.strings;
 
 import java.util.Objects;
 
-public class MatchResult {
+public class MatchResult implements Comparable<MatchResult> {
 
     public final boolean matched;
     public final int start;
@@ -53,5 +53,25 @@ public class MatchResult {
                 ", start=" + start +
                 ", end=" + end +
                 '}';
+    }
+
+    @Override
+    public int compareTo(MatchResult result) {
+        if (!result.matched) {
+            return this.matched ? 1 : 0;
+        }
+        if (this.start < result.start) {
+            return 1;
+        }
+        else if (this.start > result.start) {
+            return -1;
+        }
+        if (this.end < result.end) {
+            return -1;
+        }
+        else if (this.end > result.end) {
+            return 1;
+        }
+        return 0;
     }
 }
