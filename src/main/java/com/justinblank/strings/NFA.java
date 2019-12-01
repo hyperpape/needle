@@ -109,7 +109,6 @@ public class NFA implements SearchMethod {
         int length = s.length();
         SparseSet currentStates = new SparseSet(states.size() - 1);
         currentStates.add(0);
-        // TODO: document why size - 1, or maybe fix it
         SparseSet newStates = new SparseSet(states.size() - 1);
 
         for (int i = 0; i < length; i++) {
@@ -126,7 +125,7 @@ public class NFA implements SearchMethod {
                     examinedState = regexInstr.target1;
                     regexInstr = regexInstrs.get(examinedState);
                     opcode = regexInstr.opcode;
-                    // intentional fallthrough...I think?
+                    // intentional fallthrough so that we can continue evaluating the target of the jump
                 }
                 if (opcode == SPLIT) {
                     currentStates.add(regexInstr.target1);
@@ -156,30 +155,45 @@ public class NFA implements SearchMethod {
     }
 
     private MatchResult matchResult(SparseSet states, int[] stateOrigins, int currentIndex) {
+        int lastStart = Integer.MAX_VALUE;
         for (int i = 0; i < states.size(); i++) {
             int stateIndex = states.getByIndex(i);
             RegexInstr instr = regexInstrs.get(stateIndex);
             if (instr.opcode == JUMP) {
                 instr = regexInstrs.get(instr.target1);
             }
-
             if (instr.opcode == MATCH) {
-                return MatchResult.success(stateOrigins[stateIndex], currentIndex);
+                int successOrigin = stateOrigins[stateIndex];
+                if (successOrigin <= lastStart) {
+                    lastStart = successOrigin;
+                }
             }
             else if (instr.opcode == SPLIT) {
-                if (regexInstrs.get(instr.target1).opcode == MATCH) {
-                    return MatchResult.success(stateOrigins[instr.target1], currentIndex);
+                int origin = stateOrigins[stateIndex];
+                int target1 = instr.target1;
+                if (regexInstrs.get(target1).opcode == MATCH) {
+                    if (origin < lastStart) {
+                        lastStart = origin;
+                    }
                 }
                 else {
-                    states.add(instr.target1);
+                    states.add(target1);
+                    stateOrigins[target1] = Math.min(origin, stateOrigins[target1]);
                 }
-                if (regexInstrs.get(instr.target2).opcode == MATCH) {
-                    return MatchResult.success(stateOrigins[instr.target2], currentIndex);
+                int target2 = instr.target2;
+                if (regexInstrs.get(target2).opcode == MATCH) {
+                    if (origin < lastStart) {
+                        lastStart = origin;
+                    }
                 }
                 else {
-                    states.add(instr.target2);
+                    states.add(target2);
+                    stateOrigins[target2] = Math.min(origin, stateOrigins[target2]);
                 }
             }
+        }
+        if (lastStart < Integer.MAX_VALUE) {
+            return MatchResult.success(lastStart, currentIndex);
         }
         return MatchResult.failure();
     }
@@ -240,55 +254,92 @@ public class NFA implements SearchMethod {
         int i = start;
         int lastStart = Integer.MAX_VALUE;
         int lastEnd = -1;
-        SparseSet activeStates = new SparseSet(states.size());
-        SparseSet newStates = new SparseSet(states.size());
-        int[] stateOrigins = new int[states.size()];
+        int size = this.regexInstrs.size();
+        SparseSet activeStates = new SparseSet(size);
+        SparseSet newStates = new SparseSet(size);
+        int[] stateOrigins = new int[size];
         Arrays.fill(stateOrigins, Integer.MAX_VALUE);
-        int[] newStateOrigins = new int[states.size()];
+        int[] newStateOrigins = new int[size];
         Arrays.fill(newStateOrigins, Integer.MAX_VALUE);
         for (; i < end; i++) {
             char c = s.charAt(i);
-            activeStates.add(0);
             // If we have returned to the initial state, during the course of a match, i.e. with a*b matching "aaab", we
             // should not override the match in progress. Otherwise, start over, to search for
             if (stateOrigins[0] == Integer.MAX_VALUE && !anchored || i == start) {
+                activeStates.add(0);
                 stateOrigins[0] = i;
             }
             for (int j = 0; j < activeStates.size(); j++) {
                 int currentState = activeStates.getByIndex(j);
                 int origin = stateOrigins[currentState];
                 if (anchored && origin > start) {
-                    continue; // TODO: better to stop here, or never to add?
+                    continue;
+                }
+                if (origin > lastStart) {
+                    continue;
                 }
                 RegexInstr instr = this.regexInstrs.get(currentState);
                 int target1 = instr.target1;
-                switch (instr.opcode) {
-                    case JUMP:
-                        activeStates.add(target1);
-                        stateOrigins[target1] = Math.min(stateOrigins[target1], origin);
-                        break;
-                    case MATCH:
-                        if (origin < lastStart) {
-                            lastStart = origin;
-                            lastEnd = i;
+                if (instr.opcode == JUMP) {
+                    instr = this.regexInstrs.get(instr.target1);
+
+                    activeStates.add(target1);
+                    if (origin < stateOrigins[target1]) {
+                        stateOrigins[target1] = origin;
+                        j = Math.min(j, activeStates.indexOf(target1));
+                    }
+                    currentState = target1;
+                }
+                if (instr.opcode == SPLIT) {
+                    activeStates.add(target1);
+                    RegexInstr target1Instr = this.regexInstrs.get(target1);
+                    if (target1Instr.opcode != MATCH) {
+                        if (origin < stateOrigins[target1]) {
+                            stateOrigins[target1] = origin;
+                            j = Math.min(j, activeStates.indexOf(target1));
                         }
-                        break;
-                    case SPLIT:
-                        activeStates.add(target1);
-                        stateOrigins[target1] = Math.min(stateOrigins[target1], origin);
-                        int target2 = instr.target2;
+                    }
+                    int target2 = instr.target2;
+                    RegexInstr target2Instr = this.regexInstrs.get(target2);
+                    if (target2Instr.opcode != MATCH) {
                         activeStates.add(target2);
-                        stateOrigins[target2] = Math.min(stateOrigins[target2], origin);
-                        break;
-                    case CHAR_RANGE:
-                        // 25 mg every 6 hours
-                        if (instr.start <= c && instr.end >= c) {
-                            int next = currentState + 1;
+                        if (origin < stateOrigins[target2]) {
+                            stateOrigins[target2] = origin;
+                            j = Math.min(j, activeStates.indexOf(target2));
+                        }
+                    }
+                    if (target1Instr.opcode == MATCH) {
+                        instr = target1Instr;
+                    }
+                    else if (target2Instr.opcode == MATCH) {
+                        instr = target2Instr;
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                if (instr.opcode == CHAR_RANGE) {
+                    // 25 mg every 6 hours
+                    if (instr.start <= c && instr.end >= c) {
+                        int next = currentState + 1;
+                        instr = this.regexInstrs.get(next);
+                        if (instr.opcode != MATCH) {
+                            if (instr.opcode == JUMP) {
+                                next = instr.target1;
+                            }
                             newStates.add(next);
                             newStateOrigins[next] = Math.min(newStateOrigins[next], origin);
                         }
+                    }
+                }
+                if (instr.opcode == MATCH) {
+                    if (origin <= lastStart) {
+                        lastStart = origin;
+                        lastEnd = i;
+                    }
                 }
             }
+
             SparseSet tempStates = activeStates;
             activeStates = newStates;
             newStates = tempStates;
@@ -298,20 +349,19 @@ public class NFA implements SearchMethod {
             newStateOrigins = tempOrigins;
             Arrays.fill(newStateOrigins, Integer.MAX_VALUE);
         }
-        for (int j = 0; j < activeStates.size(); j++) {
-            int state = activeStates.getByIndex(j);
-            if (this.regexInstrs.get(state).opcode == MATCH) {
-                int origin = stateOrigins[state];
-                if (origin < lastStart) {
-                    lastStart = origin;
-                    lastEnd = i;
-                }
-            }
-        }
+        // TODO: rewrite for clarity
+        MatchResult result = null;
         if (lastEnd > -1) {
-            return MatchResult.success(lastStart, lastEnd);
+            result = MatchResult.success(lastStart, lastEnd + 1);
         }
-        return matchResult(activeStates, stateOrigins, i);
+        MatchResult result2 = matchResult(activeStates, stateOrigins, i);
+        if (result == null) {
+            return result2;
+        }
+        if (result.compareTo(result2) > 0) {
+            return result;
+        }
+        return result2;
     }
 
     public MatchResult search(String s) {

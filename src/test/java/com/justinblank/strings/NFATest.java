@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.Search.SearchMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -39,6 +40,62 @@ public class NFATest {
         strings = A_THROUGH_Z.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 NFA.createNFA(s1).matches(s1));
+    }
+
+    @Test
+    public void testRepetition() {
+        Gen<String> s = A_THROUGH_Z.ofLength(1);
+        Gen<Integer> l = new IntegersDSL().between(2, 100);
+        QuickTheory.qt().forAll(s, l).check((singleChar, length) -> {
+            String regexString = singleChar + "+";
+            String hayStack = StringUtils.repeat(singleChar , length);
+            SearchMethod method = NFA.createNFA(regexString);
+            MatchResult result = method.find(hayStack);
+            if (!(MatchResult.success(0, hayStack.length()).equals(result))) {
+                return false;
+            }
+            result = method.find(hayStack, 1, hayStack.length());
+            return MatchResult.success(1, hayStack.length()).equals(result);
+        });
+    }
+
+    @Test
+    public void testFoo() {
+        SearchMethod method = NFA.createNFA("A{2,3}");
+        assertEquals(MatchResult.success(0, 2), method.find("AA"));
+        assertEquals(MatchResult.success(0, 3), method.find("AAA"));
+    }
+
+    @Test
+    public void testCountedRepetitions() {
+        Gen<String> s = A_THROUGH_Z.ofLength(1);
+        Gen<Integer> l = new IntegersDSL().between(2, 100);
+        QuickTheory.qt().forAll(s, l, l, l).check((singleChar, length, min, max) -> {
+            if (min > max) {
+                int temp = max;
+                max = min;
+                min = temp;
+            }
+            String regexString = singleChar + "{" + min + "," + max + "}";
+            String hayStack = StringUtils.repeat(singleChar, length);
+            SearchMethod method = NFA.createNFA(regexString);
+            MatchResult result = method.find(hayStack);
+            if (length >= min) {
+                int matchLength = Math.min(hayStack.length(), max);
+                if (!(MatchResult.success(0, matchLength).equals(result))) {
+                    return false;
+                }
+            }
+//            result = method.find(hayStack, 1, hayStack.length());
+//            if (length > min) {
+//                int matchLength = Math.min(hayStack.length(), max);
+//                if (!(MatchResult.success(1, matchLength + 2).equals(result))) {
+//                    return false;
+//                }
+//            }
+            return true;
+
+        });
     }
 
     @Test
