@@ -100,7 +100,7 @@ public class RegexParser {
                 Alternation alt = (Alternation) next;
                 assertNonEmpty("Alternation needed something to alternate");
                 Node nextNext = nodes.pop();
-                node = new Alternation(node, nextNext);
+                node = new Alternation(nextNext, node);
             }
             else if (next instanceof LiteralNode && node instanceof LiteralNode) {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
@@ -216,7 +216,7 @@ public class RegexParser {
             CharRangeNode first = new CharRangeNode(sortedCharRanges.get(0));
             CharRangeNode second = new CharRangeNode(sortedCharRanges.get(1));
             Node node = new Alternation(first, second);
-            for (int i = 0; i < sortedCharRanges.size(); i++) {
+            for (int i = 2; i < sortedCharRanges.size(); i++) {
                 node = new Alternation(node, new CharRangeNode(sortedCharRanges.get(i)));
             }
             return node;

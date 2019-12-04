@@ -15,6 +15,7 @@ public class RegexParserTest {
         Node node = parse("a");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
+        check(node, "a");
     }
 
     @Test
@@ -22,6 +23,7 @@ public class RegexParserTest {
         Node node = parse("ab");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
+        check(node, "ab");
     }
 
     @Test
@@ -36,6 +38,7 @@ public class RegexParserTest {
         Node node = parse("b*");
         assertNotNull(node);
         assertTrue(node instanceof Repetition);
+        check(node, "(b)*");
     }
 
     @Test
@@ -46,6 +49,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
+        assertEquals("(b){0,1}", NodePrinter.print(node));
     }
 
     @Test
@@ -56,6 +60,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
+        assertEquals("(1){0,1}", NodePrinter.print(node));
     }
 
     @Test
@@ -142,6 +147,7 @@ public class RegexParserTest {
         Node node = parse("[0-9]");
         assertNotNull(node);
         assertTrue(node instanceof CharRangeNode);
+        check(node, "[0-9]");
     }
 
     @Test
@@ -149,6 +155,14 @@ public class RegexParserTest {
         Node node = parse("[0-9A-Z]");
         assertNotNull(node);
         assertTrue(node instanceof Alternation);
+        check(node, "([0-9])|([A-Z])");
+    }
+
+    @Test
+    public void testSillyContiguousRanges() {
+        Node node = parse("[0-12-34-56-78-9]");
+        assertNotNull(node);
+        check(node, "[0-9]");
     }
 
     @Test
@@ -158,6 +172,7 @@ public class RegexParserTest {
         CharRangeNode charRangeNode = (CharRangeNode) node;
         assertTrue(charRangeNode.range().getStart() == 'a');
         assertTrue(charRangeNode.range().getEnd() == 'b');
+        check(node, "[a-b]");
     }
 
     @Test
@@ -165,13 +180,16 @@ public class RegexParserTest {
         Node node = parse("(AB)(CD)*");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
+        check(node, "(AB)((CD)*)");
     }
 
     @Test
     public void testAlternationOfGroups() {
-        Node node = parse("((AB)|(BC))");
+        String s = "(AB)|(BC)";
+        Node node = parse(s);
         assertNotNull(node);
         assertTrue(node instanceof Alternation);
+        check(node, "(AB)|(BC)");
     }
 
     @Test
@@ -179,6 +197,7 @@ public class RegexParserTest {
         Node node = parse("(A|B){1,2}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
+        check(node,"((A)|(B)){1,2}");
     }
 
     @Test
@@ -216,6 +235,7 @@ public class RegexParserTest {
         Node node = parse("(AB)(CD)");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
+        check(node,"ABCD");
     }
 
     @Test
@@ -227,9 +247,11 @@ public class RegexParserTest {
 
     @Test
     public void testParseLongRegexes() {
-        Node node = parse("a".repeat(30000));
+        String regexString = "a".repeat(30000);
+        Node node = parse(regexString);
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
+        check(node, regexString);
     }
 
     @Test
@@ -241,5 +263,10 @@ public class RegexParserTest {
         Node tail = ((Concatenation) node).tail;
         assertTrue(head instanceof CountedRepetition);
         assertTrue(tail instanceof LiteralNode);
+        check(node, "(((1)|(2)){2,3})(abc)");
+    }
+
+    private static void check(Node node, String representation) {
+        assertEquals(representation, NodePrinter.print(node));
     }
 }

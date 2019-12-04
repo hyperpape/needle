@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
+import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertTrue;
@@ -28,6 +29,21 @@ public class IntegrationTest {
         MatchResult result = dfa.search("ABC0123");
         assertEquals(0, result.start);
         assertEquals(7, result.end);
+    }
+
+    @Test
+    public void testSillyNonContiguousRanges() {
+        SearchMethod method = NFA.createNFA("[0-13-46-7]");
+        assertTrue(method.matches("0"));
+        assertTrue(method.matches("1"));
+        assertTrue(method.matches("3"));
+        assertTrue(method.matches("4"));
+        assertTrue(method.matches("6"));
+        assertTrue(method.matches("7"));
+
+        assertFalse(method.matches("2"));
+        assertFalse(method.matches("5"));
+        assertFalse(method.matches("8"));
     }
 
     @Test
