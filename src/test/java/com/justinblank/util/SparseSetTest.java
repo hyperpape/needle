@@ -19,14 +19,30 @@ public class SparseSetTest {
         SparseSet sparseSet = new SparseSet(10);
         assertEquals(10, sparseSet.capacity());
 
+        assertEquals(-1, sparseSet.indexOf(0));
         sparseSet.add(0);
+        assertEquals(0, sparseSet.indexOf(0));
         assertTrue(sparseSet.contains(0));
+        sparseSet.add(10);
+        assertEquals(1, sparseSet.indexOf(10));
+        sparseSet.add(0);
+        assertEquals(0, sparseSet.indexOf(0));
+
         sparseSet.clear();
+        assertEquals(-1, sparseSet.indexOf(0));
         assertFalse(sparseSet.contains(0));
         sparseSet.add(10);
+        assertEquals(0, sparseSet.indexOf(10));
         assertTrue(sparseSet.contains(10));
         sparseSet.remove(10);
         assertFalse(sparseSet.contains(10));
+    }
+
+    @Test
+    public void testIndexOfHandlesGreaterThanMaxArguments() {
+        SparseSet sparseSet = new SparseSet(10);
+        assertEquals(-1, sparseSet.indexOf(11));
+        assertEquals(-1, sparseSet.indexOf(100));
     }
 
     @Test
@@ -192,5 +208,16 @@ public class SparseSetTest {
             }
             return true;
         });
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNegativeCapacityNotAllowed() {
+        SparseSet sparseSet = new SparseSet(-1);
+    }
+
+    @Test
+    public void testZeroArgumentsAreAllowed() {
+        SparseSet sparseSet = new SparseSet(0);
+        sparseSet.add(0);
     }
 }
