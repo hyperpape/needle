@@ -29,23 +29,23 @@ public class RegexParser {
                     break;
                 case '{':
                     if (nodes.isEmpty()) {
-                        throw new IllegalStateException();
+                        throw new RegexSyntaxException();
                     }
                     int left = consumeInt();
                     char next = takeChar();
                     if (next != ',') {
-                        throw new IllegalStateException("Expected ',' at " + index + ", but found " + next);
+                        throw new RegexSyntaxException("Expected ',' at " + index + ", but found " + next);
                     }
                     int right = consumeInt();
                     nodes.push(new CountedRepetition(nodes.pop(), left, right));
                     next = takeChar();
                     if (next != '}') {
-                        throw new IllegalStateException();
+                        throw new RegexSyntaxException();
                     }
                     break;
                 case '?':
                     if (nodes.isEmpty()) {
-                        throw new IllegalStateException("");
+                        throw new RegexSyntaxException("");
                     }
                     nodes.push(new CountedRepetition(nodes.pop(), 0, 1));
                     break;
@@ -54,7 +54,7 @@ public class RegexParser {
                     break;
                 case '+':
                     if (nodes.isEmpty()) {
-                        throw new IllegalStateException();
+                        throw new RegexSyntaxException();
                     }
                     Node lastNode = nodes.pop();
                     nodes.push(new Concatenation(lastNode, new Repetition(lastNode)));
@@ -70,20 +70,19 @@ public class RegexParser {
                     }
                     break;
                 case '}':
-                    throw new IllegalStateException("Unbalanced '}' character");
+                    throw new RegexSyntaxException("Unbalanced '}' character");
                 case ')':
                     // TODO not strong enough check
                     collapseParenNodes();
                     break;
+                case ']':
+                    throw new RegexSyntaxException("Unbalanced ']' character");
                 default:
                     if (nodes.isEmpty()) {
                         nodes.push(LiteralNode.fromChar(c));
                     }
                     else if (nodes.peek() instanceof LiteralNode) {
                         ((LiteralNode) nodes.peek()).append(c);
-                    }
-                    else if (nodes.peek() instanceof CharRangeNode || nodes.peek() instanceof Concatenation) {
-                        nodes.push(new Concatenation(nodes.pop(), new CharRangeNode(c, c)));
                     }
                     else {
                         nodes.push(LiteralNode.fromChar(c));
@@ -92,7 +91,7 @@ public class RegexParser {
         }
         Node node = nodes.pop();
         if (node instanceof LParenNode) {
-            throw new IllegalStateException("Unbalanced '('");
+            throw new RegexSyntaxException("Unbalanced '('");
         }
         while (!nodes.isEmpty()) {
             Node next = nodes.pop();
@@ -125,7 +124,7 @@ public class RegexParser {
                 assertNonEmpty("found '|' with no preceding content");
                 Node nextNext = nodes.pop();
                 if (nextNext instanceof LParenNode) {
-                    throw new IllegalStateException("");
+                    throw new RegexSyntaxException("");
                 }
                 node = new Alternation(alt.left, node);
             }
@@ -142,7 +141,7 @@ public class RegexParser {
 
     private void assertNonEmpty(String s) {
         if (nodes.isEmpty()) {
-            throw new IllegalStateException(s);
+            throw new RegexSyntaxException(s);
         }
     }
 
@@ -152,15 +151,20 @@ public class RegexParser {
 
     private int consumeInt() {
         int initialIndex = index;
-        while (index < regex.length()) {
-            char next = regex.charAt(index);
-            if (next < '0' || next > '9') {
-                String subString = regex.substring(initialIndex, index);
-                return Integer.parseInt(subString);
+        try {
+            while (index < regex.length()) {
+                char next = regex.charAt(index);
+                if (next < '0' || next > '9') {
+                    String subString = regex.substring(initialIndex, index);
+                    return Integer.parseInt(subString);
+                }
+                takeChar();
             }
-            takeChar();
         }
-        throw new IllegalStateException("Expected number, found " + regex.substring(initialIndex, index));
+        catch (NumberFormatException e) {
+            throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
+        }
+        throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
     }
 
     private Node buildCharSet() {
@@ -177,13 +181,15 @@ public class RegexParser {
             } else if (c == '-') {
                 // TODO: find out actual semantics
                 if (last == null || index == regex.length()) {
-                    throw new IllegalStateException("Parsing failed");
+                    throw new RegexSyntaxException("Parsing failed");
                 }
                 char next = takeChar();
                 ranges.add(new CharRange(last, next));
                 last = null;
             } else if (c == '(' || c == ')') {
-                throw new IllegalStateException("Parsing failed");
+                throw new RegexSyntaxException("Parsing failed");
+            } else if (c == '[') {
+                throw new RegexSyntaxException("Unexpected '[' inside of character class");
             } else {
                 if (last != null) {
                     characterSet.add(last);
@@ -191,12 +197,12 @@ public class RegexParser {
                 last = c;
             }
         }
-        throw new IllegalStateException("Parsing failed, unmatched [");
+        throw new RegexSyntaxException("Parsing failed, unmatched [");
     }
 
     private Node buildNode(Set<Character> characterSet, Set<CharRange> ranges) {
         if (ranges.isEmpty() && characterSet.isEmpty()) {
-            throw new IllegalStateException("Parsing failed: empty [] construction");
+            throw new RegexSyntaxException("Parsing failed: empty [] construction");
         } else if (characterSet.isEmpty() && ranges.size() == 1) {
             CharRange range = ranges.iterator().next();
             return new CharRangeNode(range);
@@ -229,38 +235,5 @@ public class RegexParser {
         List<CharRange> charRanges = new ArrayList<>(ranges);
         characters.stream().map(c -> new CharRange(c, c)).forEach(charRanges::add);
         return CharRange.compact(charRanges);
-    }
-
-    private boolean peekStar() {
-        if (index < regex.length() && regex.charAt(index) == '*') {
-            index++;
-            return true;
-        }
-        return false;
-    }
-
-    private boolean peekPlus() {
-        if (index < regex.length() && regex.charAt(index) == '+') {
-            index++;
-            return true;
-        }
-        return false;
-    }
-
-    private boolean peekRightParen() {
-        if (parenDepth > 0 && index < regex.length() && regex.charAt(index) == ')') {
-            index++;
-            parenDepth--;
-            return true;
-        }
-        return false;
-    }
-
-    enum ParseContext {
-        PAREN,
-        ALTERNATION,
-        RANGE,
-        CHARS,
-        COUNTED
     }
 }

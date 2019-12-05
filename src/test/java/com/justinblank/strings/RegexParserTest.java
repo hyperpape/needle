@@ -73,11 +73,6 @@ public class RegexParserTest {
         assertEquals(1, cr.max);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testMalformedQuestionMarkEmpty() {
-        Node node = parse("?");
-    }
-
     @Test
     public void testTwoCharAlternation() {
         Node node = parse("a|b");
@@ -111,21 +106,6 @@ public class RegexParserTest {
         Node node = parse("(ab)*a(a|b)(a|b)(a|b)");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testLeftUnbalancedParens() {
-        Node node = parse("(((");
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testRightUnbalancedParens() {
-        Node node = parse(")))");
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testMixedUnbalancedParens() {
-        Node node = parse("((())");
     }
 
     @Test
@@ -264,6 +244,11 @@ public class RegexParserTest {
         assertTrue(head instanceof CountedRepetition);
         assertTrue(tail instanceof LiteralNode);
         check(node, "(((1)|(2)){2,3})(abc)");
+    }
+
+    @Test
+    public void testSingleBracketElement() {
+        check( RegexParser.parse("[a]"), "a");
     }
 
     private static void check(Node node, String representation) {
