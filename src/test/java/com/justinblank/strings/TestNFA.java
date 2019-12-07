@@ -7,8 +7,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static com.justinblank.strings.MatchTestUtil.checkMatch;
-import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.*;
 
 public class TestNFA {

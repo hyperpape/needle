@@ -1,7 +1,6 @@
 package com.justinblank.strings.Search;
 
 import com.justinblank.strings.Matcher;
-import com.justinblank.strings.Pattern;
 
 import java.util.Objects;
 

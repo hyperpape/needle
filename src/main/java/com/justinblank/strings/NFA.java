@@ -106,42 +106,8 @@ public class NFA implements SearchMethod {
     }
 
     public boolean matches(String s) {
-        int length = s.length();
-        SparseSet currentStates = new SparseSet(states.size() - 1);
-        currentStates.add(0);
-        SparseSet newStates = new SparseSet(states.size() - 1);
-
-        for (int i = 0; i < length; i++) {
-            char c = s.charAt(i);
-            for (int stateIndex = 0; stateIndex < currentStates.size(); stateIndex++) {
-                int examinedState = currentStates.getByIndex(stateIndex);
-                RegexInstr regexInstr = regexInstrs.get(examinedState);
-                RegexInstr.Opcode opcode = regexInstr.opcode;
-                // Current matches came from the previous iteration and should be ignored
-                if (opcode == MATCH) {
-                    continue;
-                }
-                if (opcode == JUMP) {
-                    examinedState = regexInstr.target1;
-                    regexInstr = regexInstrs.get(examinedState);
-                    opcode = regexInstr.opcode;
-                    // intentional fallthrough so that we can continue evaluating the target of the jump
-                }
-                if (opcode == SPLIT) {
-                    currentStates.add(regexInstr.target1);
-                    currentStates.add(regexInstr.target2);
-                    continue;
-                }
-                if (opcode != MATCH && c >= regexInstr.start && c <= regexInstr.end) {
-                    newStates.add(examinedState + 1);
-                }
-            }
-            SparseSet tmp = currentStates;
-            currentStates = newStates;
-            newStates = tmp;
-            newStates.clear();
-        }
-        return statesMatched(currentStates);
+        MatchResult result = find(s, 0, s.length(), true);
+        return result.matched && result.end == s.length();
     }
 
     @Override
@@ -256,9 +222,11 @@ public class NFA implements SearchMethod {
         int lastEnd = -1;
         int size = this.regexInstrs.size();
         SparseSet activeStates = new SparseSet(size);
+        activeStates.add(0);
         SparseSet newStates = new SparseSet(size);
         int[] stateOrigins = new int[size];
         Arrays.fill(stateOrigins, Integer.MAX_VALUE);
+        stateOrigins[0] = 0;
         int[] newStateOrigins = new int[size];
         Arrays.fill(newStateOrigins, Integer.MAX_VALUE);
         for (; i < end; i++) {
@@ -364,10 +332,6 @@ public class NFA implements SearchMethod {
         return result2;
     }
 
-    public MatchResult search(String s) {
-        return find(s);
-    }
-
     protected static boolean hasAcceptingState(Collection<NFA> nfas) {
         for (NFA nfa : nfas) {
             if (nfa.isAccepting()) {
@@ -375,16 +339,6 @@ public class NFA implements SearchMethod {
             }
         }
         return false;
-    }
-
-    protected int computeLastStart(Map<NFA, Integer> stateMap, int i) {
-        int thisStart = i;
-        for (Map.Entry<NFA, Integer> e : stateMap.entrySet()) {
-            if (e.getKey().accepting) {
-                thisStart = Math.min(thisStart, e.getValue());
-            }
-        }
-        return thisStart;
     }
 
     protected Set<NFA> epsilonClosure() {
@@ -397,14 +351,6 @@ public class NFA implements SearchMethod {
             closure.addAll(nfa.epsilonClosure());
         }
         return closure;
-    }
-
-    protected static BitSet epsilonClosureIndices(Collection<NFA> nfaStates) {
-        BitSet bs = new BitSet();
-        for (NFA nfa : nfaStates) {
-            bs.or(nfa.epsilonClosureIndices);
-        }
-        return bs;
     }
 
     public boolean isTerminal() {
@@ -451,12 +397,7 @@ public class NFA implements SearchMethod {
                     }
                 }
             }
-            if (closure.isEmpty()) {
-                this.epsilonClosure = Collections.emptySet();
-            }
-            else {
-                this.epsilonClosure = closure;
-            }
+            this.epsilonClosure = closure;
         }
     }
 

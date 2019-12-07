@@ -4,6 +4,7 @@ import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
 
+import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -80,9 +81,10 @@ public class IntegrationTest {
     public void testNFARepetition() {
         Node node = RegexParser.parse("C*");
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches(""));
-        assertTrue(nfa.matches("C"));
-        assertTrue(nfa.matches("CCCCCC"));
+        match(nfa, "");
+        match(nfa, "C");
+        match(nfa, "CCCCCC");
+        find(nfa, "ACC", 2, 3);
     }
 
     @Test
@@ -182,7 +184,8 @@ public class IntegrationTest {
     public void testGroupedDFAAlternationWithDifferentSizedGroupsAndRepetitions() {
         String regex = "((A)|(B)|(CD)){1,2}";
         NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
-        assertTrue(nfa.matches("AB"));
+        find(nfa, "AB", 0, 1);
+        find(nfa, "AB", 0, 2);
         DFA dfa = DFA.createDFA(regex);
         assertFalse(dfa.matches(""));
         assertTrue(dfa.matches("A"));
@@ -210,9 +213,9 @@ public class IntegrationTest {
         String regexString = MANY_STATE_REGEX_STRING;
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("456"));
-        assertTrue(nfa.matches("234234"));
-        assertFalse(nfa.matches(""));
+        find(nfa, "456", 0, 3);
+        find(nfa,"234234", 0, 6);
+        fail(nfa, "");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("456"));
         assertFalse(dfa.matches(""));
@@ -224,9 +227,9 @@ public class IntegrationTest {
         String regexString = MANY_STATE_REGEX_STRING + "ab";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("456ab"));
-        assertTrue(nfa.matches("234234ab"));
-        assertFalse(nfa.matches(""));
+        match(nfa,"456ab");
+        match(nfa, "234234ab");
+        fail(nfa, "");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("456ab"));
         assertFalse(dfa.matches(""));
@@ -238,9 +241,11 @@ public class IntegrationTest {
         String regexString = "((12)|(23)){1,2}" + "ab";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("12ab"));
-        assertTrue(nfa.matches("23ab"));
-        assertFalse(nfa.matches(""));
+        match(nfa, "12ab");
+        match(nfa, "23ab");
+        fail(nfa, "");
+        fail(nfa, "ghij");
+        fail(nfa, "1aghij");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("12ab"));
         assertFalse(dfa.matches(""));
@@ -252,6 +257,9 @@ public class IntegrationTest {
         String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
+        match(nfa, "567");
+        fail(nfa, "");
+        match(nfa, "32103210");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.search("567").matched);
         assertFalse(dfa.search("").matched);
@@ -263,9 +271,9 @@ public class IntegrationTest {
         String regexString = "1{1,1}";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("1"));
-        assertFalse(nfa.matches(""));
-        assertFalse(nfa.matches("11"));
+        match(nfa, "1");
+        fail(nfa, "");
+        assertFalse(nfa.matches( "11"));
     }
 
     @Test
@@ -273,9 +281,10 @@ public class IntegrationTest {
         String regexString = "1{0,2}";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches(""));
-        assertTrue(nfa.matches("1"));
-        assertTrue(nfa.matches("11"));
+        match(nfa, "");
+        match(nfa, "1");
+        match(nfa, "11");
+        find(nfa, "111");
         assertFalse(nfa.matches("111"));
     }
 
@@ -284,12 +293,12 @@ public class IntegrationTest {
         String regexString = "(1|2){2,3}abc";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("12abc"));
-        assertTrue(nfa.matches("121abc"));
-        assertFalse(nfa.matches(""));
-        assertFalse(nfa.matches("1abc"));
+        match(nfa, "12abc");
+        match(nfa, "121abc");
+        fail(nfa, "");
+        fail(nfa, "1abc");
         assertFalse(nfa.matches("1221abc"));
-        assertFalse(nfa.matches("12def"));
+        fail(nfa, "12def");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("12abc"));
         assertTrue(dfa.matches("121abc"));
@@ -304,9 +313,9 @@ public class IntegrationTest {
         String regexString = "(ab)+";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("ab"));
-        assertTrue(nfa.matches("ababab"));
-        assertFalse(nfa.matches(""));
+        match(nfa, "ab");
+        match(nfa, "ababab");
+        fail(nfa, "");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("ab"));
         assertTrue(dfa.matches("abab"));
@@ -318,9 +327,9 @@ public class IntegrationTest {
         String regexString = "a+";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("a"));
-        assertTrue(nfa.matches("aaaaaaa"));
-        assertFalse(nfa.matches(""));
+        match(nfa, "a");
+        match(nfa, "aaaaaaa");
+        fail(nfa, "");
         DFA dfa = NFAToDFACompiler.compile(nfa);
         assertTrue(dfa.matches("a"));
         assertTrue(dfa.matches("aaaaaaa"));
@@ -332,10 +341,10 @@ public class IntegrationTest {
         String regexString = "[a-c]+";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("a"));
-        assertTrue(nfa.matches("c"));
-        assertTrue(nfa.matches("abacbabababbbabababa"));
-        assertFalse(nfa.matches(""));
+        match(nfa, "a");
+        match(nfa, "c");
+        match(nfa, "abacbabababbbabababa");
+        fail(nfa, "");
     }
 
     @Test
@@ -343,11 +352,18 @@ public class IntegrationTest {
         String regexString = "[a-zA-Z@#]";
         Node node = RegexParser.parse(regexString);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
-        assertTrue(nfa.matches("a"));
-        assertTrue(nfa.matches("@"));
-        assertTrue(nfa.matches("#"));
-        assertFalse(nfa.matches(""));
-        assertFalse(nfa.matches("ab"));
-        assertFalse(nfa.matches("a#"));
+        match(nfa, "a");
+        match(nfa, "@");
+        match(nfa, "#");
+        fail(nfa, "");
+        assertFalse(nfa.matches( "ab"));
+        assertFalse(nfa.matches( "a#"));
+    }
+
+    @Test
+    public void testGreedySearchOfOverlappingStrings() {
+        SearchMethod nfa = NFA.createNFA("(EAD)|(DEAD)");
+        find(nfa, "DEAD");
+        assertEquals(MatchResult.success(0, 4), nfa.find("DEAD"));
     }
 }
