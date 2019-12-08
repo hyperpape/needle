@@ -10,12 +10,24 @@ public final class SearchMethods {
         if (strings.isEmpty()) {
             throw new IllegalArgumentException("Cannot create SearchMethod using empty list of strings");
         }
+        if (containsEmpty(strings)) {
+            return AsciiAhoCorasickBuilder.buildEmptyAhoCorasick();
+        }
         if (allAscii(strings)) {
             return AsciiAhoCorasickBuilder.buildAhoCorasick(strings);
         }
         else {
             return UnicodeAhoCorasickBuilder.buildAhoCorasick(strings);
         }
+    }
+
+    private static boolean containsEmpty(List<String> strings) {
+        for (String s : strings) {
+            if ("".equals(s)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // I keep double-checking StringUtils for where I missed this

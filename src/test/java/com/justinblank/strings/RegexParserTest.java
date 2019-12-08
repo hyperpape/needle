@@ -257,6 +257,17 @@ public class RegexParserTest {
         check( RegexParser.parse("[a]"), "a");
     }
 
+    @Test
+    public void testEmptyString() {
+        check(parse(""), "");
+    }
+
+    @Test
+    public void testEmptyParens() {
+        check(parse("()"), "");
+        check(parse("(())"), "");
+    }
+
     private static void check(Node node, String representation) {
         assertEquals(representation, NodePrinter.print(node));
         assertNotNull(java.util.regex.Pattern.compile(representation));

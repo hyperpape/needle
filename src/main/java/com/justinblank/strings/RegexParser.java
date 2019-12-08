@@ -72,7 +72,6 @@ public class RegexParser {
                 case '}':
                     throw new RegexSyntaxException("Unbalanced '}' character");
                 case ')':
-                    // TODO not strong enough check
                     collapseParenNodes();
                     break;
                 case ']':
@@ -89,6 +88,9 @@ public class RegexParser {
                     }
             }
         }
+        if (nodes.isEmpty()) {
+            return new LiteralNode("");
+        }
         Node node = nodes.pop();
         if (node instanceof LParenNode) {
             throw new RegexSyntaxException("Unbalanced '('");
@@ -103,6 +105,9 @@ public class RegexParser {
             }
             else if (next instanceof LiteralNode && node instanceof LiteralNode) {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
+            }
+            else if (next instanceof LParenNode) {
+                throw new RegexSyntaxException("Unbalanced ( found");
             }
             else {
                 node = new Concatenation(next, node);
@@ -134,9 +139,11 @@ public class RegexParser {
             assertNonEmpty("found unbalanced ')'");
         }
         nodes.pop(); // remove the left paren
-        if (node != null) {
-            nodes.push(node);
+        if (node == null) {
+            node = new LiteralNode("");
         }
+        nodes.push(node);
+
     }
 
     private void assertNonEmpty(String s) {

@@ -115,6 +115,16 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
+    public void testSequenceOfBalancedParensWithExtraLeft() {
+        parse("(()()");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
+    public void testSequenceOfBalancedParensWithExtraRight() {
+        parse("()())");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
     public void testMalformedQuestionMarkEmpty() {
         Node node = parse("?");
     }

@@ -1,6 +1,7 @@
 package com.justinblank.strings.Search;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -13,6 +14,12 @@ class AsciiAhoCorasickBuilder {
         ASCIITrie trie = new AsciiAhoCorasickBuilder().build(strings, true);
         ASCIITrie partialTrie = new AsciiAhoCorasickBuilder().build(strings, false);
         return new ASCIIAhoCorasick(trie, partialTrie);
+    }
+
+    protected static SearchMethod buildEmptyAhoCorasick() {
+        ASCIITrie trie = new AsciiAhoCorasickBuilder().build(Collections.emptyList(), true);
+        trie.accepting = true;
+        return new ASCIIAhoCorasick(trie, trie);
     }
 
     protected ASCIITrie build(List<String> strings, boolean complete) {

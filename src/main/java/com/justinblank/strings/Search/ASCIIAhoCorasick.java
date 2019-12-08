@@ -71,6 +71,9 @@ class ASCIIAhoCorasick implements SearchMethod {
         if (lastEnd != -1) {
             return MatchResult.success(lastStart, lastEnd + 1);
         }
+        else if (current != null && current.accepting) {
+            return MatchResult.success(0, 0);
+        }
         return MatchResult.failure();
     }
 }

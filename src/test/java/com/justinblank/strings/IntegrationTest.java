@@ -17,6 +17,27 @@ public class IntegrationTest {
     // public static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,24}";
 
     @Test
+    public void testEmptyString() {
+        SearchMethod searchMethod = NFA.createNFA("");
+        find(searchMethod, "");
+        find(searchMethod, "abc");
+        DFA dfa = DFA.createDFA("");
+        assertTrue(dfa.matches(""));
+    }
+
+    @Test
+    public void testEmptyStringAlternation() {
+        SearchMethod searchMethod = NFA.createNFA("()|(abc)");
+        find(searchMethod, "", 0, 0);
+        find(searchMethod, "def", 0, 0);
+        find(searchMethod, "abc", 0, 3);
+        find(searchMethod, "abcT", 0, 3);
+        find(searchMethod, "Tabc", 0, 0);
+        DFA dfa = DFA.createDFA("");
+        assertTrue(dfa.matches(""));
+    }
+
+    @Test
     public void testConcatenatedRangesWithRepetition() {
         Node node = RegexParser.parse("[A-Za-z][A-Za-z0-9]*");
         DFA dfa = NFAToDFACompiler.compile(ThompsonNFABuilder.createNFA(node));
