@@ -247,11 +247,18 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testDuplicateQuestionMark() {
+        // This is allowed by the Java regex library
+        check(parse("a??"), "((a){0,1}){0,1}");
+    }
+
+    @Test
     public void testSingleBracketElement() {
         check( RegexParser.parse("[a]"), "a");
     }
 
     private static void check(Node node, String representation) {
         assertEquals(representation, NodePrinter.print(node));
+        assertNotNull(java.util.regex.Pattern.compile(representation));
     }
 }

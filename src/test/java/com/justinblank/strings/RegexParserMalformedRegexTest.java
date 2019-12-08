@@ -3,6 +3,8 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.Node;
 import org.junit.Test;
 
+import java.util.regex.Pattern;
+
 import static com.justinblank.strings.RegexParser.parse;
 
 public class RegexParserMalformedRegexTest {
@@ -77,8 +79,6 @@ public class RegexParserMalformedRegexTest {
         RegexParser.parse("a{1,2a}");
     }
 
-
-
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionTrailingCharNoBrace() {
         RegexParser.parse("a{1,2a");
@@ -125,13 +125,12 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
-    public void testMalformedPlusEmpty() {
-        Node node = parse("+a");
+    public void testPlusEmpty() {
+        Node node = parse("+");
     }
 
-
     @Test(expected = RegexSyntaxException.class)
-    public void testMalformedPlusLeading() {
+    public void testPlusLeading() {
         Node node = parse("+a");
     }
 
