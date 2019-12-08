@@ -3,6 +3,7 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.Search.SearchMethod;
 import com.justinblank.strings.Search.SearchMethodMatcher;
+import com.justinblank.strings.Search.SearchMethodUtil;
 import com.justinblank.strings.Search.SearchMethods;
 import com.justinblank.util.SparseSet;
 import org.apache.commons.lang3.tuple.Pair;
@@ -210,13 +211,7 @@ public class NFA implements SearchMethod {
     }
 
     public MatchResult find(String s, int start, int end, boolean anchored) {
-        int length = s.length();
-        if (start > length) {
-            throw new IndexOutOfBoundsException("starting index " + start + " is out of bounds");
-        }
-        if (end > length) {
-            throw new IndexOutOfBoundsException("ending index " + end + " is out of bounds");
-        }
+        SearchMethodUtil.checkIndices(s, start, end);
         int i = start;
         int lastStart = Integer.MAX_VALUE;
         int lastEnd = -1;

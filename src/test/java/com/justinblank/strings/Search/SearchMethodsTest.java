@@ -378,4 +378,44 @@ public class SearchMethodsTest {
             return l.contains(needle);
         });
     }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexStartAscii() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", -1, 1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexEndNegativeAscii() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", 0, -1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexEndAscii() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", 0, 3);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testStartGreaterThanEndAscii() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("abc", 2, 1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexStart() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", -1, 1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexEndNegative() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", 0, -1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexEnd() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", 0, 3);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testStartGreaterThanEnd() {
+        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("abc", 2, 1);
+    }
 }

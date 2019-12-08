@@ -210,8 +210,7 @@ public class IntegrationTest {
 
     @Test
     public void testManyStateRegex() {
-        String regexString = MANY_STATE_REGEX_STRING;
-        Node node = RegexParser.parse(regexString);
+        Node node = RegexParser.parse(MANY_STATE_REGEX_STRING);
         NFA nfa = ThompsonNFABuilder.createNFA(node);
         find(nfa, "456", 0, 3);
         find(nfa,"234234", 0, 6);

@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.Search.SearchMethod;
+import com.justinblank.strings.Search.SearchMethods;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
@@ -11,11 +12,11 @@ import org.quicktheories.generators.ListsDSL;
 import org.quicktheories.generators.StringsDSL;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class NFATest {
 
@@ -60,13 +61,6 @@ public class NFATest {
     }
 
     @Test
-    public void testFoo() {
-        SearchMethod method = NFA.createNFA("A{2,3}");
-        assertEquals(MatchResult.success(0, 2), method.find("AA"));
-        assertEquals(MatchResult.success(0, 3), method.find("AAA"));
-    }
-
-    @Test
     public void testCountedRepetitions() {
         Gen<String> s = A_THROUGH_Z.ofLength(1);
         Gen<Integer> l = new IntegersDSL().between(2, 100);
@@ -86,13 +80,11 @@ public class NFATest {
                     return false;
                 }
             }
-//            result = method.find(hayStack, 1, hayStack.length());
-//            if (length > min) {
-//                int matchLength = Math.min(hayStack.length(), max);
-//                if (!(MatchResult.success(1, matchLength + 2).equals(result))) {
-//                    return false;
-//                }
-//            }
+            if (length > min) {
+                result = method.find(hayStack, 1, Math.min(hayStack.length(), 1 + max));
+                int matchLength = Math.min(hayStack.length(), 1 + max);
+                return MatchResult.success(1, matchLength).equals(result);
+            }
             return true;
 
         });
@@ -193,11 +185,20 @@ public class NFATest {
         QuickTheory.qt().forAll(manyStrings, strings, haystackStrings).check((l, s, h) -> {
             SearchMethod method = createNFA(l);
             MatchResult result = method.find(h);
+            boolean shouldMatch = false;
+            for (String needle : l) {
+                if (h.contains(needle)) {
+                    shouldMatch = true;
+                    break;
+                }
+            }
+            if (shouldMatch && !result.matched) {
+                return false;
+            }
             if (result.matched) {
                 String needle = h.substring(result.start, result.end);
                 return l.contains(needle);
             }
-            // TODO: hand check whether anthing should've matched
             return true;
         });
 
@@ -392,6 +393,26 @@ public class NFATest {
             String needle = newTargetString.substring(result.start, result.end);
             return l.contains(needle);
         });
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexStart() {
+        NFA.createNFA("a*").find("a", -1, 1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexEndNegative() {
+        NFA.createNFA("a*").find("a", 0, -1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testIllegalIndexEnd() {
+        NFA.createNFA("a*").find("a", 0, 3);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testStartGreaterThanEnd() {
+        NFA.createNFA("a*").find("abc", 2, 1);
     }
 
     private static String joinLiterals(List<String> strings) {

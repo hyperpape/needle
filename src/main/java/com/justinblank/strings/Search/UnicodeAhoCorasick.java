@@ -27,17 +27,11 @@ class UnicodeAhoCorasick implements SearchMethod {
     }
 
     public MatchResult find(String s, int start, int end, boolean anchored) {
-        int length = s.length();
-        if (start > length) {
-            throw new IndexOutOfBoundsException("starting index " + start + " is out of bounds");
-        }
-        if (end > length) {
-            throw new IndexOutOfBoundsException("ending index " + end + " is out of bounds");
-        }
+        SearchMethodUtil.checkIndices(s, start, end);
         Trie current = this.trie;
         int lastStart = -1;
         int lastEnd = -1;
-        for (int i = start; i < length; i++) {
+        for (int i = start; i < end; i++) {
             if (anchored && i > start && current == trie) {
                 if (lastEnd > -1) {
                     return MatchResult.success(lastStart, lastEnd);

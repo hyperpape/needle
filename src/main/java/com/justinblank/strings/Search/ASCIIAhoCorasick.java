@@ -38,13 +38,7 @@ class ASCIIAhoCorasick implements SearchMethod {
     }
 
     private MatchResult find(ASCIITrie trie, String s, int start, int end) {
-        int length = s.length();
-        if (start > length) {
-            throw new IndexOutOfBoundsException("starting index " + start + " is out of bounds");
-        }
-        if (end > length) {
-            throw new IndexOutOfBoundsException("ending index " + end + " is out of bounds");
-        }
+        SearchMethodUtil.checkIndices(s, start, end);
         ASCIITrie current = trie;
         int lastEnd = -1;
         int lastStart = -1;
