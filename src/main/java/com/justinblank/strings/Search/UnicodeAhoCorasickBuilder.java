@@ -1,6 +1,7 @@
 package com.justinblank.strings.Search;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
@@ -9,11 +10,11 @@ public class UnicodeAhoCorasickBuilder{
     private Trie root;
     private List<Trie> nodes = new ArrayList<>();
 
-    protected static SearchMethod buildAhoCorasick(List<String> strings) {
+    protected static SearchMethod buildAhoCorasick(Collection<String> strings) {
         return new UnicodeAhoCorasickBuilder().build(strings);
     }
 
-    protected SearchMethod build(List<String> strings) {
+    protected SearchMethod build(Collection<String> strings) {
         Trie trie = new Trie(0);
         root = trie;
         root.root = root;
@@ -24,7 +25,7 @@ public class UnicodeAhoCorasickBuilder{
         return new UnicodeAhoCorasick(trie);
     }
 
-    private void buildTrieStructure(List<String> strings, Trie trie) {
+    private void buildTrieStructure(Collection<String> strings, Trie trie) {
         for (String s : strings) {
             Trie current = trie;
             for (int i = 0; i < s.length(); i++) {

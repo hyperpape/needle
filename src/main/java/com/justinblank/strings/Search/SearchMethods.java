@@ -1,12 +1,13 @@
 package com.justinblank.strings.Search;
 
+import java.util.Collection;
 import java.util.List;
 
 public final class SearchMethods {
 
     private SearchMethods() {}
 
-    public static SearchMethod makeSearchMethod(List<String> strings) {
+    public static SearchMethod makeSearchMethod(Collection<String> strings) {
         if (strings.isEmpty()) {
             throw new IllegalArgumentException("Cannot create SearchMethod using empty list of strings");
         }
@@ -21,7 +22,7 @@ public final class SearchMethods {
         }
     }
 
-    private static boolean containsEmpty(List<String> strings) {
+    private static boolean containsEmpty(Collection<String> strings) {
         for (String s : strings) {
             if ("".equals(s)) {
                 return true;
@@ -41,7 +42,7 @@ public final class SearchMethods {
         return true;
     }
 
-    protected static boolean allAscii(List<String> strings) {
+    protected static boolean allAscii(Collection<String> strings) {
         for (String s : strings) {
             if (!allAscii(s)) {
                 return false;

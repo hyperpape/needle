@@ -1,16 +1,13 @@
 package com.justinblank.strings.Search;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 class AsciiAhoCorasickBuilder {
 
     ASCIITrie root;
     private List<ASCIITrie> nodes = new ArrayList<>();
 
-    protected static SearchMethod buildAhoCorasick(List<String> strings) {
+    protected static SearchMethod buildAhoCorasick(Collection<String> strings) {
         ASCIITrie trie = new AsciiAhoCorasickBuilder().build(strings, true);
         ASCIITrie partialTrie = new AsciiAhoCorasickBuilder().build(strings, false);
         return new ASCIIAhoCorasick(trie, partialTrie);
@@ -22,7 +19,7 @@ class AsciiAhoCorasickBuilder {
         return new ASCIIAhoCorasick(trie, trie);
     }
 
-    protected ASCIITrie build(List<String> strings, boolean complete) {
+    protected ASCIITrie build(Collection<String> strings, boolean complete) {
         ASCIITrie trie = new ASCIITrie(0);
         root = trie;
         root.root = root;
@@ -35,7 +32,7 @@ class AsciiAhoCorasickBuilder {
         return trie;
     }
 
-    private void buildTrieStructure(List<String> strings, ASCIITrie trie) {
+    private void buildTrieStructure(Collection<String> strings, ASCIITrie trie) {
         for (String s : strings) {
             ASCIITrie current = trie;
             for (int i = 0; i < s.length(); i++) {
