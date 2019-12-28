@@ -2,8 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.Search.SearchMethod;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SearchMethodTestUtil {
 
@@ -31,6 +30,7 @@ public class SearchMethodTestUtil {
 
     public static void match(SearchMethod method, String s) {
         assertTrue(method.matches(s));
+        assertEquals(MatchResult.success(0, s.length()), method.find(s));
         find(method, s, 0, s.length());
     }
 }
