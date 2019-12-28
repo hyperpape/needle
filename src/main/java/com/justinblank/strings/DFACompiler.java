@@ -45,12 +45,12 @@ public class DFACompiler {
         this.dfa = dfa;
     }
 
-    public static Pattern compileString(String regex, String className) {
+    public static Pattern compile(String regex, String className) {
         NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
         return compile(NFAToDFACompiler.compile(nfa), className);
     }
 
-    public static Pattern compile(DFA dfa, String name) {
+    private static Pattern compile(DFA dfa, String name) {
         byte[] classBytes = generateClassAsBytes(dfa, name);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(name, classBytes);
         Class<? extends Pattern> c = createPatternClass("Pattern"  + name, (Class<? extends Matcher>) matcherClass);
@@ -615,7 +615,7 @@ public class DFACompiler {
     }
 
     protected Integer methodDesignator(DFA right) {
-        Integer stateNumber = dfaMethodMap.computeIfAbsent(right, d -> d.getStateNumber());
+        Integer stateNumber = dfaMethodMap.computeIfAbsent(right, DFA::getStateNumber);
         stateMap.put(dfaMethodMap.get(right), right);
         if (stateNumber > 1 << 15) {
             // TODO: decide best approach to large state automata

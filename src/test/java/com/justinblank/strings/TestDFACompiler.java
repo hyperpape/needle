@@ -1,11 +1,6 @@
 package com.justinblank.strings;
 
-import com.justinblank.classloader.MyClassLoader;
-import com.justinblank.strings.RegexAST.Node;
-import junit.framework.TestCase;
 import org.junit.Test;
-
-import java.lang.reflect.Constructor;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -14,9 +9,7 @@ public class TestDFACompiler {
 
     @Test
     public void testSingleCharLiteralRegex() throws Exception {
-        DFA dfa = DFA.createDFA("a");
-
-        Pattern pattern = DFACompiler.compile(dfa, "SingleCharRegex");
+        Pattern pattern = DFACompiler.compile("a", "SingleCharRegex");
         Matcher instance = pattern.matcher("a");
         assertTrue(instance.matches());
 
@@ -28,8 +21,7 @@ public class TestDFACompiler {
 
     @Test
     public void testMultiCharLiteralRegex() {
-        DFA dfa = DFA.createDFA("abc");
-        Pattern pattern = DFACompiler.compile(dfa, "MultiCharLiteralRegex");
+        Pattern pattern = DFACompiler.compile("abc", "MultiCharLiteralRegex");
         Matcher instance = pattern.matcher("abc");
         assertTrue(instance.matches());
 
@@ -42,9 +34,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledSimpleRegex() throws Exception {
-        DFA dfa = DFA.createDFA("[0-9A-Za-z]*");
-
-        Pattern pattern = DFACompiler.compile(dfa, "TestName");
+        Pattern pattern = DFACompiler.compile("[0-9A-Za-z]*", "TestName");
         Matcher instance = pattern.matcher("AB09");
         assertTrue(instance.matches());
         
@@ -54,7 +44,7 @@ public class TestDFACompiler {
 
     @Test
     public void testGroupedDFAAlternation() throws Exception {
-        Pattern pattern = DFACompiler.compileString("(AB)|(BA)", "testGroupedDFAAlternation");
+        Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAAlternation");
         Matcher matcher = pattern.matcher("AB");
         assertTrue(matcher.matches());
         assertTrue(pattern.matcher("BA").matches());
@@ -64,7 +54,7 @@ public class TestDFACompiler {
     @Test
     public void testDFACompiledManyStateRegex() throws Exception {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING;
-        Pattern pattern = DFACompiler.compileString(regexString, "testDFACompiledManyStateRegex");
+        Pattern pattern = DFACompiler.compile(regexString, "testDFACompiledManyStateRegex");
         Matcher instance = pattern.matcher("456");
         assertTrue(instance.matches());
         assertTrue(pattern.matcher("456456").matches());
@@ -76,7 +66,7 @@ public class TestDFACompiler {
     @Test
     public void testRepetitionWithLiteralSuffix() {
         String regexString = "((12)|(23)){1,2}" + "ab";
-        Pattern pattern = DFACompiler.compileString(regexString, "GroupedRepetitionWithLiteralSuffix");
+        Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
         assertTrue(pattern.matcher("12ab").matches());
         assertTrue(pattern.matcher("2323ab").matches());
         assertFalse(pattern.matcher("").matches());
@@ -85,7 +75,7 @@ public class TestDFACompiler {
     @Test
     public void testManyStateRegexWithLiteralSuffix() {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING + "ab";
-        Pattern pattern = DFACompiler.compileString(regexString, "ManyStateRegexWithLiteralSuffix");
+        Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix");
         assertTrue(pattern.matcher("123ab").matches());
         assertTrue(pattern.matcher("234234ab").matches());
         assertFalse(pattern.matcher("").matches());
@@ -93,9 +83,7 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledDigitPlus() throws Exception {
-        DFA dfa = DFA.createDFA("[0-9]+");
-
-        Pattern pattern = DFACompiler.compile(dfa, "testDFACompiledDigitPlus");
+        Pattern pattern = DFACompiler.compile("[0-9]+", "testDFACompiledDigitPlus");
         Matcher instance = pattern.matcher("0");
         assertTrue(instance.matches());
 
@@ -105,15 +93,14 @@ public class TestDFACompiler {
 
     @Test
     public void testDFACompiledBMP() throws Exception {
-        DFA dfa = DFA.createDFA("[\u0600-\u06FF]");
-        Pattern pattern = DFACompiler.compile(dfa, "testDFACompiledBMP");
+        Pattern pattern = DFACompiler.compile("[\u0600-\u06FF]", "testDFACompiledBMP");
         assertTrue(pattern.matcher("\u0600").matches());
         assertFalse(pattern.matcher("AB{").matches());
     }
 
     @Test
     public void testDFACompiledAlternationOfLiterals() throws Exception {
-        Pattern pattern = DFACompiler.compileString("A|BCD|E", "alternation1");
+        Pattern pattern = DFACompiler.compile("A|BCD|E", "alternation1");
         assertTrue(pattern.matcher("A").matches());
         assertTrue(pattern.matcher("BCD").matches());
         assertTrue(pattern.matcher("E").matches());
