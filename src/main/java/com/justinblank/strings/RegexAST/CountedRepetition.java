@@ -30,6 +30,6 @@ public class CountedRepetition extends Node {
 
     @Override
     public Factorization bestFactors() {
-        return Factorization.empty();
+        return node.bestFactors().countedRepetition(min, max);
     }
 }

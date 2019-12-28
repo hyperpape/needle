@@ -91,4 +91,14 @@ public class FactorizationTest {
         assertEquals(Set.of("ABC", "DEF"), factorization.getSuffixes());
         assertEquals(Set.of("ABC", "DEF"), factorization.getAll());
     }
+
+    @Test
+    public void testCountedRepetition() {
+        var node = RegexParser.parse("(AB){1,2}");
+        var factorization = node.bestFactors();
+        assertEquals(Set.of("AB", "ABAB"), factorization.getFactors());
+        assertEquals(Set.of("AB", "ABAB"), factorization.getPrefixes());
+        assertEquals(Set.of("AB", "ABAB"), factorization.getSuffixes());
+        assertEquals(Set.of("AB", "ABAB"), factorization.getAll());
+    }
 }

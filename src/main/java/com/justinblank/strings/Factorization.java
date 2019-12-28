@@ -12,6 +12,8 @@ public class Factorization {
 
     // TODO: measure effect of this
     public static final int MAX_CHAR_RANGE_FACTORS = 4;
+    // TODO: tune this
+    public static final int MAX_REPETITION_COUNT = 2;
     private Set<String> all;
     private Set<String> suffixes;
     private Set<String> prefixes;
@@ -91,25 +93,33 @@ public class Factorization {
             all = null;
         }
         else {
-            all.addAll(factorization.all);
+            Set<String> newAll = new HashSet<>(all);
+            newAll.addAll(factorization.all);
+            all = newAll;
         }
         if (this.prefixes == null || factorization.prefixes == null) {
             prefixes = null;
         }
         else {
-            prefixes.addAll(factorization.prefixes);
+            Set<String> newPrefixes = new HashSet<>(prefixes);
+            newPrefixes.addAll(factorization.prefixes);
+            prefixes = newPrefixes;
         }
         if (this.suffixes == null || factorization.suffixes == null) {
             suffixes = null;
         }
         else {
-            suffixes.addAll(factorization.suffixes);
+            Set<String> newSuffixes = new HashSet<>(suffixes);
+            newSuffixes.addAll(factorization.suffixes);
+            suffixes = newSuffixes;
         }
         if (this.factors == null || factorization.factors == null) {
             factors = null;
         }
         else {
-            factors.addAll(factorization.factors);
+            Set<String> newFactors = new HashSet<>(factors);
+            newFactors.addAll(factorization.factors);
+            factors = newFactors;
         }
     }
 
@@ -199,5 +209,23 @@ public class Factorization {
 
     public boolean isComplete() {
         return this.all != null && !this.all.isEmpty();
+    }
+
+    public Factorization countedRepetition(int min, int max) {
+        Factorization factorization = this;
+        if (max > MAX_REPETITION_COUNT) {
+            return Factorization.empty();
+        }
+        if (min == 0) {
+            factorization = fromString("");
+        }
+        for (int i = min; i <= max; i++) {
+            Factorization newFactors = fromString("");
+            for (int j = 1; j <= i; j++) {
+                newFactors.concatenate(this);
+            }
+            factorization.alternate(newFactors);
+        }
+        return factorization;
     }
 }
