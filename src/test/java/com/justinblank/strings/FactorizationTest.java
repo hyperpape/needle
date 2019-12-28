@@ -76,8 +76,19 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testFactorizationAgain() {
+    public void testFactorizationDNAExample() {
         var node = RegexParser.parse("(ABC(GA|AAA)*)(TA|AG)");
-        assertEquals(Set.of("ABC"), node.bestFactors().getFactors());
+        Factorization factorization = node.bestFactors();
+        assertEquals(Set.of("ABC"), factorization.getFactors());
+    }
+
+    @Test
+    public void testFactorizationAlternationOfLiterals() {
+        var node = RegexParser.parse("((ABC)|(DEF))");
+        var factorization = node.bestFactors();
+        assertEquals(Set.of("ABC", "DEF"), factorization.getFactors());
+        assertEquals(Set.of("ABC", "DEF"), factorization.getPrefixes());
+        assertEquals(Set.of("ABC", "DEF"), factorization.getSuffixes());
+        assertEquals(Set.of("ABC", "DEF"), factorization.getAll());
     }
 }

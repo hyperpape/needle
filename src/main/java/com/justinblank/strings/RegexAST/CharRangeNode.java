@@ -29,9 +29,6 @@ public class CharRangeNode extends Node {
     }
 
     public Factorization bestFactors() {
-        if (this.range.getStart() == this.range.getEnd()) {
-            return Factorization.fromChar(this.range.getStart());
-        }
-        return Factorization.empty();
+        return Factorization.fromRange(this.range.getStart(), this.range.getEnd());
     }
 }

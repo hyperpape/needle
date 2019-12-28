@@ -54,7 +54,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testSillyNonContiguousRanges() {
+    public void testNonContiguousRanges() {
         SearchMethod method = NFA.createNFA("[0-13-46-7]");
         assertTrue(method.matches("0"));
         assertTrue(method.matches("1"));

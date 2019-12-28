@@ -10,6 +10,8 @@ import java.util.Set;
  */
 public class Factorization {
 
+    // TODO: measure effect of this
+    public static final int MAX_CHAR_RANGE_FACTORS = 4;
     private Set<String> all;
     private Set<String> suffixes;
     private Set<String> prefixes;
@@ -43,6 +45,21 @@ public class Factorization {
 
     public static Factorization fromChar(char c) {
         return new Factorization(c);
+    }
+
+    public static Factorization fromRange(char start, char end) {
+        if ((int) end - (int) start > MAX_CHAR_RANGE_FACTORS) {
+            return Factorization.empty();
+        }
+        else if (start == end) {
+            return fromChar(start);
+        }
+        Set<String> strings = new HashSet<>();
+        for (int i = start; i <= (int) end; i++) {
+            char c = (char) i;
+            strings.add(String.valueOf(c));
+        }
+        return new Factorization(strings, strings, strings, strings);
     }
 
     public static Factorization fromString(String string) {
@@ -138,6 +155,14 @@ public class Factorization {
         return newFactors;
     }
 
+    /**
+     * Given two sets of factors, uses heuristics to determine which is better. In general, a smaller set of
+     * longer factors is preferred.
+     *
+     * @param set1 the first set of factors
+     * @param set2 the second set of factors
+     * @return the better set of factors
+     */
     static Set<String> best(Set<String> set1, Set<String> set2) {
         if (set1 == null || set1.isEmpty()) {
             return set2;
@@ -166,5 +191,13 @@ public class Factorization {
             return set2;
         }
         return set1;
+    }
+
+    public boolean hasFactors() {
+        return this.factors != null && !this.factors.isEmpty();
+    }
+
+    public boolean isComplete() {
+        return this.all != null && !this.all.isEmpty();
     }
 }

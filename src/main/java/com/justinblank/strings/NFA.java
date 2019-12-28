@@ -32,10 +32,9 @@ public class NFA implements SearchMethod {
 
     public static SearchMethod createNFA(String regex) {
         Node parse = RegexParser.parse(regex);
-        if (Node.isAhoCorasickPattern(parse)) {
-            List<String> strings = new ArrayList<>();
-            Node.extractLiterals(parse, strings);
-            return SearchMethods.makeSearchMethod(strings);
+        var factors = parse.bestFactors();
+        if (factors.isComplete()) {
+            return SearchMethods.makeSearchMethod(factors.getAll());
         }
         return ThompsonNFABuilder.createNFA(parse);
     }
