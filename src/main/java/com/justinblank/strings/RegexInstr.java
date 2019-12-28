@@ -15,6 +15,8 @@ public class RegexInstr {
     final int target1;
     final int target2;
 
+    private static final RegexInstr MATCH = new RegexInstr(Opcode.MATCH, 'a', 'a', -1, -1);
+
     public RegexInstr(Opcode opcode, char start, char end, int target1, int target2) {
         this.opcode = opcode;
         this.start = start;
@@ -36,7 +38,7 @@ public class RegexInstr {
     }
 
     static RegexInstr match() {
-        return new RegexInstr(Opcode.MATCH, 'a', 'a', -1, -1);
+        return MATCH;
     }
 
     public String toString() {
