@@ -29,7 +29,7 @@ public class RegexParser {
                     break;
                 case '{':
                     if (nodes.isEmpty()) {
-                        throw new RegexSyntaxException();
+                        throw new RegexSyntaxException("Found '{' at position " + index + " with no preceding regex");
                     }
                     int left = consumeInt();
                     char next = takeChar();
@@ -40,7 +40,7 @@ public class RegexParser {
                     nodes.push(new CountedRepetition(nodes.pop(), left, right));
                     next = takeChar();
                     if (next != '}') {
-                        throw new RegexSyntaxException();
+                        throw new RegexSyntaxException("Found unclosed brackets at position " + index);
                     }
                     break;
                 case '?':
@@ -54,7 +54,7 @@ public class RegexParser {
                     break;
                 case '+':
                     if (nodes.isEmpty()) {
-                        throw new RegexSyntaxException();
+                        throw new RegexSyntaxException("Found '+' with no preceding regex");
                     }
                     Node lastNode = nodes.pop();
                     nodes.push(new Concatenation(lastNode, new Repetition(lastNode)));

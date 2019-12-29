@@ -30,6 +30,7 @@ public class SearchMethodTestUtil {
 
     public static void match(SearchMethod method, String s) {
         assertTrue(method.matches(s));
+        assertTrue(method.matcher(s).matches());
         assertEquals(MatchResult.success(0, s.length()), method.find(s));
         find(method, s, 0, s.length());
     }

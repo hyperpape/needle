@@ -48,11 +48,6 @@ public class CharRange {
         return start == end;
     }
 
-    public boolean contains(CharRange charRange) {
-        return getStart() <= charRange.getStart() && charRange.getEnd() <= getEnd();
-    }
-
-
     @Override
     public String toString() {
         return "CharRange{" +
@@ -114,9 +109,6 @@ public class CharRange {
     // Note that this assumes non-overlapping ranges
     public static List<CharRange> compact(List<CharRange> charRanges) {
         charRanges.sort(Comparator.comparingInt(CharRange::getStart));
-        if (charRanges.size() < 2) {
-            return charRanges;
-        }
         List<CharRange> ranges = new ArrayList<>();
         CharRange current = charRanges.get(0);
         for (int i = 1; i < charRanges.size(); i++) {
@@ -135,22 +127,6 @@ public class CharRange {
 
     private static char incr(char c) {
         return (char) (((int) c) + 1);
-    }
-
-    private static List<CharRange> withoutDominatedRanges(List<CharRange> ranges) {
-        List<CharRange> simplified = new ArrayList<>();
-        if (!ranges.isEmpty()) {
-            simplified.add(ranges.get(0));
-        }
-        for (int i = 0; i < ranges.size() - 1; i++) {
-            CharRange current = ranges.get(i);
-            CharRange next = ranges.get(i + 1);
-            if (!current.contains(next)) {
-                simplified.add(next);
-            }
-        }
-
-        return simplified;
     }
 
     @Override
