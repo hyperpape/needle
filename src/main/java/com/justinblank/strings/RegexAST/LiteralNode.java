@@ -36,9 +36,4 @@ public class LiteralNode extends Node {
     public void append(char c) {
         this.string.append(c);
     }
-
-    @Override
-    public boolean isAlternationOfLiterals() {
-        return true;
-    }
 }
