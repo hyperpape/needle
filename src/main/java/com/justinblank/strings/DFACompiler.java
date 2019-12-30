@@ -57,9 +57,9 @@ public class DFACompiler {
         try {
             return (Pattern) c.getDeclaredConstructors()[0].newInstance();
         }
-        catch (Exception e) {
+        catch (Throwable t) {
             // TODO: determine good exceptions/result types
-            throw new RuntimeException(e);
+            throw new RuntimeException(t);
         }
     }
 
@@ -305,14 +305,13 @@ public class DFACompiler {
     private void addSmallWasAcceptedMethod(List<DFA> acceptingStates) {
         MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "(I)Z", null, null);
         mv.visitVarInsn(ILOAD, 1);
-        Label[] labels = new Label[acceptingStates.size()];
-        for (int i = 0; i < labels.length; i++) {
-            labels[i] = new Label();
-        }
+        Label[] labels = makeLabels(acceptingStates.size());
+
         int[] keys = new int[acceptingStates.size()];
         for (int i = 0; i < acceptingStates.size(); i++) {
             keys[i] = acceptingStates.get(i).getStateNumber();
         }
+        Arrays.sort(keys);
         Label noMatch = new Label();
         mv.visitLookupSwitchInsn(noMatch, keys, labels);
         for (int i = 0; i < labels.length; i++) {
@@ -486,7 +485,6 @@ public class DFACompiler {
     }
 
     private void generateSwitchTransitions(DFA node, MethodVisitor mv, Label iterLabel, Label failLabel) {
-        Map<DFA, Label> transitionTargets = new HashMap<>();
         int[] chars = getChars(node);
         Label[] labels = makeLabelsForCollection(node.getTransitions());
 

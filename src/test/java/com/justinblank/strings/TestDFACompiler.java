@@ -31,7 +31,6 @@ public class TestDFACompiler {
         assertFalse(pattern.matcher("AB{").matches());
     }
 
-
     @Test
     public void testDFACompiledSimpleRegex() throws Exception {
         Pattern pattern = DFACompiler.compile("[0-9A-Za-z]*", "TestName");
@@ -49,6 +48,16 @@ public class TestDFACompiler {
         assertTrue(matcher.matches());
         assertTrue(pattern.matcher("BA").matches());
         assertFalse(pattern.matcher("ABBA").matches());
+    }
+
+    @Test
+    public void testTwoAcceptingStateDFA() throws Exception {
+        Pattern pattern = DFACompiler.compile("(A+)|(B+)", "testTwoAcceptingStateDFA");
+        Matcher matcher = pattern.matcher("A");
+        assertTrue(matcher.matches());
+        assertTrue(pattern.matcher("AA").matches());
+        assertTrue(pattern.matcher("BB").matches());
+        assertFalse(pattern.matcher("AB").matches());
     }
 
     @Test
