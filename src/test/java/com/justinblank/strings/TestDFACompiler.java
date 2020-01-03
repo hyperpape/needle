@@ -115,4 +115,11 @@ public class TestDFACompiler {
         assertTrue(pattern.matcher("E").matches());
         assertFalse(pattern.matcher("F").matches());
     }
+
+    @Test(expected =  IllegalArgumentException.class)
+    public void testDFACompileFailsLargePattern() {
+        String manyStateRegexString = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,160}";
+        DFACompiler.compile(manyStateRegexString, "tooBig");
+    }
+
 }

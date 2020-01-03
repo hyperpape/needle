@@ -37,8 +37,10 @@ public class DFACompiler {
     private final Map<Character, String> rangeConstants = new HashMap<>();
 
     protected DFACompiler(ClassWriter classWriter, String className, DFA dfa) {
-        if (dfa.statesCount() > Short.MAX_VALUE) {
-            throw new IllegalArgumentException("Can't compile DFAs with more than " + Short.MAX_VALUE + " states");
+        // Somewhere between this value and Short.MAX_VALUE, we run into classes that can't be created because they're
+        // so large
+        if (dfa.statesCount() > Short.MAX_VALUE / 2) {
+            throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
         }
         this.classWriter = classWriter;
         this.className = className;

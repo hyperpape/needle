@@ -14,7 +14,7 @@ public class MinimizeDFATest {
     @Test
     public void testPartition() {
         DFA dfa = fourStateMinimizableDFA();
-        Map<DFA, Set<DFA>> partition = MinimizeDFA.createPartition(dfa);
+        Map<DFA, Set<DFA>> partition = new MinimizeDFA().createPartition(dfa);
         assertEquals(new HashSet<>(partition.values()).size(), 3);
     }
 
