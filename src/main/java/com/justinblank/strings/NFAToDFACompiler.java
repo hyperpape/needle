@@ -28,23 +28,32 @@ public class NFAToDFACompiler {
     }
 
     private void addNFAStatesToDFA(Set<NFA> nfas, DFA dfa) {
-        Set<NFA> epsilonClosure = NFA.epsilonClosure(nfas);
-        List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(new ArrayList<>(epsilonClosure)));
-        for (CharRange range : ranges) {
-            // choice of start/end is arbitrary
-            Set<NFA> moves = NFA.epsilonClosure(transition(epsilonClosure, range.getStart()));
-            DFA targetDfa = stateSets.get(moves);
-            if (targetDfa == null) {
-                boolean accepting = NFA.hasAcceptingState(moves);
-                targetDfa = new DFA(root, accepting, state++);
-                stateSets.put(moves, targetDfa);
-                addNFAStatesToDFA(moves, targetDfa);
+        Stack<Set<NFA>> pending = new Stack<>();
+        pending.add(nfas);
+        while (!pending.isEmpty()) {
+            nfas = pending.pop();
+            DFA foundDFA = stateSets.get(nfas);
+            if (foundDFA != null) {
+                dfa = foundDFA;
             }
-            dfa.addTransition(range, targetDfa);
+            Set<NFA> epsilonClosure = NFA.epsilonClosure(nfas);
+            List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
+            for (CharRange range : ranges) {
+                // any element of the range is equally good here, getStart()/getEnd() doesn't matter
+                Set<NFA> moves = NFA.epsilonClosure(transition(epsilonClosure, range.getStart()));
+                DFA targetDfa = stateSets.get(moves);
+                if (targetDfa == null) {
+                    pending.add(moves);
+                    boolean accepting = NFA.hasAcceptingState(moves);
+                    targetDfa = new DFA(root, accepting, state++);
+                    stateSets.put(moves, targetDfa);
+                }
+                dfa.addTransition(range, targetDfa);
+            }
         }
     }
 
-    protected static List<CharRange> findCharRanges(List<NFA> nfas) {
+    protected static List<CharRange> findCharRanges(Collection<NFA> nfas) {
         List<CharRange> ranges = new ArrayList<>();
         for (NFA nfa : nfas) {
             List<Pair<CharRange, List<NFA>>> transitionList = nfa.getTransitions();
