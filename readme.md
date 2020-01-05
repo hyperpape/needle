@@ -2,9 +2,23 @@
 ![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
 String searching/matching algorithms in Java, including multi-string
-matching and searching, and regular expressions. Where effective, the
-library compiles those algorithms to bytecode to improve performance
-speed.
+matching and searching, and regular expressions.
+
+The regular expression engine is
+[non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html), and
+spends extra-effort at compile time to give better run-time matching
+performance. Those compile time-efforts currently take three forms:
+
+  1. Recognizing limited regular expressions that can be matched with
+  simpler techniques (Aho-Corasick, for instance).
+
+  2. State minimization
+
+  3. Bytecode compilation: creating a specialized class for an
+  individual regex that specializes the code to simulate an automaton,
+  reducing interpretation overhead.
+
+### Status
 
 This is an early experiment. Bytecode compiled regexes only support full
 string matching, not searching. Most character classes and other
