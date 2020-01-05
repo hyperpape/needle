@@ -27,8 +27,8 @@ class MinimizeDFA {
         DFA minimal = newDFAMap.get(partition.get(dfa));
         assert minimal.statesCount() == new HashSet<>(partition.values()).size();
         minimal.checkRep();
-        System.out.println("Split calls: " + splitCalls);
-        System.out.println("Successful splits " + successfulSplits);
+//        System.out.println("Split calls: " + splitCalls);
+//        System.out.println("Successful splits " + successfulSplits);
         return minimal;
     }
 
@@ -67,7 +67,7 @@ class MinimizeDFA {
                             DFAGroup dfaGroup = new DFAGroup(part);
                             changedItems.add(dfaGroup);
                             for (DFA thing : part) {
-                                partition.partition.put(thing, dfaGroup);
+                                partition.partition.set(thing.getStateNumber(), dfaGroup);
                             }
                         }
                         partition.queue.addAll(changedItems);
@@ -79,15 +79,14 @@ class MinimizeDFA {
                 }
             }
         }
-        assert allNonEmpty(partition.partition);
-        return unwrap(partition.partition);
+        // assert allNonEmpty(partition.partition);
+        return unwrap(dfa, partition.partition);
     }
 
-    private Map<DFA, Set<DFA>> unwrap(Map<DFA, DFAGroup> partition) {
-        // TODO: cleaner?
+    private Map<DFA, Set<DFA>> unwrap(DFA dfa, List<DFAGroup> partition) {
         Map<DFA, Set<DFA>> unwrapped = new HashMap<>();
-        for (var e : partition.entrySet()) {
-            unwrapped.put(e.getKey(), e.getValue().dfas);
+        for (var dfaState : dfa.allStates()) {
+            unwrapped.put(dfaState, partition.get(dfaState.getStateNumber()).dfas);
         }
         return unwrapped;
     }
@@ -101,7 +100,10 @@ class MinimizeDFA {
      * @return a coarse partition of the DFA states that will be refined
      */
     private static PartitionState initialPartition(DFA dfa) {
-        Map<DFA, DFAGroup> partition = new HashMap<>(dfa.statesCount());
+        List<DFAGroup> partition = new ArrayList<>(dfa.statesCount());
+        for (int i = 0; i < dfa.statesCount(); i++) {
+            partition.add(null);
+        }
         Set<DFA> accepting = dfa.acceptingStates();
         Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
         nonAccepting.removeAll(accepting);
@@ -116,7 +118,7 @@ class MinimizeDFA {
     }
 
     // TODO: Better name
-    private static List<DFAGroup> partitionByTransitionCount(Map<DFA, DFAGroup> partition, Set<DFA> accepting) {
+    private static List<DFAGroup> partitionByTransitionCount(List<DFAGroup> partition, Set<DFA> accepting) {
         Map<Integer, Set<DFA>> acceptingByTransitionCount = new HashMap<>();
         List<DFAGroup> dfaGroups = new ArrayList<>();
         for (DFA acceptingDFA : accepting) {
@@ -127,7 +129,7 @@ class MinimizeDFA {
             DFAGroup group = new DFAGroup(e.getValue());
             dfaGroups.add(group);
             for (DFA acceptingDFA : e.getValue()) {
-                partition.put(acceptingDFA, group);
+                partition.set(acceptingDFA.getStateNumber(), group);
             }
         }
         return dfaGroups;
@@ -142,7 +144,7 @@ class MinimizeDFA {
         return true;
     }
 
-    protected static Optional<List<Set<DFA>>> split(Map<DFA, DFAGroup> partition, Set<DFA> set) {
+    protected static Optional<List<Set<DFA>>> split(List<DFAGroup> partition, Set<DFA> set) {
         splitCalls++;
         Iterator<DFA> dfa = set.iterator();
         DFA first = dfa.next();
@@ -163,7 +165,7 @@ class MinimizeDFA {
         return Optional.empty();
     }
 
-    protected static boolean equivalent(Map<DFA, DFAGroup> partition, DFA first, DFA second) {
+    protected static boolean equivalent(List<DFAGroup> partition, DFA first, DFA second) {
         Iterator<Pair<CharRange, DFA>> firstIter = first.getTransitions().iterator();
         Iterator<Pair<CharRange, DFA>> secondIter = second.getTransitions().iterator();
         while (firstIter.hasNext()) {
@@ -173,7 +175,7 @@ class MinimizeDFA {
                 return false;
             }
             else if (firstTransition.getRight() != secondTransition.getRight()) {
-                if (partition.get(firstTransition.getRight()) != partition.get(secondTransition.getRight())) {
+                if (partition.get(firstTransition.getRight().getStateNumber()) != partition.get(secondTransition.getRight().getStateNumber())) {
                     return false;
                 }
             }
@@ -222,10 +224,10 @@ class MinimizeDFA {
     }
 
     static class PartitionState {
-        Map<DFA, DFAGroup> partition;
+        List<DFAGroup> partition;
         PriorityQueue<DFAGroup> queue;
 
-        PartitionState(Map<DFA, DFAGroup> partition, PriorityQueue<DFAGroup> queue) {
+        PartitionState(List<DFAGroup> partition, PriorityQueue<DFAGroup> queue) {
             this.partition = partition;
             this.queue = queue;
         }
