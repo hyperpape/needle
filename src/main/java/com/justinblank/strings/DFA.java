@@ -177,7 +177,7 @@ public class DFA {
     }
 
     public int statesCount() {
-        return allStates().size();
+        return states.size();
     }
 
     public Set<DFA> allStates() {
