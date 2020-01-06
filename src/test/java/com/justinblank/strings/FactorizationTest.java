@@ -93,6 +93,17 @@ public class FactorizationTest {
     }
 
     @Test
+    public void testOneOrMoreRepetition() {
+        var node = RegexParser.parse("A?");
+        var factorization = node.bestFactors();
+        var factorSet = Set.of("", "A");
+        assertEquals(factorSet, factorization.getPrefixes());
+        assertEquals(factorSet, factorization.getSuffixes());
+        assertEquals(factorSet, factorization.getFactors());
+        assertEquals(factorSet, factorization.getAll());
+    }
+
+    @Test
     public void testCountedRepetition() {
         var node = RegexParser.parse("(AB){1,2}");
         var factorization = node.bestFactors();

@@ -26,7 +26,7 @@ class MinimizeDFA {
         }
         DFA minimal = newDFAMap.get(partition.get(dfa));
         assert minimal.statesCount() == new HashSet<>(partition.values()).size();
-        minimal.checkRep();
+        assert minimal.checkRep();
 //        System.out.println("Split calls: " + splitCalls);
 //        System.out.println("Successful splits " + successfulSplits);
         return minimal;
@@ -79,7 +79,7 @@ class MinimizeDFA {
                 }
             }
         }
-        // assert allNonEmpty(partition.partition);
+        assert allNonEmpty(partition.partition);
         return unwrap(dfa, partition.partition);
     }
 
@@ -135,9 +135,9 @@ class MinimizeDFA {
         return dfaGroups;
     }
 
-    protected static boolean allNonEmpty(Map<DFA, DFAGroup> partition) {
-        for (DFAGroup subset : partition.values()) {
-            if (subset.dfas.isEmpty()) {
+    protected static boolean allNonEmpty(List<DFAGroup> partition) {
+        for (DFAGroup group : partition) {
+            if (group.dfas.isEmpty()) {
                 return false;
             }
         }

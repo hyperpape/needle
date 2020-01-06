@@ -164,35 +164,6 @@ public class NFA implements SearchMethod {
         return MatchResult.failure();
     }
 
-    private boolean statesMatched(SparseSet states) {
-        for (int i = 0; i < states.size(); i++) {
-            int stateIndex = states.getByIndex(i);
-            RegexInstr instr = regexInstrs.get(stateIndex);
-            if (instr.opcode == JUMP) {
-                instr = regexInstrs.get(instr.target1);
-            }
-
-            if (instr.opcode == MATCH) {
-                return true;
-            }
-            else if (instr.opcode == SPLIT) {
-                if (regexInstrs.get(instr.target1).opcode == MATCH) {
-                    return true;
-                }
-                else {
-                    states.add(instr.target1);
-                }
-                if (regexInstrs.get(instr.target2).opcode == MATCH) {
-                    return true;
-                }
-                else {
-                    states.add(instr.target2);
-                }
-            }
-        }
-        return false;
-    }
-
     @Override
     public int findIndex(String s) {
         MatchResult result = find(s);

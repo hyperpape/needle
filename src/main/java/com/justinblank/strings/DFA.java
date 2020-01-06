@@ -15,11 +15,6 @@ public class DFA {
     private List<DFA> states;
     private List<Pair<CharRange, DFA>> transitions = new ArrayList<>();
 
-    protected DFA(boolean accepting, int stateNumber) {
-        this.accepting = accepting;
-        this.stateNumber = stateNumber;
-    }
-
     static DFA root(boolean accepting) {
         return new DFA(true, accepting, 0);
     }
@@ -234,7 +229,7 @@ public class DFA {
      *
      * @throws IllegalStateException if the invariants are broken
      */
-    protected void checkRep() {
+    protected boolean checkRep() {
         assert allStatesReachable() : "Some state was unreachable";
         assert allStates().containsAll(states);
         assert states.containsAll(allStates());
@@ -242,6 +237,7 @@ public class DFA {
         assert states.stream().map(DFA::getStateNumber).count() == states.size();
         assert states.contains(this) : "root not included in states";
         assert transitions.stream().map(Pair::getRight).allMatch(dfa -> states.contains(dfa));
+        return true;
     }
 
     private boolean allStatesReachable() {
