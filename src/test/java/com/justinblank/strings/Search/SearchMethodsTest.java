@@ -4,7 +4,6 @@ import com.justinblank.strings.MatchResult;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
-import org.quicktheories.generators.BooleansDSL;
 import org.quicktheories.generators.IntegersDSL;
 import org.quicktheories.generators.ListsDSL;
 import org.quicktheories.generators.StringsDSL;
@@ -12,6 +11,7 @@ import org.quicktheories.generators.StringsDSL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -377,6 +377,13 @@ public class SearchMethodsTest {
             String needle = newTargetString.substring(result.start, result.end);
             return l.contains(needle);
         });
+    }
+
+    @Test
+    public void testSearchMethodMatchesStringContainingNonBMPCharacters() {
+        String s = "\uD83D\uDE02abcdef";
+        SearchMethod method = SearchMethods.makeSearchMethod(Set.of("abc"));
+        assertTrue(method.containedIn(s));
     }
 
     @Test(expected = IndexOutOfBoundsException.class)

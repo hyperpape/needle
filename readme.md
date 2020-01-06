@@ -27,7 +27,8 @@ API.
 
 ### Unicode
 
-Currently limited to the BMP
+We can search against any string, however the needles that we search
+for are currently limited to the BMP. 
 
 ### Performance
 
