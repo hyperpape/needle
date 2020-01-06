@@ -252,7 +252,6 @@ public class NFA implements SearchMethod {
                     }
                 }
                 if (instr.opcode == CHAR_RANGE) {
-                    // 25 mg every 6 hours
                     if (instr.start <= c && instr.end >= c) {
                         int next = currentState + 1;
                         instr = this.regexInstrs.get(next);
