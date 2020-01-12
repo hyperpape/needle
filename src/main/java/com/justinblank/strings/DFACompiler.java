@@ -88,7 +88,6 @@ public class DFACompiler {
         addFields();
         addCharConstants();
         addConstructor();
-        // addIterMethod();
         generateTransitionMethods();
         addMatchMethod();
         if (isLargeStateCount()) {
@@ -107,6 +106,11 @@ public class DFACompiler {
         }
     }
 
+    /**
+     * When we have a large number of states to consider, we don't want a single top-level method that switches on
+     * states, but instead we want a smaller number of methods, each of which handles dispatching to some subset of
+     * states.
+     */
     private void generateStateGroupMethods() {
         for (int i = 0; i < getStateGroupCount(); i++) {
             MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, "stateGroup" + i, "(CII)I", null, null);
@@ -161,19 +165,16 @@ public class DFACompiler {
         Label iterateLabel = new Label();
         Label failLabel = new Label();
 
-        final int counterVar = 1;
         final int lengthVar = 2;
         final int stringVar = 3;
-        final int charVar = 4;
-        final int stateVar = 5;
 
         MatchingVars vars = new MatchingVars( 4, 1, 5);
 
         mv.visitInsn(ICONST_0);
-        mv.visitVarInsn(ISTORE, stateVar);
+        mv.visitVarInsn(ISTORE, vars.stateVar);
 
         mv.visitInsn(ICONST_0);
-        mv.visitVarInsn(ISTORE, counterVar);
+        mv.visitVarInsn(ISTORE, vars.counterVar);
 
         // push string to local var
         mv.visitVarInsn(ALOAD, 0);
@@ -190,22 +191,22 @@ public class DFACompiler {
         mv.visitLabel(iterateLabel);
 
         // check state and return if need be
-        mv.visitVarInsn(ILOAD, stateVar);
+        mv.visitVarInsn(ILOAD, vars.stateVar);
         mv.visitInsn(ICONST_M1);
         mv.visitJumpInsn(IF_ICMPEQ, failLabel);
 
         // read next char, store in local var
-        mv.visitVarInsn(ILOAD, counterVar);
+        mv.visitVarInsn(ILOAD, vars.counterVar);
         mv.visitVarInsn(ILOAD, lengthVar);
         mv.visitJumpInsn(IF_ICMPGE, returnLabel);
         mv.visitVarInsn(ALOAD, stringVar);
-        mv.visitVarInsn(ILOAD, counterVar);
+        mv.visitVarInsn(ILOAD, vars.counterVar);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
-        mv.visitVarInsn(ISTORE, charVar);
-        mv.visitIincInsn(counterVar, 1);
+        mv.visitVarInsn(ISTORE, vars.charVar);
+        mv.visitIincInsn(vars.counterVar, 1);
 
         // dispatch to method associated with current state
-        mv.visitVarInsn(ILOAD, stateVar);
+        mv.visitVarInsn(ILOAD, vars.stateVar);
         boolean largeStateCount = isLargeStateCount();
         int labelCount = dfa.statesCount();
         if (largeStateCount) {
@@ -241,7 +242,7 @@ public class DFACompiler {
         // check if the dfa had a match
         mv.visitLabel(returnLabel);
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitVarInsn(ILOAD, stateVar);
+        mv.visitVarInsn(ILOAD, vars.stateVar);
         mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "(I)Z", false);
         mv.visitInsn(IRETURN);
         mv.visitMaxs(-1,-1);
@@ -594,6 +595,9 @@ public class DFACompiler {
         mv.visitJumpInsn(GOTO, returnLabel);
     }
 
+    /**
+     * Ensure that any large unicode character values that we need to match against are stored as constants.
+     */
     protected void addCharConstants() {
         AtomicInteger constCount = new AtomicInteger(0);
         dfa.allStates().stream().map(DFA::getTransitions).flatMap(List::stream).map(Pair::getLeft).forEach(charRange -> {
@@ -617,10 +621,6 @@ public class DFACompiler {
     protected Integer methodDesignator(DFA right) {
         Integer stateNumber = dfaMethodMap.computeIfAbsent(right, DFA::getStateNumber);
         stateMap.put(dfaMethodMap.get(right), right);
-        if (stateNumber > 1 << 15) {
-            // TODO: decide best approach to large state automata
-            throw new IllegalStateException("Too many states");
-        }
         return stateNumber;
     }
 
@@ -709,16 +709,6 @@ public class DFACompiler {
 
     protected DFA getDFA() {
         return dfa;
-    }
-
-    public static void main(String[] args) {
-        try {
-            DFA dfa = NFAToDFACompiler.compile(new ThompsonNFABuilder().build(RegexParser.parse("[0-9]+")));
-            DFACompiler.writeClass(dfa, "DigitPattern", new FileOutputStream("/home/justin/code/BytecodeRegex/target/DigitPattern.class"));
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }
 
