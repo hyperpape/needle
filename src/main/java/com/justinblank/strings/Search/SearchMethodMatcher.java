@@ -19,4 +19,9 @@ public class SearchMethodMatcher implements Matcher {
     public boolean matches() {
         return method.matches(s);
     }
+
+    @Override
+    public boolean containedIn() {
+        return method.containedIn(s);
+    }
 }

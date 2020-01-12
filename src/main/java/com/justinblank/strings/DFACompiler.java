@@ -89,6 +89,7 @@ public class DFACompiler {
         addCharConstants();
         addConstructor();
         generateTransitionMethods();
+        addContainedInMethod();
         addMatchMethod();
         if (isLargeStateCount()) {
             generateStateGroupMethods();
@@ -158,12 +159,27 @@ public class DFACompiler {
         this.classWriter.visitField(ACC_PRIVATE, STATE_FIELD, "I", null, 0);
     }
 
+    protected void addContainedInMethod() {
+        addMatchMethodInternal(true);
+    }
+
     protected void addMatchMethod() {
-        MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, "matches", "()Z", null, null);
+        addMatchMethodInternal(false);
+    }
+
+    protected void addMatchMethodInternal(boolean containedIn) {
+        MethodVisitor mv;
+        if (containedIn) {
+            mv = this.classWriter.visitMethod(ACC_PUBLIC, "containedIn", "()Z", null, null);
+        }
+        else {
+            mv = this.classWriter.visitMethod(ACC_PUBLIC, "matches", "()Z", null, null);
+        }
 
         Label returnLabel = new Label();
         Label iterateLabel = new Label();
         Label failLabel = new Label();
+        Label postStateCheckLabel = new Label();
 
         final int lengthVar = 2;
         final int stringVar = 3;
@@ -190,11 +206,28 @@ public class DFACompiler {
 
         mv.visitLabel(iterateLabel);
 
-        // check state and return if need be
-        mv.visitVarInsn(ILOAD, vars.stateVar);
-        mv.visitInsn(ICONST_M1);
-        mv.visitJumpInsn(IF_ICMPEQ, failLabel);
+        // Check state. If we're in matching mode, return when state is negative, otherwise continue.
+        // If we're in searching mode, reset the search on a negative state, otherwise check for acceptance
+        if (containedIn) {
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitVarInsn(ILOAD, vars.stateVar);
+            mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "(I)Z", false);
+            mv.visitInsn(ICONST_1);
+            mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
 
+            mv.visitVarInsn(ILOAD, vars.stateVar);
+            mv.visitInsn(ICONST_M1);
+            mv.visitJumpInsn(IF_ICMPNE, postStateCheckLabel);
+            mv.visitInsn(ICONST_0);
+            mv.visitVarInsn(ISTORE, vars.stateVar);
+        }
+        else {
+            mv.visitVarInsn(ILOAD, vars.stateVar);
+            mv.visitInsn(ICONST_M1);
+            mv.visitJumpInsn(IF_ICMPEQ, failLabel);
+        }
+
+        mv.visitLabel(postStateCheckLabel);
         // read next char, store in local var
         mv.visitVarInsn(ILOAD, vars.counterVar);
         mv.visitVarInsn(ILOAD, lengthVar);

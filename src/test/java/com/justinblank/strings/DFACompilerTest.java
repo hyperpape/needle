@@ -2,118 +2,137 @@ package com.justinblank.strings;
 
 import org.junit.Test;
 
+import static com.justinblank.strings.SearchMethodTestUtil.fail;
+import static com.justinblank.strings.SearchMethodTestUtil.match;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class TestDFACompiler {
+public class DFACompilerTest {
 
     @Test
-    public void testSingleCharLiteralRegex() throws Exception {
+    public void testSingleCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("a", "SingleCharRegex");
-        Matcher instance = pattern.matcher("a");
-        assertTrue(instance.matches());
+        match(pattern, "a");
 
-        assertFalse(pattern.matcher("b").matches());
+        fail(pattern, "b");
+
         assertFalse(pattern.matcher("ab").matches());
+        assertTrue(pattern.matcher("ab").containedIn());
+
         assertFalse(pattern.matcher("ba").matches());
-        assertFalse(pattern.matcher("AB{").matches());
+        assertTrue(pattern.matcher("ba").containedIn());
+
+        fail(pattern, "AB{");
     }
 
     @Test
     public void testMultiCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("abc", "MultiCharLiteralRegex");
-        Matcher instance = pattern.matcher("abc");
-        assertTrue(instance.matches());
+        match(pattern, "abc");
 
-        assertFalse(pattern.matcher("d").matches());
+        fail(pattern, "d");
         assertFalse(pattern.matcher("abcd").matches());
+        assertTrue(pattern.matcher("abcd").containedIn());
         assertFalse(pattern.matcher("dabc").matches());
-        assertFalse(pattern.matcher("AB{").matches());
+        assertTrue(pattern.matcher("dabc").containedIn());
+        fail(pattern, "AB{");
     }
 
     @Test
-    public void testDFACompiledSimpleRegex() throws Exception {
+    public void testLiteralRepetitionLiteralRegex() {
+        Pattern pattern = DFACompiler.compile("(abc)(de)*(ghi)", "literalReptitionLiteralRegex");
+        match(pattern, "abcghi");
+        match(pattern, "abcdeghi");
+        match(pattern, "abcdededeghi");
+
+        fail(pattern, "acdghi");
+    }
+
+    @Test
+    public void testDFACompiledSimpleRegex() {
         Pattern pattern = DFACompiler.compile("[0-9A-Za-z]*", "TestName");
         Matcher instance = pattern.matcher("AB09");
-        assertTrue(instance.matches());
+        match(pattern, "AB09");
         
-        assertTrue(pattern.matcher("ABC09az").matches());
+        match(pattern, "ABC09az");
         assertFalse(pattern.matcher("AB{").matches());
+        assertTrue(pattern.matcher("AB{").containedIn());
     }
 
     @Test
     public void testGroupedDFAAlternation() throws Exception {
         Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAAlternation");
-        Matcher matcher = pattern.matcher("AB");
-        assertTrue(matcher.matches());
-        assertTrue(pattern.matcher("BA").matches());
+        match(pattern, "AB");
+
+        match(pattern, "BA");
         assertFalse(pattern.matcher("ABBA").matches());
+        assertTrue(pattern.matcher("ABBA").containedIn());
     }
 
     @Test
     public void testTwoAcceptingStateDFA() throws Exception {
         Pattern pattern = DFACompiler.compile("(A+)|(B+)", "testTwoAcceptingStateDFA");
-        Matcher matcher = pattern.matcher("A");
-        assertTrue(matcher.matches());
-        assertTrue(pattern.matcher("AA").matches());
-        assertTrue(pattern.matcher("BB").matches());
+        match(pattern, "A");
+        match(pattern, "AA");
+        match(pattern, "BB");
         assertFalse(pattern.matcher("AB").matches());
+        assertTrue(pattern.matcher("AB").containedIn());
     }
 
     @Test
     public void testDFACompiledManyStateRegex() throws Exception {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING;
         Pattern pattern = DFACompiler.compile(regexString, "testDFACompiledManyStateRegex");
-        Matcher instance = pattern.matcher("456");
-        assertTrue(instance.matches());
-        assertTrue(pattern.matcher("456456").matches());
+        match(pattern, "456");
+        match(pattern, "456456");
 
-        assertFalse(pattern.matcher("").matches());
-        assertFalse(pattern.matcher("059{").matches());
+        fail(pattern, "");
+        fail(pattern, "059{");
     }
 
     @Test
     public void testRepetitionWithLiteralSuffix() {
         String regexString = "((12)|(23)){1,2}" + "ab";
         Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
-        assertTrue(pattern.matcher("12ab").matches());
-        assertTrue(pattern.matcher("2323ab").matches());
-        assertFalse(pattern.matcher("").matches());
+        match(pattern, "12ab");
+        match(pattern, "2323ab");
+        fail(pattern, "");
     }
 
     @Test
     public void testManyStateRegexWithLiteralSuffix() {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING + "ab";
         Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix");
-        assertTrue(pattern.matcher("123ab").matches());
-        assertTrue(pattern.matcher("234234ab").matches());
-        assertFalse(pattern.matcher("").matches());
+        match(pattern, "123ab");
+        match(pattern, "234234ab");
+        fail(pattern, "");
     }
 
     @Test
     public void testDFACompiledDigitPlus() throws Exception {
         Pattern pattern = DFACompiler.compile("[0-9]+", "testDFACompiledDigitPlus");
-        Matcher instance = pattern.matcher("0");
-        assertTrue(instance.matches());
+        match(pattern, "0");
 
-        assertFalse(pattern.matcher("").matches());
+        fail(pattern, "");
         assertFalse(pattern.matcher("059{").matches());
+        assertTrue(pattern.matcher("059{").containedIn());
     }
 
     @Test
     public void testDFACompiledBMP() throws Exception {
         Pattern pattern = DFACompiler.compile("[\u0600-\u06FF]", "testDFACompiledBMP");
-        assertTrue(pattern.matcher("\u0600").matches());
-        assertFalse(pattern.matcher("AB{").matches());
+        match(pattern, "\u0600");
+        fail(pattern, "AB{");
     }
 
     @Test
     public void testDFACompiledAlternationOfLiterals() throws Exception {
         Pattern pattern = DFACompiler.compile("A|BCD|E", "alternation1");
-        assertTrue(pattern.matcher("A").matches());
-        assertTrue(pattern.matcher("BCD").matches());
-        assertTrue(pattern.matcher("E").matches());
+        match(pattern, "A");
+        match(pattern, "BCD");
+        match(pattern, "E");
         assertFalse(pattern.matcher("F").matches());
+        assertFalse(pattern.matcher("F").containedIn());
     }
 
     @Test(expected =  IllegalArgumentException.class)

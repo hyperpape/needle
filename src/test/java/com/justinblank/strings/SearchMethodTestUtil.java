@@ -28,10 +28,20 @@ public class SearchMethodTestUtil {
         fail(method, s, 0, s.length());
     }
 
+    public static void fail(Pattern pattern, String s) {
+        assertFalse(pattern.matcher(s).containedIn());
+        assertFalse(pattern.matcher(s).matches());
+    }
+
     public static void match(SearchMethod method, String s) {
         assertTrue(method.matches(s));
         assertTrue(method.matcher(s).matches());
         assertEquals(MatchResult.success(0, s.length()), method.find(s));
         find(method, s, 0, s.length());
+    }
+
+    public static void match(Pattern pattern, String s) {
+        assertTrue(pattern.matcher(s).matches());
+        assertTrue(pattern.matcher(s).containedIn());
     }
 }
