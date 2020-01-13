@@ -40,12 +40,12 @@ public class DFACompilerTest {
 
     @Test
     public void testLiteralRepetitionLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("(abc)(de)*(ghi)", "literalReptitionLiteralRegex");
-        match(pattern, "abcghi");
-        match(pattern, "abcdeghi");
-        match(pattern, "abcdededeghi");
+        Pattern pattern = DFACompiler.compile("ad*g", "literalReptitionLiteralRegex");
+        match(pattern, "ag");
+        match(pattern, "adg");
+        match(pattern, "adddg");
 
-        fail(pattern, "acdghi");
+        fail(pattern, "adeg");
     }
 
     @Test

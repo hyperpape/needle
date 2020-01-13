@@ -488,7 +488,6 @@ public class DFACompiler {
             pushShortInt(mv, transitionNumber);
             mv.visitJumpInsn(IF_ICMPNE, pushStateBeforeReturnLabel);
             // check position and return if need be
-            mv.visitIincInsn(positionVar, 1);
             mv.visitVarInsn(ILOAD, positionVar);
             mv.visitVarInsn(ILOAD, lengthVar);
             mv.visitJumpInsn(IF_ICMPGE, pushStateBeforeReturnLabel);
@@ -499,6 +498,7 @@ public class DFACompiler {
             mv.visitVarInsn(ILOAD, positionVar);
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
             mv.visitVarInsn(ISTORE, charVar);
+            mv.visitIincInsn(positionVar, 1);
             mv.visitJumpInsn(GOTO, startLabel);
         }
 
