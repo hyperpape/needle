@@ -36,4 +36,8 @@ public class LiteralNode extends Node {
     public void append(char c) {
         this.string.append(c);
     }
+
+    public void append(LiteralNode node) {
+        this.string.append(node.string);
+    }
 }

@@ -140,6 +140,9 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
+    public void testStarEmpty() { Node node = parse("*"); }
+
+    @Test(expected = RegexSyntaxException.class)
     public void testPlusLeading() {
         Node node = parse("+a");
     }

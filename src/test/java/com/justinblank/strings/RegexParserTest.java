@@ -30,7 +30,7 @@ public class RegexParserTest {
     public void testMultipleCharConcatenation() {
         Node node = parse("abcdef");
         assertNotNull(node);
-        assertTrue(node instanceof LiteralNode);
+        check(node, "abcdef");
     }
 
     @Test
@@ -49,7 +49,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
-        assertEquals("(b){0,1}", NodePrinter.print(node));
+        check(node, "(b){0,1}");
     }
 
     @Test
@@ -60,7 +60,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
-        assertEquals("(1){0,1}", NodePrinter.print(node));
+        check(node,"(1){0,1}");
     }
 
     @Test
@@ -71,27 +71,49 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
+        check(node, "((1)|(2)){0,1}");
     }
 
     @Test
     public void testTwoCharAlternation() {
         Node node = parse("a|b");
         assertNotNull(node);
-        assertTrue(node instanceof Alternation);
+        check(node, "(a)|(b)");
     }
 
     @Test
     public void testGroupedRepetition() {
         Node node = parse("(ab)*");
         assertNotNull(node);
-        assertTrue(node instanceof Repetition);
+        check(node, "(ab)*");
+    }
+
+    @Test
+    public void testRepetitionHasHighPrecedence() {
+        Node node = parse("ab*");
+        check(node, "(a)((b)*)");
+    }
+
+    @Test
+    public void testPlusHasHighPrecedence() {
+        Node node = parse("ab+");
+        check(node, "(a)((b)((b)*))");
+    }
+
+    @Test
+    public void testAlternationHasLowPrecedence() {
+        Node node = parse("A|BCD|E");
+        assertTrue(node instanceof Alternation);
+        assertTrue(((Alternation) node).left instanceof Alternation);
+        assertTrue(((Alternation) node).right instanceof LiteralNode);
+        check(node, "((A)|(BCD))|(E)");
     }
 
     @Test
     public void testMultiConcatenation() {
         Node node = parse("(ab)*a");
         assertNotNull(node);
-        assertTrue(node instanceof Concatenation);
+        check(node, "((ab)*)(a)");
     }
 
     @Test
@@ -99,6 +121,7 @@ public class RegexParserTest {
         Node node = parse("(a|b)(c|d)");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
+        check(node, "((a)|(b))((c)|(d))");
     }
 
     @Test
@@ -113,6 +136,7 @@ public class RegexParserTest {
         Node node = parse("((1))");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
+        check(node, "1");
     }
 
     @Test
@@ -120,6 +144,7 @@ public class RegexParserTest {
         Node node = parse("((12)|(34)){2,3}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
+        check(node, "((12)|(34)){2,3}");
     }
 
     @Test
@@ -185,6 +210,7 @@ public class RegexParserTest {
         Node node = parse("(A|(BC)){1,2}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
+        check(node, "((A)|(BC)){1,2}");
     }
 
     @Test
@@ -195,6 +221,7 @@ public class RegexParserTest {
         Alternation alt = (Alternation) node;
         assertTrue(alt.left instanceof LiteralNode);
         assertTrue(alt.right instanceof LiteralNode);
+        check(node, "(A)|(BC)");
     }
 
     @Test

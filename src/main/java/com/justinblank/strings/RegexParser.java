@@ -57,17 +57,19 @@ public class RegexParser {
                         throw new RegexSyntaxException("Found '+' with no preceding regex");
                     }
                     Node lastNode = nodes.pop();
-                    nodes.push(new Concatenation(lastNode, new Repetition(lastNode)));
+                    nodes.push(concatenate(lastNode, new Repetition(lastNode)));
                     break;
                 case '*':
+                    if (nodes.isEmpty()) {
+                        throw new RegexSyntaxException("Found '*' with no preceding regex");
+                    }
                     nodes.push(new Repetition(nodes.pop()));
                     break;
                 case '|':
                     assertNonEmpty("'|' cannot be the final character in a regex");
-                    Node last = nodes.peek();
-                    if (last instanceof CharRangeNode || last instanceof Concatenation || last instanceof LiteralNode) {
-                        nodes.push(new Alternation(last, null));
-                    }
+                    collapseLiterals();
+                    Node last = nodes.pop();
+                    nodes.push(new Alternation(last, null));
                     break;
                 case '}':
                     throw new RegexSyntaxException("Unbalanced '}' character");
@@ -79,9 +81,6 @@ public class RegexParser {
                 default:
                     if (nodes.isEmpty()) {
                         nodes.push(LiteralNode.fromChar(c));
-                    }
-                    else if (nodes.peek() instanceof LiteralNode) {
-                        ((LiteralNode) nodes.peek()).append(c);
                     }
                     else {
                         nodes.push(LiteralNode.fromChar(c));
@@ -99,9 +98,7 @@ public class RegexParser {
             Node next = nodes.pop();
             if (next instanceof Alternation && ((Alternation) next).right == null) {
                 Alternation alt = (Alternation) next;
-                assertNonEmpty("Alternation needed something to alternate");
-                Node nextNext = nodes.pop();
-                node = new Alternation(nextNext, node);
+                node = new Alternation(alt.left, node);
             }
             else if (next instanceof LiteralNode && node instanceof LiteralNode) {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
@@ -110,10 +107,33 @@ public class RegexParser {
                 throw new RegexSyntaxException("Unbalanced ( found");
             }
             else {
-                node = new Concatenation(next, node);
+                node = concatenate(next, node);
             }
         }
         return node;
+    }
+
+    private void collapseLiterals() {
+        Node last = nodes.pop();
+
+        while (!nodes.isEmpty()) {
+            Node previous = nodes.peek();
+            if (previous instanceof LiteralNode) {
+                previous = nodes.pop();
+                last = concatenate(previous, last);
+            }
+            else if (previous instanceof Alternation) {
+                Alternation alt = (Alternation) previous;
+                if (alt.right == null) {
+                    nodes.pop();
+                    last = new Alternation(alt.left, last);
+                }
+            }
+            else {
+                break;
+            }
+        }
+        nodes.push(last);
     }
 
     private void collapseParenNodes() {
@@ -129,12 +149,13 @@ public class RegexParser {
                 assertNonEmpty("found '|' with no preceding content");
                 Node nextNext = nodes.pop();
                 if (nextNext instanceof LParenNode) {
-                    throw new RegexSyntaxException("");
+                    nodes.push(new Alternation(alt.left, node));
+                    return;
                 }
                 node = new Alternation(alt.left, node);
             }
             else {
-                node = new Concatenation(next, node);
+                node = concatenate(next, node);
             }
             assertNonEmpty("found unbalanced ')'");
         }
@@ -144,6 +165,14 @@ public class RegexParser {
         }
         nodes.push(node);
 
+    }
+
+    private Node concatenate(Node next, Node node) {
+        if (next instanceof LiteralNode && node instanceof LiteralNode) {
+            ((LiteralNode) next).append((LiteralNode) node);
+            return next;
+        }
+        return new Concatenation(next, node);
     }
 
     private void assertNonEmpty(String s) {
