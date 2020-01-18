@@ -211,15 +211,13 @@ public class DFACompiler {
         // Check state. If we're in matching mode, return when state is negative, otherwise continue.
         // If we're in searching mode, reset the search on a negative state, otherwise check for acceptance
         if (containedIn) {
-            mv.visitVarInsn(ALOAD, 0);
-            mv.visitVarInsn(ILOAD, vars.stateVar);
-            mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "(I)Z", false);
+            emitInvokeWasAccepted(mv, vars);
             mv.visitInsn(ICONST_1);
             mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
 
             Optional<String> prefix = factors.getSharedPrefix();
             if (prefix.isPresent()) {
-                addPrefixFindingLoop(mv, vars, prefix.get(), postStateCheckLabel, failLabel);
+                emitPrefixFindingLoop(mv, vars, prefix.get(), postStateCheckLabel, failLabel);
             }
             else {
                 mv.visitVarInsn(ILOAD, vars.stateVar);
@@ -237,7 +235,7 @@ public class DFACompiler {
 
         mv.visitLabel(postStateCheckLabel);
         // read next char, store in local var
-        addBoundsCheck(mv, vars, returnLabel);
+        emitBoundsCheck(mv, vars, returnLabel);
         readChar(mv, vars);
         mv.visitVarInsn(ISTORE, vars.charVar);
 
@@ -277,21 +275,35 @@ public class DFACompiler {
 
         // check if the dfa had a match
         mv.visitLabel(returnLabel);
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitVarInsn(ILOAD, vars.stateVar);
-        mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "(I)Z", false);
+        emitInvokeWasAccepted(mv, vars);
         mv.visitInsn(IRETURN);
         mv.visitMaxs(-1,-1);
         mv.visitEnd();
     }
 
     /**
-     * Check that we haven't reached the end of the string, jumping to the return label if we have
+     * Emits bytecodes to invoke the was accepted method, reading the state variable from the local variables
+     *
+     * This method consumes nothing from the stack and pushes an int to the stack
+     * @param mv the visitor for the current method
+     * @param vars the variable indices for the current method
+     */
+    private void emitInvokeWasAccepted(MethodVisitor mv, MatchingVars vars) {
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitVarInsn(ILOAD, vars.stateVar);
+        mv.visitMethodInsn(INVOKEVIRTUAL, className, "wasAccepted", "(I)Z", false);
+    }
+
+    /**
+     * Emits bytecodes to check that we haven't reached the end of the string, jumping to the return label if we have
+     *
+     * This method does not modify the stack.
+     *
      * @param mv the current method's visitor
      * @param vars the current method variable indices
      * @param returnLabel the label to jump to in case we've reached the end of the string
      */
-    private void addBoundsCheck(MethodVisitor mv,  MatchingVars vars, Label returnLabel) {
+    private void emitBoundsCheck(MethodVisitor mv, MatchingVars vars, Label returnLabel) {
         mv.visitVarInsn(ILOAD, vars.counterVar);
         mv.visitVarInsn(ILOAD, vars.lengthVar);
         mv.visitJumpInsn(IF_ICMPGE, returnLabel);
@@ -314,20 +326,20 @@ public class DFACompiler {
     }
 
     /**
-     * Add an explicit loop searching for the first character of a pattern without entering the full state machine.
+     * Emit an explicit loop searching for the first character of a pattern without entering the full state machine.
      * @param mv the current method visitor
      * @param vars the indexed variables for the current method
      * @param prefix the prefix of the pattern
      * @param postStateChangeLabel the label to jump to when a match is found
      * @param failLabel the label to jump to if we exhaust the string without finding our initial character
      */
-    private void addPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, String prefix, Label postStateChangeLabel, Label failLabel) {
+    private void emitPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, String prefix, Label postStateChangeLabel, Label failLabel) {
         Label innerIterationLabel = new Label();
         mv.visitLabel(innerIterationLabel);
         mv.visitVarInsn(ILOAD, vars.stateVar);
         mv.visitInsn(ICONST_M1);
         mv.visitJumpInsn(IF_ICMPNE, postStateChangeLabel);
-        addBoundsCheck(mv, vars, failLabel);
+        emitBoundsCheck(mv, vars, failLabel);
         readChar(mv, vars);
         pushShortInt(mv, prefix.charAt(0));
         mv.visitJumpInsn(IF_ICMPNE, innerIterationLabel);
@@ -491,10 +503,7 @@ public class DFACompiler {
             mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(C)I", null, null);
         }
 
-        final int charVar = 1;
-        final int positionVar = 2;
-        final int lengthVar = 3;
-        final int stateVar = 4;
+        MatchingVars vars = new MatchingVars(1, 2, 4, 3, -1);
 
         // put state in var
         if (hasSelfTransition) {
@@ -503,11 +512,11 @@ public class DFACompiler {
         else {
             mv.visitIntInsn(SIPUSH, -1);
         }
-        mv.visitVarInsn(ISTORE, stateVar);
+        mv.visitVarInsn(ISTORE, vars.stateVar);
         // put length in var
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
-        mv.visitVarInsn(ISTORE, lengthVar);
+        mv.visitVarInsn(ISTORE, vars.lengthVar);
 
         Label startLabel = new Label();
         Label iterLabel = new Label();
@@ -538,26 +547,24 @@ public class DFACompiler {
         if (hasSelfTransition) {
             // check state and return if need be
             mv.visitLabel(iterLabel);
-            mv.visitVarInsn(ILOAD, stateVar);
+            mv.visitVarInsn(ILOAD, vars.stateVar);
             pushShortInt(mv, transitionNumber);
             mv.visitJumpInsn(IF_ICMPNE, pushStateBeforeReturnLabel);
             // check position and return if need be
-            mv.visitVarInsn(ILOAD, positionVar);
-            mv.visitVarInsn(ILOAD, lengthVar);
-            mv.visitJumpInsn(IF_ICMPGE, pushStateBeforeReturnLabel);
+            emitBoundsCheck(mv, vars, pushStateBeforeReturnLabel);
 
             // now load char var
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
-            mv.visitVarInsn(ILOAD, positionVar);
+            mv.visitVarInsn(ILOAD, vars.counterVar);
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
-            mv.visitVarInsn(ISTORE, charVar);
-            mv.visitIincInsn(positionVar, 1);
+            mv.visitVarInsn(ISTORE, vars.charVar);
+            mv.visitIincInsn(vars.counterVar, 1);
             mv.visitJumpInsn(GOTO, startLabel);
         }
 
         mv.visitLabel(pushStateBeforeReturnLabel);
-        mv.visitVarInsn(ILOAD, stateVar);
+        mv.visitVarInsn(ILOAD, vars.stateVar);
         mv.visitJumpInsn(GOTO, returnLabel);
 
         mv.visitLabel(failLabel);
@@ -565,7 +572,7 @@ public class DFACompiler {
         mv.visitLabel(returnLabel);
         if (hasSelfTransition) {
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitVarInsn(ILOAD, positionVar);
+            mv.visitVarInsn(ILOAD, vars.counterVar);
             mv.visitFieldInsn(PUTFIELD, className, INDEX_FIELD, "I");
         }
         mv.visitInsn(IRETURN);
