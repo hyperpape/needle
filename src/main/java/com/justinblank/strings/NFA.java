@@ -64,20 +64,12 @@ public class NFA implements SearchMethod {
         return transitions;
     }
 
-    protected NFA getRoot() {
-        return root;
-    }
-
     protected void setRoot(NFA root) {
         this.root = root;
     }
 
     protected boolean isAccepting() {
         return accepting;
-    }
-
-    public List<NFA> getStates() {
-        return states;
     }
 
     public void setStates(List<NFA> states) {
