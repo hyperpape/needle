@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -227,5 +228,32 @@ public class Factorization {
             factorization.alternate(newFactors);
         }
         return factorization;
+    }
+
+    public Optional<String> getSharedPrefix() {
+        if (prefixes == null || prefixes.isEmpty()) {
+            return Optional.empty();
+        }
+        String sharedPrefix = null;
+        for (String prefix : prefixes) {
+            if (sharedPrefix == null) {
+                sharedPrefix = prefix;
+            }
+            else {
+                int i = 0;
+                for (; i < sharedPrefix.length() && i < prefix.length(); i++) {
+                    if (sharedPrefix.charAt(i) != prefix.charAt(i)) {
+                        break;
+                    }
+                }
+                if (i == 0) {
+                    return Optional.empty();
+                }
+                else {
+                    sharedPrefix = sharedPrefix.substring(0, i);
+                }
+            }
+        }
+        return Optional.of(sharedPrefix);
     }
 }
