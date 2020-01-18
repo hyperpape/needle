@@ -115,7 +115,7 @@ public class DFACompiler {
     private void generateStateGroupMethods() {
         for (int i = 0; i < getStateGroupCount(); i++) {
             MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, "stateGroup" + i, "(CII)I", null, null);
-            MatchingVars vars = new MatchingVars(1, 2, 3);
+            MatchingVars vars = new MatchingVars(1, 2, 3, -4, -5);
             Label returnLabel = new Label();
             Label failLabel = new Label();
 
@@ -181,10 +181,7 @@ public class DFACompiler {
         Label failLabel = new Label();
         Label postStateCheckLabel = new Label();
 
-        final int lengthVar = 2;
-        final int stringVar = 3;
-
-        MatchingVars vars = new MatchingVars( 4, 1, 5);
+        MatchingVars vars = new MatchingVars( 4, 1, 5, 2, 3);
 
         mv.visitInsn(ICONST_0);
         mv.visitVarInsn(ISTORE, vars.stateVar);
@@ -195,14 +192,14 @@ public class DFACompiler {
         // push string to local var
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
-        mv.visitVarInsn(ASTORE, stringVar);
-        mv.visitVarInsn(ALOAD, stringVar);
+        mv.visitVarInsn(ASTORE, vars.stringVar);
+        mv.visitVarInsn(ALOAD, vars.stringVar);
 
         // push string length to local var
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, className, LENGTH_FIELD, "I");
-        mv.visitVarInsn(ISTORE, lengthVar);
-        mv.visitVarInsn(ILOAD, lengthVar);
+        mv.visitVarInsn(ISTORE, vars.lengthVar);
+        mv.visitVarInsn(ILOAD, vars.lengthVar);
 
         mv.visitLabel(iterateLabel);
 
@@ -229,14 +226,9 @@ public class DFACompiler {
 
         mv.visitLabel(postStateCheckLabel);
         // read next char, store in local var
-        mv.visitVarInsn(ILOAD, vars.counterVar);
-        mv.visitVarInsn(ILOAD, lengthVar);
-        mv.visitJumpInsn(IF_ICMPGE, returnLabel);
-        mv.visitVarInsn(ALOAD, stringVar);
-        mv.visitVarInsn(ILOAD, vars.counterVar);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
+        addBoundsCheck(mv, vars, returnLabel);
+        readChar(mv, vars);
         mv.visitVarInsn(ISTORE, vars.charVar);
-        mv.visitIincInsn(vars.counterVar, 1);
 
         // dispatch to method associated with current state
         mv.visitVarInsn(ILOAD, vars.stateVar);
@@ -281,6 +273,35 @@ public class DFACompiler {
         mv.visitMaxs(-1,-1);
         mv.visitEnd();
     }
+
+    /**
+     * Check that we haven't reached the end of the string, jumping to the return label if we have
+     * @param mv the current method's visitor
+     * @param vars the current method variable indices
+     * @param returnLabel the label to jump to in case we've reached the end of the string
+     */
+    private void addBoundsCheck(MethodVisitor mv,  MatchingVars vars, Label returnLabel) {
+        mv.visitVarInsn(ILOAD, vars.counterVar);
+        mv.visitVarInsn(ILOAD, vars.lengthVar);
+        mv.visitJumpInsn(IF_ICMPGE, returnLabel);
+    }
+
+    /**
+     * Read a character from the string and increments the counter variable.
+     *
+     * Modifies the stack by consuming nothing and pushing a character.
+     *
+     * This method does not do a bounds check.
+     * @param mv the current method visitor
+     * @param vars the variable indices for the current method
+     */
+    private void readChar(MethodVisitor mv, MatchingVars vars) {
+        mv.visitVarInsn(ALOAD, vars.stringVar);
+        mv.visitVarInsn(ILOAD, vars.counterVar);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false);
+        mv.visitIincInsn(vars.counterVar, 1);
+    }
+
 
     // TODO: better name
     private void stateMatch(MethodVisitor mv, MatchingVars vars, int start, int end) {
