@@ -10,9 +10,10 @@ spends extra-effort at compile time to give better run-time matching
 performance. Those compile time-efforts currently take three forms:
 
   1. Recognizing limited regular expressions that can be matched with
-  simpler techniques (Aho-Corasick, for instance).
+  simpler techniques (Aho-Corasick, for instance), or which must start
+  with a specific prefix.
 
-  2. State minimization
+  2. State minimization (Hopcroft's Algorithm)
 
   3. Bytecode compilation: creating a specialized class for an
   individual regex that specializes the code to simulate an automaton,

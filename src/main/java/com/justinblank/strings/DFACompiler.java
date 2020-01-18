@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.classloader.MyClassLoader;
+import com.justinblank.strings.RegexAST.Node;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
@@ -10,7 +11,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -34,9 +34,10 @@ public class DFACompiler {
     private String className;
     private ClassWriter classWriter;
     private DFA dfa;
+    private Factorization factors;
     private final Map<Character, String> rangeConstants = new HashMap<>();
 
-    protected DFACompiler(ClassWriter classWriter, String className, DFA dfa) {
+    protected DFACompiler(ClassWriter classWriter, String className, DFA dfa, Factorization factors) {
         // Somewhere between this value and Short.MAX_VALUE, we run into classes that can't be created because they're
         // so large
         if (dfa.statesCount() > Short.MAX_VALUE / 2) {
@@ -45,15 +46,19 @@ public class DFACompiler {
         this.classWriter = classWriter;
         this.className = className;
         this.dfa = dfa;
+        this.factors = factors;
     }
 
     public static Pattern compile(String regex, String className) {
-        NFA nfa = ThompsonNFABuilder.createNFA(RegexParser.parse(regex));
-        return compile(NFAToDFACompiler.compile(nfa), className);
+        Node node = RegexParser.parse(regex);
+        Factorization factors = node.bestFactors();
+
+        NFA nfa = ThompsonNFABuilder.createNFA(node);
+        return compile(NFAToDFACompiler.compile(nfa), factors, className);
     }
 
-    private static Pattern compile(DFA dfa, String name) {
-        byte[] classBytes = generateClassAsBytes(dfa, name);
+    private static Pattern compile(DFA dfa, Factorization factors, String name) {
+        byte[] classBytes = generateClassAsBytes(dfa, factors, name);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(name, classBytes);
         Class<? extends Pattern> c = createPatternClass("Pattern"  + name, (Class<? extends Matcher>) matcherClass);
         try {
@@ -65,17 +70,17 @@ public class DFACompiler {
         }
     }
 
-    static byte[] generateClassAsBytes(DFA dfa, String name) {
+    static byte[] generateClassAsBytes(DFA dfa, Factorization factors, String name) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        DFACompiler compiler = new DFACompiler(cw, name, dfa);
+        DFACompiler compiler = new DFACompiler(cw, name, dfa, factors);
         compiler.compile();
 
         return cw.toByteArray();
     }
 
-    public static void writeClass(DFA dfa, String name, OutputStream os) throws IOException {
-        os.write(generateClassAsBytes(dfa, name));
+    public static void writeClass(DFA dfa, Factorization factors, String name, OutputStream os) throws IOException {
+        os.write(generateClassAsBytes(dfa, factors, name));
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
@@ -212,11 +217,17 @@ public class DFACompiler {
             mv.visitInsn(ICONST_1);
             mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
 
-            mv.visitVarInsn(ILOAD, vars.stateVar);
-            mv.visitInsn(ICONST_M1);
-            mv.visitJumpInsn(IF_ICMPNE, postStateCheckLabel);
-            mv.visitInsn(ICONST_0);
-            mv.visitVarInsn(ISTORE, vars.stateVar);
+            Optional<String> prefix = factors.getSharedPrefix();
+            if (prefix.isPresent()) {
+                addPrefixFindingLoop(mv, vars, prefix.get(), postStateCheckLabel, failLabel);
+            }
+            else {
+                mv.visitVarInsn(ILOAD, vars.stateVar);
+                mv.visitInsn(ICONST_M1);
+                mv.visitJumpInsn(IF_ICMPNE, postStateCheckLabel);
+                mv.visitInsn(ICONST_0);
+                mv.visitVarInsn(ISTORE, vars.stateVar);
+            }
         }
         else {
             mv.visitVarInsn(ILOAD, vars.stateVar);
@@ -302,6 +313,28 @@ public class DFACompiler {
         mv.visitIincInsn(vars.counterVar, 1);
     }
 
+    /**
+     * Add an explicit loop searching for the first character of a pattern without entering the full state machine.
+     * @param mv the current method visitor
+     * @param vars the indexed variables for the current method
+     * @param prefix the prefix of the pattern
+     * @param postStateChangeLabel the label to jump to when a match is found
+     * @param failLabel the label to jump to if we exhaust the string without finding our initial character
+     */
+    private void addPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, String prefix, Label postStateChangeLabel, Label failLabel) {
+        Label innerIterationLabel = new Label();
+        mv.visitLabel(innerIterationLabel);
+        mv.visitVarInsn(ILOAD, vars.stateVar);
+        mv.visitInsn(ICONST_M1);
+        mv.visitJumpInsn(IF_ICMPNE, postStateChangeLabel);
+        addBoundsCheck(mv, vars, failLabel);
+        readChar(mv, vars);
+        pushShortInt(mv, prefix.charAt(0));
+        mv.visitJumpInsn(IF_ICMPNE, innerIterationLabel);
+        pushShortInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
+        mv.visitVarInsn(ISTORE, vars.stateVar);
+        mv.visitJumpInsn(GOTO, postStateChangeLabel);
+    }
 
     // TODO: better name
     private void stateMatch(MethodVisitor mv, MatchingVars vars, int start, int end) {
