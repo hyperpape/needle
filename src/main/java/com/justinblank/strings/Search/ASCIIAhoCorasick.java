@@ -43,11 +43,10 @@ class ASCIIAhoCorasick implements SearchMethod {
         int lastEnd = -1;
         int lastStart = -1;
         for (int i = start; i < end; i++) {
-            if (current == null) {
+            if (i > start && current == trie) {
                 if (lastEnd > -1) {
                     return MatchResult.success(lastStart, lastEnd + 1);
                 }
-                return MatchResult.failure();
             }
             char c = s.charAt(i);
             if (((int) c) > 127) {
