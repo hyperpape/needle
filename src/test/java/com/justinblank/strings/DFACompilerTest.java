@@ -9,6 +9,8 @@ import static org.junit.Assert.assertTrue;
 
 public class DFACompilerTest {
 
+    // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
+    // handling prefixes, so we'll explicitly test sizes 1-4
     @Test
     public void testSingleCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("a", "SingleCharRegex");
@@ -26,8 +28,21 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testMultiCharLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("abc", "MultiCharLiteralRegex");
+    public void testTwoCharLiteralRegex() {
+        Pattern pattern = DFACompiler.compile("xy", "TwoCharLiteralRegex");
+        match(pattern, "xy");
+
+        fail(pattern, "z");
+        assertFalse(pattern.matcher("xyz").matches());
+        assertTrue(pattern.matcher("xyz").containedIn());
+        assertFalse(pattern.matcher("zxy").matches());
+        assertTrue(pattern.matcher("zxy").containedIn());
+        fail(pattern, "XY{");
+    }
+
+    @Test
+    public void testThreeCharLiteralRegex() {
+        Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex");
         match(pattern, "abc");
 
         fail(pattern, "d");
@@ -36,6 +51,19 @@ public class DFACompilerTest {
         assertFalse(pattern.matcher("dabc").matches());
         assertTrue(pattern.matcher("dabc").containedIn());
         fail(pattern, "AB{");
+    }
+
+    @Test
+    public void testFourCharLiteralRegex() {
+        Pattern pattern = DFACompiler.compile("abcd", "FourCharLiteralRegex");
+        match(pattern, "abcd");
+
+        fail(pattern, "e");
+        assertFalse(pattern.matcher("abcde").matches());
+        assertTrue(pattern.matcher("abcde").containedIn());
+        assertFalse(pattern.matcher("eabcd").matches());
+        assertTrue(pattern.matcher("eabcd").containedIn());
+        fail(pattern, "ABC{");
     }
 
     @Test
