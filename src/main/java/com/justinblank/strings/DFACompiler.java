@@ -216,8 +216,9 @@ public class DFACompiler {
             mv.visitJumpInsn(IF_ICMPEQ, returnLabel);
 
             Optional<String> prefix = factors.getSharedPrefix();
-            if (prefix.isPresent()) {
-                emitPrefixFindingLoop(mv, vars, prefix.get(), postStateCheckLabel, failLabel);
+            Optional<List<Character>> initialChars = factors.getInitialChars();
+            if (initialChars.isPresent() && initialChars.get().size() < MAX_STATES_FOR_SWITCH) {
+                emitPrefixFindingLoop(mv, vars, initialChars.get(), postStateCheckLabel, failLabel);
             }
             else {
                 mv.visitVarInsn(ILOAD, vars.stateVar);
@@ -336,21 +337,40 @@ public class DFACompiler {
      * Emit an explicit loop searching for the first character of a pattern without entering the full state machine.
      * @param mv the current method visitor
      * @param vars the indexed variables for the current method
-     * @param prefix the prefix of the pattern
+     * @param chars the prefix characters of the pattern
      * @param postStateChangeLabel the label to jump to when a match is found
      * @param failLabel the label to jump to if we exhaust the string without finding our initial character
      */
-    private void emitPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, String prefix, Label postStateChangeLabel, Label failLabel) {
+    private void emitPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, List<Character> chars, Label postStateChangeLabel, Label failLabel) {
         Label innerIterationLabel = new Label();
+        Label postMatchLabel = new Label();
         mv.visitLabel(innerIterationLabel);
         mv.visitVarInsn(ILOAD, vars.stateVar);
         mv.visitInsn(ICONST_M1);
         mv.visitJumpInsn(IF_ICMPNE, postStateChangeLabel);
         emitBoundsCheck(mv, vars, failLabel);
         emitReadChar(mv, vars);
-        pushShortInt(mv, prefix.charAt(0));
-        mv.visitJumpInsn(IF_ICMPNE, innerIterationLabel);
-        pushShortInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
+        if (chars.size() == 1) {
+            pushShortInt(mv, chars.get(0));
+            mv.visitJumpInsn(IF_ICMPNE, innerIterationLabel);
+            pushShortInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
+        }
+        else {
+            Label[] charLabels = makeLabels(chars.size());
+            int[] charArray = new int[chars.size()];
+            for (int i = 0; i < chars.size(); i++) {
+                charArray[i] = chars.get(i);
+            }
+            mv.visitLookupSwitchInsn(innerIterationLabel, charArray, charLabels);
+            for (int i = 0; i < chars.size(); i++) {
+                mv.visitLabel(charLabels[i]);
+                DFA target = dfa.transition(chars.get(i));
+                pushShortInt(mv, target.getStateNumber());
+                mv.visitJumpInsn(GOTO, postMatchLabel);
+            }
+            // switch insn;
+            mv.visitLabel(postMatchLabel);
+        }
         mv.visitVarInsn(ISTORE, vars.stateVar);
         mv.visitJumpInsn(GOTO, postStateChangeLabel);
     }

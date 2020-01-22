@@ -1,8 +1,6 @@
 package com.justinblank.strings;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Class containing data for the computation of the factors of a regular expression.
@@ -228,6 +226,19 @@ public class Factorization {
             factorization.alternate(newFactors);
         }
         return factorization;
+    }
+
+    public Optional<List<Character>> getInitialChars() {
+        if (prefixes == null || prefixes.isEmpty()) {
+            return Optional.empty();
+        }
+        Set<Character> prefixChars = new HashSet<>();
+        for (String prefix : prefixes) {
+            prefixChars.add(prefix.charAt(0));
+        }
+        List<Character> chars = new ArrayList<>(prefixChars);
+        Collections.sort(chars);
+        return Optional.of(chars);
     }
 
     public Optional<String> getSharedPrefix() {
