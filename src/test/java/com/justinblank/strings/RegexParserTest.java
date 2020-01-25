@@ -101,6 +101,11 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testBracesHaveHighPrecedence() {
+        check(parse("ab{1,2}"), "(a)((b){1,2})");
+    }
+
+    @Test
     public void testAlternationHasLowPrecedence() {
         Node node = parse("A|BCD|E");
         assertTrue(node instanceof Alternation);

@@ -85,6 +85,11 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
+    public void testEmptyBrace() {
+        RegexParser.parse("{}");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionMissingBrace() {
         RegexParser.parse("a{1,2");
     }

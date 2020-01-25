@@ -375,7 +375,16 @@ public class DFACompiler {
         mv.visitJumpInsn(GOTO, postStateChangeLabel);
     }
 
-    // TODO: better name
+    /**
+     * Emit either a call to stateN() or stateGroupN depending on the passed arguments. Modifies the stack by consuming
+     * a char. Stores the state value in a local variable.
+     *
+     * @param mv    the visitor for the current method
+     * @param vars  indices of the current method's variables
+     * @param start the initial state to cover
+     * @param end   the last state to cover. If state == end, then a single state will be called, otherwise a
+     *              stategroup method will be called
+     */
     private void stateMatch(MethodVisitor mv, MatchingVars vars, int start, int end) {
         boolean selfTransitioning = start == end && stateMap.get(start).hasSelfTransition();
         boolean largeStateCount = start != end;
