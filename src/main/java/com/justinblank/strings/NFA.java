@@ -39,6 +39,17 @@ public class NFA implements SearchMethod {
         return ThompsonNFABuilder.createNFA(parse);
     }
 
+    /**
+     * This method exists just for the sake of ensuring that we get adequate test coverage of our NFA.
+     *
+     * @param regex the regex
+     * @return an NFA
+     */
+    static SearchMethod createNFANoAhoCorasick(String regex) {
+        Node parse = RegexParser.parse(regex);
+        return ThompsonNFABuilder.createNFA(parse);
+    }
+
     protected void addTransitions(CharRange charRange, List<NFA> nfas) {
         for (NFA nfa : nfas) {
             nfa.root = this.root;
@@ -189,8 +200,8 @@ public class NFA implements SearchMethod {
         for (; i < end; i++) {
             char c = s.charAt(i);
             // If we have returned to the initial state, during the course of a match, i.e. with a*b matching "aaab", we
-            // should not override the match in progress. Otherwise, start over, to search for
-            if (stateOrigins[0] == Integer.MAX_VALUE && !anchored || i == start) {
+            // should not override the match in progress. Otherwise, start over, to search for a match.
+            if (i == start || (stateOrigins[0] == Integer.MAX_VALUE && !anchored && lastStart == Integer.MAX_VALUE)) {
                 activeStates.add(0);
                 stateOrigins[0] = i;
             }
@@ -205,16 +216,11 @@ public class NFA implements SearchMethod {
                 }
                 RegexInstr instr = this.regexInstrs.get(currentState);
                 int target1 = instr.target1;
-                if (instr.opcode == JUMP) {
-                    instr = this.regexInstrs.get(instr.target1);
-
-                    activeStates.add(target1);
-                    if (origin < stateOrigins[target1]) {
-                        stateOrigins[target1] = origin;
-                        j = Math.min(j, activeStates.indexOf(target1));
-                    }
-                    currentState = target1;
-                }
+                // The only way we could have a jump here is either
+                // 1) the previous iteration left it as the result of a split--but the builder ensures a jump never
+                // follows a split
+                // 2) it followed a charrange instruction, but that block handles moving to the target of the jump
+                assert instr.opcode != JUMP;
                 if (instr.opcode == SPLIT) {
                     activeStates.add(target1);
                     RegexInstr target1Instr = this.regexInstrs.get(target1);
@@ -251,8 +257,13 @@ public class NFA implements SearchMethod {
                             if (instr.opcode == JUMP) {
                                 next = instr.target1;
                             }
-                            newStates.add(next);
-                            newStateOrigins[next] = Math.min(newStateOrigins[next], origin);
+                            if (this.regexInstrs.get(next).opcode != MATCH) {
+                                newStates.add(next);
+                                newStateOrigins[next] = Math.min(newStateOrigins[next], origin);
+                            }
+                            else {
+                                instr = this.regexInstrs.get(next);
+                            }
                         }
                     }
                 }
