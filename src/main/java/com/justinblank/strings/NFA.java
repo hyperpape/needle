@@ -23,7 +23,7 @@ public class NFA implements SearchMethod {
     private Set<NFA> epsilonClosure;
     private BitSet epsilonClosureIndices = new BitSet();
     private boolean isTerminal = true;
-    List<RegexInstr> regexInstrs;
+    RegexInstr[] regexInstrs;
 
     protected NFA(boolean accepting, int index) {
         this.accepting = accepting;
@@ -127,9 +127,9 @@ public class NFA implements SearchMethod {
         int lastStart = Integer.MAX_VALUE;
         for (int i = 0; i < states.size(); i++) {
             int stateIndex = states.getByIndex(i);
-            RegexInstr instr = regexInstrs.get(stateIndex);
+            RegexInstr instr = regexInstrs[stateIndex];
             if (instr.opcode == JUMP) {
-                instr = regexInstrs.get(instr.target1);
+                instr = regexInstrs[instr.target1];
             }
             if (instr.opcode == MATCH) {
                 int successOrigin = stateOrigins[stateIndex];
@@ -140,7 +140,7 @@ public class NFA implements SearchMethod {
             else if (instr.opcode == SPLIT) {
                 int origin = stateOrigins[stateIndex];
                 int target1 = instr.target1;
-                if (regexInstrs.get(target1).opcode == MATCH) {
+                if (regexInstrs[target1].opcode == MATCH) {
                     if (origin < lastStart) {
                         lastStart = origin;
                     }
@@ -150,7 +150,7 @@ public class NFA implements SearchMethod {
                     stateOrigins[target1] = Math.min(origin, stateOrigins[target1]);
                 }
                 int target2 = instr.target2;
-                if (regexInstrs.get(target2).opcode == MATCH) {
+                if (regexInstrs[target2].opcode == MATCH) {
                     if (origin < lastStart) {
                         lastStart = origin;
                     }
@@ -188,7 +188,7 @@ public class NFA implements SearchMethod {
         int i = start;
         int lastStart = Integer.MAX_VALUE;
         int lastEnd = -1;
-        int size = this.regexInstrs.size();
+        int size = this.regexInstrs.length;
         SparseSet activeStates = new SparseSet(size);
         activeStates.add(0);
         SparseSet newStates = new SparseSet(size);
@@ -214,7 +214,7 @@ public class NFA implements SearchMethod {
                 if (origin > lastStart) {
                     continue;
                 }
-                RegexInstr instr = this.regexInstrs.get(currentState);
+                RegexInstr instr = this.regexInstrs[currentState];
                 int target1 = instr.target1;
                 // The only way we could have a jump here is either
                 // 1) the previous iteration left it as the result of a split--but the builder ensures a jump never
@@ -223,7 +223,7 @@ public class NFA implements SearchMethod {
                 assert instr.opcode != JUMP;
                 if (instr.opcode == SPLIT) {
                     activeStates.add(target1);
-                    RegexInstr target1Instr = this.regexInstrs.get(target1);
+                    RegexInstr target1Instr = this.regexInstrs[target1];
                     if (target1Instr.opcode != MATCH) {
                         if (origin < stateOrigins[target1]) {
                             stateOrigins[target1] = origin;
@@ -231,7 +231,7 @@ public class NFA implements SearchMethod {
                         }
                     }
                     int target2 = instr.target2;
-                    RegexInstr target2Instr = this.regexInstrs.get(target2);
+                    RegexInstr target2Instr = this.regexInstrs[target2];
                     if (target2Instr.opcode != MATCH) {
                         activeStates.add(target2);
                         if (origin < stateOrigins[target2]) {
@@ -252,17 +252,17 @@ public class NFA implements SearchMethod {
                 if (instr.opcode == CHAR_RANGE) {
                     if (instr.start <= c && instr.end >= c) {
                         int next = currentState + 1;
-                        instr = this.regexInstrs.get(next);
+                        instr = this.regexInstrs[next];
                         if (instr.opcode != MATCH) {
                             if (instr.opcode == JUMP) {
                                 next = instr.target1;
                             }
-                            if (this.regexInstrs.get(next).opcode != MATCH) {
+                            if (this.regexInstrs[next].opcode != MATCH) {
                                 newStates.add(next);
                                 newStateOrigins[next] = Math.min(newStateOrigins[next], origin);
                             }
                             else {
-                                instr = this.regexInstrs.get(next);
+                                instr = this.regexInstrs[next];
                             }
                         }
                     }

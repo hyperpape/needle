@@ -9,16 +9,16 @@ import static com.justinblank.strings.RegexInstr.Opcode.SPLIT;
 
 public class ThompsonRegexInstrBuilder {
 
-    public static List<RegexInstr> createNFA(Node ast) {
+    public static RegexInstr[] createNFA(Node ast) {
         return new ThompsonRegexInstrBuilder().build(ast);
     }
 
-    protected List<RegexInstr> build(Node ast) {
+    protected RegexInstr[] build(Node ast) {
         List<RegexInstr> regex = createPartial(ast, new ArrayList<>());
         regex.add(RegexInstr.match());
         resolveJumps(regex);
         assert checkRep(regex);
-        return regex;
+        return regex.toArray(new RegexInstr[regex.size()]);
     }
     
     private void resolveJumps(List<RegexInstr> regex) {
