@@ -42,7 +42,7 @@ public class DFA {
     public static DFA createDFA(String regex) {
         Node node = RegexParser.parse(regex);
         try {
-            NFA nfa = ThompsonNFABuilder.createNFA(node);
+            NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
             return NFAToDFACompiler.compile(nfa);
         }
         catch (Exception e) {

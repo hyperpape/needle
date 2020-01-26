@@ -7,10 +7,10 @@ import java.util.*;
 import static com.justinblank.strings.RegexInstr.Opcode.JUMP;
 import static com.justinblank.strings.RegexInstr.Opcode.SPLIT;
 
-public class ThompsonRegexInstrBuilder {
+public class RegexInstrBuilder {
 
     public static RegexInstr[] createNFA(Node ast) {
-        return new ThompsonRegexInstrBuilder().build(ast);
+        return new RegexInstrBuilder().build(ast);
     }
 
     protected RegexInstr[] build(Node ast) {

@@ -1,12 +1,12 @@
 package com.justinblank.strings;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.*;
+
+import static com.justinblank.strings.RegexInstr.Opcode.*;
 
 public class NFAToDFACompiler {
 
-    private Map<Set<NFA>, DFA> stateSets = new HashMap<>();
+    private Map<Set<Integer>, DFA> stateSets = new HashMap<>();
     private int state = 1; // root will always be zero
     private DFA root;
     private final NFA nfa;
@@ -21,30 +21,30 @@ public class NFAToDFACompiler {
     }
 
     private DFA _compile(NFA nfa) {
-        Set<NFA> nfas = nfa.epsilonClosure();
-        root = DFA.root(NFA.hasAcceptingState(nfas));
-        addNFAStatesToDFA(nfas, root);
+        Set<Integer> states = nfa.epsilonClosure(0);
+        root = DFA.root(nfa.hasAcceptingState(states));
+        addNFAStatesToDFA(states, root);
         return root;
     }
 
-    private void addNFAStatesToDFA(Set<NFA> nfas, DFA dfa) {
-        Stack<Set<NFA>> pending = new Stack<>();
-        pending.add(nfas);
+    private void addNFAStatesToDFA(Set<Integer> states, DFA dfa) {
+        Stack<Set<Integer>> pending = new Stack<>();
+        pending.add(states);
         while (!pending.isEmpty()) {
-            nfas = pending.pop();
-            DFA foundDFA = stateSets.get(nfas);
+            states = pending.pop();
+            DFA foundDFA = stateSets.get(states);
             if (foundDFA != null) {
                 dfa = foundDFA;
             }
-            Set<NFA> epsilonClosure = NFA.epsilonClosure(nfas);
+            Set<Integer> epsilonClosure = nfa.epsilonClosure(states);
             List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
             for (CharRange range : ranges) {
                 // any element of the range is equally good here, getStart()/getEnd() doesn't matter
-                Set<NFA> moves = NFA.epsilonClosure(transition(epsilonClosure, range.getStart()));
+                Set<Integer> moves = nfa.epsilonClosure(transition(epsilonClosure, range.getStart()));
                 DFA targetDfa = stateSets.get(moves);
                 if (targetDfa == null) {
                     pending.add(moves);
-                    boolean accepting = NFA.hasAcceptingState(moves);
+                    boolean accepting = nfa.hasAcceptingState(moves);
                     targetDfa = new DFA(root, accepting, state++);
                     stateSets.put(moves, targetDfa);
                 }
@@ -53,30 +53,25 @@ public class NFAToDFACompiler {
         }
     }
 
-    protected static List<CharRange> findCharRanges(Collection<NFA> nfas) {
+    protected List<CharRange> findCharRanges(Collection<Integer> nfas) {
         List<CharRange> ranges = new ArrayList<>();
-        for (NFA nfa : nfas) {
-            List<Pair<CharRange, List<NFA>>> transitionList = nfa.getTransitions();
-            for (Pair<CharRange, List<NFA>> pair : transitionList) {
-                if (!pair.getLeft().isEmpty()) {
-                    ranges.add(pair.getLeft());
-                }
+        for (Integer state : nfas) {
+            RegexInstr instr = nfa.regexInstrs[state];
+            if (instr.opcode == CHAR_RANGE) {
+                ranges.add(new CharRange(instr.start, instr.end));
             }
         }
         return ranges;
     }
 
-    protected Set<NFA> transition(Collection<NFA> nfaStates, char c) {
-        Set<NFA> transitionStates = new HashSet<>();
-        for (NFA source : nfaStates) {
-            BitSet bs = source.transition(c);
-            int set = -1;
-            for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
-                transitionStates.add(nfa.getState(i));
+    protected Set<Integer> transition(Collection<Integer> nfaStates, char c) {
+        Set<Integer> transitionStates = new HashSet<>();
+        for (Integer state : nfaStates) {
+            RegexInstr instr = nfa.regexInstrs[state];
+            if (instr.opcode == CHAR_RANGE && instr.start <= c && instr.end >= c) {
+                transitionStates.add(state + 1);
             }
         }
         return transitionStates;
     }
-
-
 }

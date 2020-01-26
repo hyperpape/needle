@@ -6,7 +6,6 @@ import com.justinblank.strings.Search.SearchMethodMatcher;
 import com.justinblank.strings.Search.SearchMethodUtil;
 import com.justinblank.strings.Search.SearchMethods;
 import com.justinblank.util.SparseSet;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -14,20 +13,10 @@ import static com.justinblank.strings.RegexInstr.Opcode.*;
 
 public class NFA implements SearchMethod {
 
-    private NFA root;
-    private final int state;
-    // This will only be non-null on the root
-    private List<NFA> states;
-    private boolean accepting;
-    private List<Pair<CharRange, List<NFA>>> transitions = new ArrayList<>();
-    private Set<NFA> epsilonClosure;
-    private BitSet epsilonClosureIndices = new BitSet();
-    private boolean isTerminal = true;
     RegexInstr[] regexInstrs;
 
-    protected NFA(boolean accepting, int index) {
-        this.accepting = accepting;
-        this.state = index;
+    protected NFA(RegexInstr[] regexInstrs) {
+        this.regexInstrs = regexInstrs;
     }
 
     public static SearchMethod createNFA(String regex) {
@@ -36,7 +25,7 @@ public class NFA implements SearchMethod {
         if (factors.isComplete()) {
             return SearchMethods.makeSearchMethod(factors.getAll());
         }
-        return ThompsonNFABuilder.createNFA(parse);
+        return new NFA(RegexInstrBuilder.createNFA(parse));
     }
 
     /**
@@ -45,67 +34,9 @@ public class NFA implements SearchMethod {
      * @param regex the regex
      * @return an NFA
      */
-    static SearchMethod createNFANoAhoCorasick(String regex) {
+    static NFA createNFANoAhoCorasick(String regex) {
         Node parse = RegexParser.parse(regex);
-        return ThompsonNFABuilder.createNFA(parse);
-    }
-
-    protected void addTransitions(CharRange charRange, List<NFA> nfas) {
-        for (NFA nfa : nfas) {
-            nfa.root = this.root;
-        }
-        if (isTerminal) {
-            for (NFA nfa : nfas) {
-                if (nfa != this) {
-                    isTerminal = false;
-                    break;
-                }
-            }
-        }
-        transitions.add(Pair.of(charRange, nfas));
-        // we trust that our character ranges don't overlap
-        transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
-    }
-
-    protected void addEpsilonTransition(NFA end) {
-        addTransitions(CharRange.emptyRange(), Collections.singletonList(end));
-    }
-
-    protected List<Pair<CharRange, List<NFA>>> getTransitions() {
-        return transitions;
-    }
-
-    protected void setRoot(NFA root) {
-        this.root = root;
-    }
-
-    protected boolean isAccepting() {
-        return accepting;
-    }
-
-    public void setStates(List<NFA> states) {
-        this.states = states;
-    }
-
-    protected int getState() {
-        return state;
-    }
-
-    protected NFA getState(int state) {
-        return states.get(state);
-    }
-
-    protected BitSet transition(char c) {
-        for (Pair<CharRange, List<NFA>> transition : transitions) {
-            if (transition.getLeft().inRange(c)) {
-                BitSet bitSet = new BitSet();
-                for (NFA nfa : transition.getRight()) {
-                    bitSet.or(nfa.epsilonClosureIndices);
-                }
-                return bitSet;
-            }
-        }
-        return new BitSet();
+        return new NFA(RegexInstrBuilder.createNFA(parse));
     }
 
     public boolean matches(String s) {
@@ -302,89 +233,52 @@ public class NFA implements SearchMethod {
         return result2;
     }
 
-    protected static boolean hasAcceptingState(Collection<NFA> nfas) {
-        for (NFA nfa : nfas) {
-            if (nfa.isAccepting()) {
+    protected boolean hasAcceptingState(Collection<Integer> indices) {
+        for (Integer index : indices) {
+            if (this.regexInstrs[index].opcode == MATCH) {
                 return true;
             }
         }
         return false;
     }
 
-    protected Set<NFA> epsilonClosure() {
-        return this.epsilonClosure;
-    }
-
-    protected static Set<NFA> epsilonClosure(Collection<NFA> nfaStates) {
-        Set<NFA> closure = new HashSet<>();
-        for (NFA nfa : nfaStates) {
-            closure.addAll(nfa.epsilonClosure());
+    // TODO: Optimized version that works on a collection
+    protected Set<Integer> epsilonClosure(Integer initial) {
+        Set<Integer> closure = new HashSet<>();
+        closure.add(initial);
+        Queue<Integer> pending = new LinkedList<>();
+        pending.add(initial);
+        while (!pending.isEmpty()) {
+            Integer next = pending.poll();
+            RegexInstr instr = this.regexInstrs[next];
+            if (instr.opcode == SPLIT) {
+                Integer newNext1 = instr.target1;
+                if (!closure.contains(newNext1)) {
+                    pending.add(newNext1);
+                    closure.add(newNext1);
+                }
+                Integer newNext2 = instr.target2;
+                if (!closure.contains(newNext2)) {
+                    pending.add(newNext2);
+                    closure.add(newNext2);
+                }
+            }
+            else if (instr.opcode == JUMP) {
+                Integer newNext = instr.target1;
+                if (!closure.contains(newNext)) {
+                    pending.add(newNext);
+                    closure.add(newNext);
+                }
+            }
         }
         return closure;
     }
 
-    public boolean isTerminal() {
-        return isTerminal;
-    }
-
-    public int hashCode() {
-        return state;
-    }
-
-    public boolean equals(Object object) {
-        if (object instanceof NFA) {
-            NFA other = (NFA) object;
-            return other.state == state && other.root == root;
+    protected Set<Integer> epsilonClosure(Collection<Integer> nfaStates) {
+        Set<Integer> closure = new HashSet<>();
+        for (Integer state : nfaStates) {
+            closure.addAll(epsilonClosure(state));
         }
-        return false;
-    }
-
-    protected void computeEpsilonClosure() {
-        if (this.epsilonClosure == null) {
-            BitSet seen = new BitSet(root.states.size());
-            BitSet pending = new BitSet(root.states.size());
-
-            Set<NFA> closure = new HashSet<>();
-            pending.set(this.state);
-            seen.set(this.state);
-
-            closure.add(this);
-            while (!pending.isEmpty()) {
-                int index = pending.nextSetBit(0);
-                pending.clear(index);
-                epsilonClosureIndices.set(index);
-
-                NFA next = root.states.get(index);
-                closure.add(next);
-                for (Pair<CharRange, List<NFA>> transition : next.getTransitions()) {
-                    if (transition.getLeft().isEmpty()) {
-                        for (NFA reachable : transition.getRight()) {
-                            if (!seen.get(reachable.state)) {
-                                seen.set(reachable.state);
-                                pending.set(reachable.state);
-                            }
-                        }
-                    }
-                }
-            }
-            this.epsilonClosure = closure;
-        }
-    }
-
-    /**
-     * Check a number of invariants. Only applicable to the root node.
-     *
-     * @throws IllegalStateException if the invariants are broken
-     */
-    protected void checkRep() {
-        for (NFA nfa : states) {
-            assert states.get(nfa.state) == nfa;
-            assert nfa.epsilonClosure != null : "NFA node " + nfa.state + " has null epsilon closure";
-            for (NFA reachable : nfa.epsilonClosure) {
-                assert states.contains(reachable) : "Epsilon transition to NFA node " + reachable.state + " not contained in states";
-            }
-            assert nfa.root != null : "NFA node " + state + " has null root";
-        }
-        // TODO: assert states.size() == new HashSet<>(states).size() : "nfaStates contains duplicates";
+        return closure;
     }
 }

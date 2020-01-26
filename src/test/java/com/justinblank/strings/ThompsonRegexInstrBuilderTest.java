@@ -8,16 +8,16 @@ public class ThompsonRegexInstrBuilderTest {
 
     @Test
     public void testCompilesRange() {
-        assertNotNull(ThompsonRegexInstrBuilder.createNFA(RegexParser.parse("[A-Z]")));
+        assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("[A-Z]")));
     }
 
     @Test
     public void testCompilesMultiRange() {
-        assertNotNull(ThompsonRegexInstrBuilder.createNFA(RegexParser.parse("[A-Za-z]")));
+        assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("[A-Za-z]")));
     }
 
     @Test
     public void testCompilesAlternations() {
-        assertNotNull(ThompsonRegexInstrBuilder.createNFA(RegexParser.parse("(123)|(234){0,1}")));
+        assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("(123)|(234){0,1}")));
     }
 }

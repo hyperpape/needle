@@ -53,7 +53,7 @@ public class DFACompiler {
         Node node = RegexParser.parse(regex);
         Factorization factors = node.bestFactors();
 
-        NFA nfa = ThompsonNFABuilder.createNFA(node);
+        NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
         return compile(NFAToDFACompiler.compile(nfa), factors, className);
     }
 
