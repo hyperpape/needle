@@ -205,6 +205,9 @@ public class NFA implements SearchMethod {
                 activeStates.add(0);
                 stateOrigins[0] = i;
             }
+            else if (lastStart != Integer.MAX_VALUE && activeStates.size() == 0) {
+                break;
+            }
             for (int j = 0; j < activeStates.size(); j++) {
                 int currentState = activeStates.getByIndex(j);
                 int origin = stateOrigins[currentState];

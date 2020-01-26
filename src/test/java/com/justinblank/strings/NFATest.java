@@ -395,13 +395,6 @@ public class NFATest {
         });
     }
 
-    @Test
-    public void testFoo() {
-        SearchMethod method = NFA.createNFANoAhoCorasick("(A)|(A)");
-        MatchResult result = method.find("AAA", 1, 3);
-        assertEquals(MatchResult.success(1, 2), result);
-    }
-
     @Test(expected = IndexOutOfBoundsException.class)
     public void testIllegalIndexStart() {
         NFA.createNFA("a*").find("a", -1, 1);
