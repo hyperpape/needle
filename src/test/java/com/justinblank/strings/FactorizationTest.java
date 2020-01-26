@@ -3,6 +3,8 @@ package com.justinblank.strings;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static com.justinblank.strings.Factorization.best;
@@ -111,5 +113,12 @@ public class FactorizationTest {
         assertEquals(Set.of("AB", "ABAB"), factorization.getPrefixes());
         assertEquals(Set.of("AB", "ABAB"), factorization.getSuffixes());
         assertEquals(Set.of("AB", "ABAB"), factorization.getAll());
+    }
+
+    @Test
+    public void testSherlock() {
+        var node = RegexParser.parse("([Ss]herlock)");
+        var factors = node.bestFactors();
+        assertEquals(Optional.of(List.of('S', 's')), factors.getInitialChars());
     }
 }

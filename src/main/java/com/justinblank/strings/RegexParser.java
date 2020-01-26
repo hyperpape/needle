@@ -146,6 +146,10 @@ public class RegexParser {
             }
             else if (next instanceof Alternation) {
                 Alternation alt = (Alternation) next;
+                if (alt.left != null && alt.right != null) {
+                    node = new Concatenation(alt, node);
+                    continue;
+                }
                 assertNonEmpty("found '|' with no preceding content");
                 Node nextNext = nodes.pop();
                 if (nextNext instanceof LParenNode) {

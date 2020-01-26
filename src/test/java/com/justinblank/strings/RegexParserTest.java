@@ -130,6 +130,27 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testBracketsFollowedBySomething() {
+        Node node = parse("[Ss]h");
+        check(node, "((S)|(s))(h)");
+    }
+
+    @Test
+    public void testBracketsFollowedBySomethingWrappedInParens() {
+        Node node = parse("([Ss]h)");
+        check(node, "((S)|(s))(h)");
+    }
+
+    @Test
+    public void testConcatenatedLiteralsWrappedInParens() {
+        Node node = parse("(abcdef)");
+        check(node, "abcdef");
+
+        node = parse("((abc)(def))");
+        check(node, "abcdef");
+    }
+
+    @Test
     public void testComplexRegex() {
         Node node = parse("(ab)*a(a|b)(a|b)(a|b)");
         assertNotNull(node);
