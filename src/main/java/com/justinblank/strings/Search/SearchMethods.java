@@ -11,9 +11,6 @@ public final class SearchMethods {
         if (strings.isEmpty()) {
             throw new IllegalArgumentException("Cannot create SearchMethod using empty list of strings");
         }
-        if (containsEmpty(strings)) {
-            return AsciiAhoCorasickBuilder.buildEmptyAhoCorasick();
-        }
         if (allAscii(strings)) {
             return AsciiAhoCorasickBuilder.buildAhoCorasick(strings);
         }

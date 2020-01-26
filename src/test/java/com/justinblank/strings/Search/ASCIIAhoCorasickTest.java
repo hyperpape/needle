@@ -10,6 +10,7 @@ import org.quicktheories.generators.StringsDSL;
 
 import java.util.List;
 
+import static com.justinblank.strings.SearchMethodTestUtil.match;
 import static org.junit.Assert.*;
 
 public class ASCIIAhoCorasickTest {
@@ -71,6 +72,14 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
+    public void testPatternsContainingEmptyString() {
+        SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(List.of("", "1", "11"));
+        match(method, "");
+        match(method, "1");
+        match(method, "11");
+    }
+
+    @Test
     public void testRepeatedPatterns() {
         List<String> patterns = List.of("a", "aaa");
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
@@ -125,7 +134,7 @@ public class ASCIIAhoCorasickTest {
         Gen<List<String>> patternStrings = new ListsDSL().of(stringGen).ofSizeBetween(1, 1);
         QuickTheory.qt().forAll(patternStrings).check((patterns) -> {
             SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
-            return method != null;
+            return true;
         });
     }
 

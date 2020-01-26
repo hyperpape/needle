@@ -13,12 +13,6 @@ class AsciiAhoCorasickBuilder {
         return new ASCIIAhoCorasick(trie, partialTrie);
     }
 
-    protected static SearchMethod buildEmptyAhoCorasick() {
-        ASCIITrie trie = new AsciiAhoCorasickBuilder().build(Collections.emptyList(), true);
-        trie.accepting = true;
-        return new ASCIIAhoCorasick(trie, trie);
-    }
-
     protected ASCIITrie build(Collection<String> strings, boolean complete) {
         ASCIITrie trie = new ASCIITrie(0);
         root = trie;
@@ -34,6 +28,9 @@ class AsciiAhoCorasickBuilder {
 
     private void buildTrieStructure(Collection<String> strings, ASCIITrie trie) {
         for (String s : strings) {
+            if (s.equals("")) {
+                trie.accepting = true;
+            }
             ASCIITrie current = trie;
             for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
