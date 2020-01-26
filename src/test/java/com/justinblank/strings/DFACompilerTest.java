@@ -81,7 +81,7 @@ public class DFACompilerTest {
         Pattern pattern = DFACompiler.compile("[0-9A-Za-z]*", "TestName");
         Matcher instance = pattern.matcher("AB09");
         match(pattern, "AB09");
-        
+
         match(pattern, "ABC09az");
         assertFalse(pattern.matcher("AB{").matches());
         assertTrue(pattern.matcher("AB{").containedIn());
@@ -119,7 +119,30 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testRepetitionWithLiteralSuffix() {
+    public void testCountedRepetition() {
+        String regexString = "(AB){1,2}";
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegex");
+        match(pattern, "AB");
+        match(pattern, "ABAB");
+        fail(pattern, "");
+        fail(pattern, "BB");
+        fail(pattern, "AA");
+        assertFalse(pattern.matcher("ABABAB").matches());
+    }
+
+    @Test
+    public void testCountedRepetitionOfAlternation() {
+        String regexString = "((AB)|(BA)){1,2}";
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfAlternation");
+        fail(pattern, "");
+        match(pattern, "BA");
+        match(pattern, "ABBA");
+        match(pattern, "BAAB");
+        match(pattern, "BABA");
+    }
+
+    @Test
+    public void testCountedRepetitionWithLiteralSuffix() {
         String regexString = "((12)|(23)){1,2}" + "ab";
         Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
         match(pattern, "12ab");
