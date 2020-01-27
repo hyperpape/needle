@@ -3,6 +3,7 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class RegexParser {
 
@@ -211,13 +212,17 @@ public class RegexParser {
         Set<Character> characterSet = new HashSet<>();
         Set<CharRange> ranges = new HashSet<>();
         Character last = null;
+        int startingIndex = index;
+        boolean complemented = false;
         while (index < regex.length()) {
             char c = takeChar();
-            if (c == ']') {
+            if (c == '^' && index == startingIndex + 1) {
+                complemented = true;
+            } else if (c == ']') {
                 if (last != null) {
                     characterSet.add(last);
                 }
-                return buildNode(characterSet, ranges);
+                return buildNode(characterSet, ranges, complemented);
             } else if (c == '-') {
                 // TODO: find out actual semantics
                 if (last == null || index == regex.length()) {
@@ -240,25 +245,40 @@ public class RegexParser {
         throw new RegexSyntaxException("Parsing failed, unmatched [");
     }
 
-    private Node buildNode(Set<Character> characterSet, Set<CharRange> ranges) {
+    private Node buildNode(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
         if (ranges.isEmpty() && characterSet.isEmpty()) {
             throw new RegexSyntaxException("Parsing failed: empty [] construction");
         } else if (characterSet.isEmpty() && ranges.size() == 1) {
             CharRange range = ranges.iterator().next();
-            return new CharRangeNode(range);
+            CharRangeNode rangeNode = new CharRangeNode(range);
+            if (complemented) {
+                return Alternation.complement(List.of(rangeNode));
+            }
+            return rangeNode;
         } else if (ranges.isEmpty() && characterSet.size() == 1) {
             Character character = characterSet.iterator().next();
-            return new CharRangeNode(character, character);
+            CharRangeNode rangeNode = new CharRangeNode(character, character);
+            if (complemented) {
+                return Alternation.complement(List.of(rangeNode));
+            }
+            return rangeNode;
         } else {
-            return buildRanges(characterSet, ranges);
+            return buildRanges(characterSet, ranges, complemented);
         }
     }
 
-    private Node buildRanges(Set<Character> characterSet, Set<CharRange> ranges) {
+    private Node buildRanges(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
         List<CharRange> sortedCharRanges = buildSortedCharRanges(characterSet, ranges);
         if (sortedCharRanges.size() == 1) {
-            return new CharRangeNode(sortedCharRanges.get(0));
+            CharRangeNode rangeNode = new CharRangeNode(sortedCharRanges.get(0));
+            if (complemented) {
+                return Alternation.complement(List.of(rangeNode));
+            }
+            return rangeNode;
         } else {
+            if (complemented) {
+                return Alternation.complement(sortedCharRanges.stream().map(CharRangeNode::new).collect(Collectors.toList()));
+            }
             CharRangeNode first = new CharRangeNode(sortedCharRanges.get(0));
             CharRangeNode second = new CharRangeNode(sortedCharRanges.get(1));
             Node node = new Alternation(first, second);

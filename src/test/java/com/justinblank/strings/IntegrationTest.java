@@ -11,10 +11,7 @@ import static org.junit.Assert.assertFalse;
 
 public class IntegrationTest {
 
-    // TODO: Parser change fixed a bug. Previous version had fewer states than it should've, larger state space causes
-    //  massive slowdown, see if this can be fixed
-    public static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)){1,24}";
-    // public static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,24}";
+    static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)){1,24}";
 
     @Test
     public void testEmptyString() {
@@ -49,6 +46,11 @@ public class IntegrationTest {
         MatchResult result = dfa.search("ABC0123");
         assertEquals(0, result.start);
         assertEquals(7, result.end);
+
+        dfa = DFA.createDFA("[^A-Za-z][A-Za-z0-9]*");
+        result = dfa.search("%ABC0123");
+        assertEquals(MatchResult.success(0, 8), result);
+
     }
 
     @Test
@@ -338,12 +340,21 @@ public class IntegrationTest {
     }
 
     @Test
-    public void test_aORb_PLUS() {
+    public void test_aORbORc_PLUS() {
         String regexString = "[a-c]+";
         SearchMethod searchMethod = NFA.createNFA(regexString);
         match(searchMethod, "a");
         match(searchMethod, "c");
         match(searchMethod, "abacbabababbbabababa");
+        fail(searchMethod, "");
+
+        regexString = "[^a-c]+";
+        searchMethod = NFA.createNFA(regexString);
+        match(searchMethod, "d");
+        match(searchMethod, "A");
+        fail(searchMethod, "a");
+        fail(searchMethod, "c");
+        match(searchMethod, "defghijklmnopqrst");
         fail(searchMethod, "");
     }
 
@@ -357,6 +368,16 @@ public class IntegrationTest {
         fail(searchMethod, "");
         assertFalse(searchMethod.matches( "ab"));
         assertFalse(searchMethod.matches( "a#"));
+
+        regexString = "[^a-zA-Z@#]";
+        searchMethod = NFA.createNFA(regexString);
+        match(searchMethod, "%");
+        fail(searchMethod, "a");
+        fail(searchMethod, "@");
+        fail(searchMethod, "#");
+        fail(searchMethod, "");
+        assertFalse(searchMethod.matches("%^"));
+        assertFalse(searchMethod.matches("{}"));
     }
 
     @Test
