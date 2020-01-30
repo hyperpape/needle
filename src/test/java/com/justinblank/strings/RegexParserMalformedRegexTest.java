@@ -4,108 +4,98 @@ import com.justinblank.strings.RegexAST.Node;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.regex.Pattern;
-
-import static com.justinblank.strings.RegexParser.parse;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static com.justinblank.strings.TestUtil.parse;
 
 public class RegexParserMalformedRegexTest {
 
     @Test(expected = RegexSyntaxException.class)
     public void testLeftMismatchedBracket() {
-        RegexParser.parse("[");
+        parse("[");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testRightMismatchedBracket() {
-        RegexParser.parse("]");
+        parse("]");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testLeftUnbalancedBrackets() {
-        RegexParser.parse("[[]");
+        parse("[[]");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testLeadingDashInCharClass() {
-        RegexParser.parse("[-]");
+        parse("[-]");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testRightUnbalancedBrackets() {
-        RegexParser.parse("[]]");
+        parse("[]]");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testInsideOutBrackets() {
-        RegexParser.parse("][");
+        parse("][");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testLParenInBrackets() {
-        RegexParser.parse("[(]");
+        parse("[(]");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testRParensInBrackets() {
-        RegexParser.parse("[)]");
+        parse("[)]");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionCountRight() {
-        RegexParser.parse("a{1,b}");
+        parse("a{1,b}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionLeft() {
-        RegexParser.parse("a{b,1}");
+        parse("a{b,1}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testEmptyRegexLeading() {
-        RegexParser.parse("{}");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
-    public void testBadReptitionMissingComma() {
-        RegexParser.parse("a{12}");
+        parse("{}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionBoth() {
-        RegexParser.parse("a{b,1}");
+        parse("a{b,1}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionTrailingChar() {
-        RegexParser.parse("a{1,2a}");
+        parse("a{1,2a}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionTrailingCharNoBrace() {
-        RegexParser.parse("a{1,2a");
+        parse("a{1,2a");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testEmptyBrace() {
-        RegexParser.parse("{}");
+        parse("{}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionMissingBrace() {
-        RegexParser.parse("a{1,2");
+        parse("a{1,2");
     }
 
     @Test(expected  = RegexSyntaxException.class)
     public void testUnbalancedRightBrace() {
-        RegexParser.parse("}");
+        parse("}");
     }
 
     @Test(expected = RegexSyntaxException.class)
     public void testUnbalancedRightBraceAfterChars() {
-        RegexParser.parse("abc}");
+        parse("abc}");
     }
 
     @Test(expected = RegexSyntaxException.class)

@@ -3,7 +3,7 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.*;
 import org.junit.Test;
 
-import static com.justinblank.strings.RegexParser.*;
+import static com.justinblank.strings.TestUtil.parse;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -50,6 +50,11 @@ public class RegexParserTest {
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
         check(node, "(b){0,1}");
+    }
+
+    @Test
+    public void testCountedRepetitionNoComma() {
+        parse("a{12}");
     }
 
     @Test

@@ -47,7 +47,11 @@ public class RegexParser {
                     }
                     int left = consumeInt();
                     char next = takeChar();
-                    if (next != ',') {
+                    if (next == '}') {
+                        nodes.push(new CountedRepetition(nodes.pop(), left, left));
+                        break;
+                    }
+                    else if (next != ',') {
                         throw new RegexSyntaxException("Expected ',' at " + index + ", but found " + next);
                     }
                     int right = consumeInt();
@@ -88,8 +92,6 @@ public class RegexParser {
                 case '\\':
                     nodes.push(parseEscapeSequence());
                     break;
-                case '}':
-                    throw new RegexSyntaxException("Unbalanced '}' character");
                 case ')':
                     collapseParenNodes();
                     break;
