@@ -22,9 +22,16 @@ performance. Those compile time-efforts currently take three forms:
 ### Status
 
 This is an early experiment. Bytecode compiled regexes only support full
-string matching, not searching. Most character classes and other
-options are not yet implemented. There's not yet a reasonable public
+string matching, not searching.  There's not yet a reasonable public
 API.
+
+### Syntax
+
+Generally attempt to support syntax matching the standard library.
+
+The following character classes are supported:
+
+    \a, \d, \D, \e, \f, \h, \s, \S, \t, \w, \W, \x, \0, \., \\
 
 ### Unicode
 

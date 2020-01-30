@@ -34,6 +34,9 @@ public class RegexParser {
             char c = takeChar();
 
             switch (c) {
+                case '.':
+                    nodes.push(new CharRangeNode((char) 0, (char) 65535));
+                    break;
                 case '^':
                     throw new RegexSyntaxException("'^' not supported yet");
                 case '$':
@@ -68,7 +71,7 @@ public class RegexParser {
                     nodes.push(new CountedRepetition(nodes.pop(), 0, 1));
                     break;
                 case '[':
-                    nodes.push(buildCharSet());
+                    buildCharSet().ifPresent(nodes::push);
                     break;
                 case '+':
                     if (nodes.isEmpty()) {
@@ -95,8 +98,6 @@ public class RegexParser {
                 case ')':
                     collapseParenNodes();
                     break;
-                case ']':
-                    throw new RegexSyntaxException("Unbalanced ']' character");
                 default:
                     if (nodes.isEmpty()) {
                         nodes.push(LiteralNode.fromChar(c));
@@ -350,7 +351,7 @@ public class RegexParser {
         return new CharRangeNode((char) i, (char) i);
     }
 
-    private Node buildCharSet() {
+    private Optional<Node> buildCharSet() {
         Set<Character> characterSet = new HashSet<>();
         Set<CharRange> ranges = new HashSet<>();
         Character last = null;
@@ -366,15 +367,17 @@ public class RegexParser {
                 }
                 return buildNode(characterSet, ranges, complemented);
             } else if (c == '-') {
+                if (index == regex.length()) {
+                    throw new RegexSyntaxException("");
+                }
                 // TODO: find out actual semantics
-                if (last == null || index == regex.length()) {
-                    throw new RegexSyntaxException("Parsing failed");
+                if (last == null) {
+                    last = c;
+                    continue;
                 }
                 char next = takeChar();
                 ranges.add(new CharRange(last, next));
                 last = null;
-            } else if (c == '(' || c == ')') {
-                throw new RegexSyntaxException("Parsing failed");
             } else if (c == '[') {
                 throw new RegexSyntaxException("Unexpected '[' inside of character class");
             } else {
@@ -387,25 +390,25 @@ public class RegexParser {
         throw new RegexSyntaxException("Parsing failed, unmatched [");
     }
 
-    private Node buildNode(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
+    private Optional<Node> buildNode(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
         if (ranges.isEmpty() && characterSet.isEmpty()) {
-            throw new RegexSyntaxException("Parsing failed: empty [] construction");
+            return Optional.empty();
         } else if (characterSet.isEmpty() && ranges.size() == 1) {
             CharRange range = ranges.iterator().next();
             CharRangeNode rangeNode = new CharRangeNode(range);
             if (complemented) {
-                return Alternation.complement(List.of(rangeNode));
+                return Optional.of(Alternation.complement(List.of(rangeNode)));
             }
-            return rangeNode;
+            return Optional.of(rangeNode);
         } else if (ranges.isEmpty() && characterSet.size() == 1) {
             Character character = characterSet.iterator().next();
             CharRangeNode rangeNode = new CharRangeNode(character, character);
             if (complemented) {
-                return Alternation.complement(List.of(rangeNode));
+                return Optional.of(Alternation.complement(List.of(rangeNode)));
             }
-            return rangeNode;
+            return Optional.of(rangeNode);
         } else {
-            return buildRanges(characterSet, ranges, complemented);
+            return Optional.of(buildRanges(characterSet, ranges, complemented));
         }
     }
 

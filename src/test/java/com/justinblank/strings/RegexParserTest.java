@@ -330,4 +330,39 @@ public class RegexParserTest {
         assertEquals(representation, NodePrinter.print(node));
         assertNotNull(java.util.regex.Pattern.compile(representation));
     }
+
+    @Test
+    public void testLParenInBrackets() {
+        parse("[(]");
+    }
+
+    @Test
+    public void testRParensInBrackets() {
+        parse("[)]");
+    }
+
+    @Test
+    public void testUnbalancedRightBrace() {
+        parse("}");
+    }
+
+    @Test
+    public void testLeadingDashInCharClass() {
+        parse("[-]");
+    }
+
+    @Test
+    public void testRightUnbalancedBrackets() {
+        parse("[]]");
+    }
+
+    @Test
+    public void testPeriod() {
+        parse(".");
+    }
+
+    @Test
+    public void testRightMismatchedBracket() {
+        parse("]");
+    }
 }

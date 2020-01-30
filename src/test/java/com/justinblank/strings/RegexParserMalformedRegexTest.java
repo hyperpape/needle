@@ -14,38 +14,13 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
-    public void testRightMismatchedBracket() {
-        parse("]");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
     public void testLeftUnbalancedBrackets() {
         parse("[[]");
     }
 
     @Test(expected = RegexSyntaxException.class)
-    public void testLeadingDashInCharClass() {
-        parse("[-]");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
-    public void testRightUnbalancedBrackets() {
-        parse("[]]");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
     public void testInsideOutBrackets() {
         parse("][");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
-    public void testLParenInBrackets() {
-        parse("[(]");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
-    public void testRParensInBrackets() {
-        parse("[)]");
     }
 
     @Test(expected = RegexSyntaxException.class)
@@ -86,16 +61,6 @@ public class RegexParserMalformedRegexTest {
     @Test(expected = RegexSyntaxException.class)
     public void testBadRepetitionMissingBrace() {
         parse("a{1,2");
-    }
-
-    @Test(expected  = RegexSyntaxException.class)
-    public void testUnbalancedRightBrace() {
-        parse("}");
-    }
-
-    @Test(expected = RegexSyntaxException.class)
-    public void testUnbalancedRightBraceAfterChars() {
-        parse("abc}");
     }
 
     @Test(expected = RegexSyntaxException.class)
@@ -139,6 +104,11 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
+    public void testCharClassWithTrailingDash() {
+        parse("[-");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
     public void testStarEmpty() { Node node = parse("*"); }
 
     @Test(expected = RegexSyntaxException.class)
@@ -152,7 +122,13 @@ public class RegexParserMalformedRegexTest {
                 'l', 'L', 'm', 'M', 'n', 'N', 'o', 'O', 'p', 'P', 'q', 'Q', 'r', 'R', 'T', 'u', 'U', 'v', 'V', 'X',
                 'y', 'Y', 'z', 'Z'};
         for (char c : badChars) {
-            expectError("\\" + c);
+            try {
+                RegexParser.parse("\\" + c);
+            }
+            catch (RegexSyntaxException e) {
+                continue;
+            }
+            Assert.fail("Expected syntax exception");
         }
     }
 
@@ -168,7 +144,7 @@ public class RegexParserMalformedRegexTest {
 
     public static void expectError(String regexString) {
         try {
-            NFA.createNFA(regexString);
+            parse(regexString);
         }
         catch (RegexSyntaxException e) {
             return;

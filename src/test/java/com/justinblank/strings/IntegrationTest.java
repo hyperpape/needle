@@ -3,6 +3,8 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
+import org.quicktheories.QuickTheory;
+import org.quicktheories.generators.StringsDSL;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static junit.framework.TestCase.assertTrue;
@@ -377,6 +379,17 @@ public class IntegrationTest {
         fail(searchMethod, "");
         assertFalse(searchMethod.matches("%^"));
         assertFalse(searchMethod.matches("{}"));
+    }
+
+    @Test
+    public void testPeriod() {
+        SearchMethod method = NFA.createNFA(".");
+        match(method, "a");
+        match(method, "%");
+        assertFalse(method.matches("abcd"));
+        find(method, "abcdef");
+        find(method, "%#$(");
+        QuickTheory.qt().forAll(new StringsDSL().allPossible().ofLengthBetween(1, 1)).check(method::matches);
     }
 
     @Test
