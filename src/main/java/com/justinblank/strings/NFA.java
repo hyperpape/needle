@@ -11,7 +11,7 @@ import java.util.*;
 
 import static com.justinblank.strings.RegexInstr.Opcode.*;
 
-public class NFA implements SearchMethod {
+class NFA implements SearchMethod {
 
     RegexInstr[] regexInstrs;
 

@@ -6,7 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class DFA {
+class DFA {
 
     private boolean accepting;
     private final int stateNumber;

@@ -79,8 +79,10 @@ public class DFACompiler {
         return cw.toByteArray();
     }
 
-    public static void writeClass(DFA dfa, Factorization factors, String name, OutputStream os) throws IOException {
-        os.write(generateClassAsBytes(dfa, factors, name));
+    public static void writeClass(String regex, String name, OutputStream os) throws IOException {
+        Node node = RegexParser.parse(regex);
+        DFA dfa = DFA.createDFA(regex);
+        os.write(generateClassAsBytes(dfa, node.bestFactors(), name));
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
