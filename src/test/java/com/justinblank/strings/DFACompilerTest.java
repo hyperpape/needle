@@ -186,6 +186,34 @@ public class DFACompilerTest {
         assertFalse(pattern.matcher("F").containedIn());
     }
 
+    @Test
+    public void testTwoLargeRangesPrefixSuffixLiteral() {
+        Pattern pattern = DFACompiler.compile("[A-Za-z]+abcdef", "TwoLargeRangesPrefixWithSuffixLiteral");
+        match(pattern, "Aabcdef");
+        match(pattern, "aabcdef");
+
+        match(pattern, "AZDabcdef");
+        match(pattern, "AZDabcdef");
+
+        match(pattern, "aZDaabcdef");
+    }
+
+    @Test
+    public void testPrefixLargeRangeWithSuffixLiteral() {
+        Pattern pattern = DFACompiler.compile("[A-Z]+abcdef", "PrefixLargeRangeWithSuffixLiteral");
+        match(pattern, "Aabcdef");
+        match(pattern, "AZDabcdef");
+    }
+
+
+    @Test
+    public void testLargeRangePrefixWithInfixLiteralAndLargeRangeSuffix() {
+        Pattern pattern = DFACompiler.compile("[A-Z]+abcdef[A-Z]+", "LargeRangePrefixWithInfixLiteralAndLargeRangeSuffix");
+        match(pattern, "AabcdefZ");
+        match(pattern, "AZDabcdefDZA");
+    }
+
+
 //    @Test(expected =  IllegalArgumentException.class)
 //    public void testDFACompileFailsLargePattern() {
 //        String manyStateRegexString = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,1000}";
