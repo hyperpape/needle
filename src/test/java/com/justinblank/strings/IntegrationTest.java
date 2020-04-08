@@ -207,6 +207,10 @@ public class IntegrationTest {
 
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("ACD"));
+
+        method = NFA.createReversedNFANoAhoCorasick(regex);
+        find(method, "BA", 0, 1);
+        find(method, "BA", 0, 2);
     }
 
     @Test
@@ -224,19 +228,22 @@ public class IntegrationTest {
     public void testManyStateRegex() {
         SearchMethod nfa = NFA.createNFA(MANY_STATE_REGEX_STRING);
         find(nfa, "456", 0, 3);
-        find(nfa,"234234", 0, 6);
+        find(nfa, "234234", 0, 6);
         fail(nfa, "");
         DFA dfa = DFA.createDFA(MANY_STATE_REGEX_STRING);
         assertTrue(dfa.matches("456"));
         assertFalse(dfa.matches(""));
         assertTrue(dfa.matches("234234"));
+
+        nfa = NFA.createReversedNFANoAhoCorasick(MANY_STATE_REGEX_STRING);
+        assertTrue(nfa.matches("432432"));
     }
 
     @Test
     public void testManyStateRegexWithLiteralSuffix() {
         String regexString = MANY_STATE_REGEX_STRING + "ab";
         SearchMethod method = NFA.createNFA(regexString);
-        match(method,"456ab");
+        match(method, "456ab");
         match(method, "234234ab");
         fail(method, "");
         DFA dfa = DFA.createDFA(regexString);
@@ -280,7 +287,7 @@ public class IntegrationTest {
         SearchMethod searchMethod = NFA.createNFA(regexString);
         match(searchMethod, "1");
         fail(searchMethod, "");
-        assertFalse(searchMethod.matches( "11"));
+        assertFalse(searchMethod.matches("11"));
     }
 
     @Test
@@ -367,8 +374,8 @@ public class IntegrationTest {
         match(searchMethod, "@");
         match(searchMethod, "#");
         fail(searchMethod, "");
-        assertFalse(searchMethod.matches( "ab"));
-        assertFalse(searchMethod.matches( "a#"));
+        assertFalse(searchMethod.matches("ab"));
+        assertFalse(searchMethod.matches("a#"));
 
         regexString = "[^a-zA-Z@#]";
         searchMethod = NFA.createNFA(regexString);

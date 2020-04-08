@@ -9,5 +9,7 @@ public abstract class Node {
     protected abstract int depth();
 
     public abstract Factorization bestFactors();
+
+    public abstract Node reversed();
 }
 

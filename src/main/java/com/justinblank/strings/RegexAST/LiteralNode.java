@@ -1,6 +1,7 @@
 package com.justinblank.strings.RegexAST;
 
 import com.justinblank.strings.Factorization;
+import org.apache.commons.lang3.StringUtils;
 
 public class LiteralNode extends Node {
 
@@ -27,6 +28,12 @@ public class LiteralNode extends Node {
     @Override
     public Factorization bestFactors() {
         return Factorization.fromString(string.toString());
+    }
+
+    @Override
+    public Node reversed() {
+        // is this...the one and only time it's ok to reverse a unicode string? Or is this bad?
+        return new LiteralNode(StringUtils.reverse(this.string.toString()));
     }
 
     public String getLiteral() {

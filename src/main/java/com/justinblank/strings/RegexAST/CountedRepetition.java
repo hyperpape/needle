@@ -32,4 +32,9 @@ public class CountedRepetition extends Node {
     public Factorization bestFactors() {
         return node.bestFactors().countedRepetition(min, max);
     }
+
+    @Override
+    public Node reversed() {
+        return new CountedRepetition(node.reversed(), min, max);
+    }
 }

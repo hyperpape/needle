@@ -31,4 +31,11 @@ public class Concatenation extends Node {
         left.concatenate(right);
         return left;
     }
+
+    @Override
+    public Node reversed() {
+        return new Concatenation(tail.reversed(), head.reversed());
+    }
+
+
 }

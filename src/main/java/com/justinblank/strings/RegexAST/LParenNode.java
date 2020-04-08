@@ -26,4 +26,9 @@ public class LParenNode extends Node {
     public Factorization bestFactors() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public Node reversed() {
+        throw new UnsupportedOperationException();
+    }
 }

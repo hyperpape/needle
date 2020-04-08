@@ -26,4 +26,9 @@ public class Repetition extends Node {
     public Factorization bestFactors() {
         return Factorization.empty();
     }
+
+    @Override
+    public Node reversed() {
+        return new Repetition(node.reversed());
+    }
 }

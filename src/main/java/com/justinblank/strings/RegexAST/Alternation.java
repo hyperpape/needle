@@ -35,6 +35,11 @@ public class Alternation extends Node {
         return leftFactors;
     }
 
+    @Override
+    public Node reversed() {
+        return new Alternation(left.reversed(), right.reversed());
+    }
+
     public static Alternation ofChars(String s) {
         if (s.length() < 2) {
             throw new IllegalArgumentException("silly alternation");

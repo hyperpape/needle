@@ -36,4 +36,8 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
     public int compareTo(CharRangeNode o) {
         return range.compareTo(o.range);
     }
+
+    public Node reversed() {
+        return this;
+    }
 }
