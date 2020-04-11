@@ -34,10 +34,11 @@ public class DFACompiler {
     private String className;
     private ClassWriter classWriter;
     private DFA dfa;
+    private DFA dfaReversed;
     private Factorization factors;
     private final Map<Character, String> rangeConstants = new HashMap<>();
 
-    protected DFACompiler(ClassWriter classWriter, String className, DFA dfa, Factorization factors) {
+    protected DFACompiler(ClassWriter classWriter, String className, DFA dfa, DFA dfaReversed, Factorization factors) {
         // Somewhere between this value and Short.MAX_VALUE, we run into classes that can't be created because they're
         // so large
         if (dfa.statesCount() > Short.MAX_VALUE / 2) {
@@ -46,21 +47,18 @@ public class DFACompiler {
         this.classWriter = classWriter;
         this.className = className;
         this.dfa = dfa;
+        this.dfaReversed = dfaReversed;
         this.factors = factors;
     }
 
     public static Pattern compile(String regex, String className) {
         Node node = RegexParser.parse(regex);
         Factorization factors = node.bestFactors();
-
-        NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
-        return compile(NFAToDFACompiler.compile(nfa), factors, className);
-    }
-
-    private static Pattern compile(DFA dfa, Factorization factors, String name) {
-        byte[] classBytes = generateClassAsBytes(dfa, factors, name);
-        Class<?> matcherClass = MyClassLoader.getInstance().loadClass(name, classBytes);
-        Class<? extends Pattern> c = createPatternClass("Pattern" + name, (Class<? extends Matcher>) matcherClass);
+        DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)));
+        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
+        byte[] classBytes = generateClassAsBytes(dfa, dfaReversed, factors, className);
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
+        Class<? extends Pattern> c = createPatternClass("Pattern"  + className, (Class<? extends Matcher>) matcherClass);
         try {
             return (Pattern) c.getDeclaredConstructors()[0].newInstance();
         } catch (Throwable t) {
@@ -69,10 +67,10 @@ public class DFACompiler {
         }
     }
 
-    static byte[] generateClassAsBytes(DFA dfa, Factorization factors, String name) {
+    static byte[] generateClassAsBytes(DFA dfa, DFA dfaReversed, Factorization factors, String name) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(Opcodes.V9, ACC_PUBLIC, name, null, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        DFACompiler compiler = new DFACompiler(cw, name, dfa, factors);
+        DFACompiler compiler = new DFACompiler(cw, name, dfa, dfaReversed, factors);
         compiler.compile();
 
         return cw.toByteArray();
@@ -81,7 +79,8 @@ public class DFACompiler {
     public static void writeClass(String regex, String name, OutputStream os) throws IOException {
         Node node = RegexParser.parse(regex);
         DFA dfa = DFA.createDFA(regex);
-        os.write(generateClassAsBytes(dfa, node.bestFactors(), name));
+        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
+        os.write(generateClassAsBytes(dfa, dfaReversed, node.bestFactors(), name));
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
