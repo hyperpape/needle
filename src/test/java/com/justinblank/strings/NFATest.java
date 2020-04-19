@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.justinblank.strings.SearchMethodTestUtil.*;
+import static com.justinblank.strings.SearchMethodTestUtil.match;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
@@ -258,6 +260,17 @@ public class NFATest {
         SearchMethod nfa = NFA.createNFA("(" + String.join(")|(", strings) + ")");
         assertTrue(nfa.containedIn("aabaa"));
         assertTrue(nfa.containedIn("aca" + "aabaa" + "aca"));
+    }
+
+    @Test
+    public void testAlternationOfLiterals() {
+        SearchMethod method = NFA.createNFA("A|BCD|E");
+        match(method, "A");
+        match(method, "BCD");
+        match(method, "E");
+        find(method, "ZZAZZ");
+        assertFalse(method.matcher("F").matches());
+        assertFalse(method.matcher("F").containedIn());
     }
 
     @Test

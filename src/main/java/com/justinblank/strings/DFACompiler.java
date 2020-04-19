@@ -220,7 +220,7 @@ public class DFACompiler {
             Optional<String> prefix = factors.getSharedPrefix();
             Optional<List<Character>> initialChars = factors.getInitialChars();
             if (initialChars.isPresent() && initialChars.get().size() < MAX_STATES_FOR_SWITCH) {
-                emitPrefixFindingLoop(mv, vars, initialChars.get(), postStateCheckLabel, failLabel);
+                emitPrefixFindingLoop(mv, vars, initialChars.get(), postStateCheckLabel, returnLabel, failLabel);
             }
             else {
                 mv.visitVarInsn(ILOAD, vars.stateVar);
@@ -343,9 +343,8 @@ public class DFACompiler {
      * @param postStateChangeLabel the label to jump to when a match is found
      * @param failLabel the label to jump to if we exhaust the string without finding our initial character
      */
-    private void emitPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, List<Character> chars, Label postStateChangeLabel, Label failLabel) {
+    private void emitPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, List<Character> chars, Label postStateChangeLabel, Label returnLabel, Label failLabel) {
         Label innerIterationLabel = new Label();
-        Label postMatchLabel = new Label();
         mv.visitLabel(innerIterationLabel);
         mv.visitVarInsn(ILOAD, vars.stateVar);
         mv.visitInsn(ICONST_M1);
@@ -358,6 +357,7 @@ public class DFACompiler {
             pushShortInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
         }
         else {
+            Label postMatchLabel = new Label();
             Label[] charLabels = makeLabels(chars.size());
             int[] charArray = new int[chars.size()];
             for (int i = 0; i < chars.size(); i++) {
@@ -374,6 +374,11 @@ public class DFACompiler {
             mv.visitLabel(postMatchLabel);
         }
         mv.visitVarInsn(ISTORE, vars.stateVar);
+
+        emitInvokeWasAccepted(mv, vars);
+        mv.visitInsn(ICONST_0);
+        mv.visitJumpInsn(IF_ICMPNE, returnLabel);
+
         mv.visitJumpInsn(GOTO, postStateChangeLabel);
     }
 

@@ -23,6 +23,7 @@ public class DFACompilerTest {
 
         assertFalse(pattern.matcher("ba").matches());
         assertTrue(pattern.matcher("ba").containedIn());
+        assertTrue(pattern.matcher("bad").containedIn());
 
         fail(pattern, "AB{");
     }
