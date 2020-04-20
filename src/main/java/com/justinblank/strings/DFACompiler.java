@@ -60,11 +60,10 @@ public class DFACompiler {
     private static Pattern compile(DFA dfa, Factorization factors, String name) {
         byte[] classBytes = generateClassAsBytes(dfa, factors, name);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(name, classBytes);
-        Class<? extends Pattern> c = createPatternClass("Pattern"  + name, (Class<? extends Matcher>) matcherClass);
+        Class<? extends Pattern> c = createPatternClass("Pattern" + name, (Class<? extends Matcher>) matcherClass);
         try {
             return (Pattern) c.getDeclaredConstructors()[0].newInstance();
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             // TODO: determine good exceptions/result types
             throw new RuntimeException(t);
         }
@@ -105,11 +104,9 @@ public class DFACompiler {
         List<DFA> acceptingStates = getAcceptingStates();
         if (acceptingStates.size() > MAX_STATES_FOR_SWITCH) {
             addLargeWasAcceptedMethod();
-        }
-        else if (acceptingStates.size() > 1) {
+        } else if (acceptingStates.size() > 1) {
             addSmallWasAcceptedMethod(acceptingStates);
-        }
-        else {
+        } else {
             addSingleStateAcceptedMethod(acceptingStates);
         }
     }
@@ -143,7 +140,7 @@ public class DFACompiler {
             mv.visitLabel(returnLabel);
             mv.visitIntInsn(ILOAD, vars.stateVar); // TODO: decide if it's better to avoid this store/load
             mv.visitInsn(IRETURN);
-            mv.visitMaxs(-1,-1);
+            mv.visitMaxs(-1, -1);
             mv.visitEnd();
         }
     }
@@ -159,10 +156,10 @@ public class DFACompiler {
     }
 
     protected void addFields() {
-        this.classWriter.visitField(ACC_PRIVATE, INDEX_FIELD, "I", null,0);
+        this.classWriter.visitField(ACC_PRIVATE, INDEX_FIELD, "I", null, 0);
         this.classWriter.visitField(ACC_PRIVATE, CHAR_FIELD, "C", null, null);
         this.classWriter.visitField(ACC_PRIVATE, STRING_FIELD, "Ljava/lang/String;", null, null);
-        this.classWriter.visitField(ACC_PRIVATE, LENGTH_FIELD,  "I", null, 0);
+        this.classWriter.visitField(ACC_PRIVATE, LENGTH_FIELD, "I", null, 0);
         this.classWriter.visitField(ACC_PRIVATE, STATE_FIELD, "I", null, 0);
     }
 
@@ -178,8 +175,7 @@ public class DFACompiler {
         MethodVisitor mv;
         if (containedIn) {
             mv = this.classWriter.visitMethod(ACC_PUBLIC, "containedIn", "()Z", null, null);
-        }
-        else {
+        } else {
             mv = this.classWriter.visitMethod(ACC_PUBLIC, "matches", "()Z", null, null);
         }
 
@@ -188,7 +184,7 @@ public class DFACompiler {
         Label failLabel = new Label();
         Label postStateCheckLabel = new Label();
 
-        MatchingVars vars = new MatchingVars( 4, 1, 5, 2, 3);
+        MatchingVars vars = new MatchingVars(4, 1, 5, 2, 3);
 
         mv.visitInsn(ICONST_0);
         mv.visitVarInsn(ISTORE, vars.stateVar);
@@ -221,16 +217,14 @@ public class DFACompiler {
             Optional<List<Character>> initialChars = factors.getInitialChars();
             if (initialChars.isPresent() && initialChars.get().size() < MAX_STATES_FOR_SWITCH) {
                 emitPrefixFindingLoop(mv, vars, initialChars.get(), postStateCheckLabel, returnLabel, failLabel);
-            }
-            else {
+            } else {
                 mv.visitVarInsn(ILOAD, vars.stateVar);
                 mv.visitInsn(ICONST_M1);
                 mv.visitJumpInsn(IF_ICMPNE, postStateCheckLabel);
                 mv.visitInsn(ICONST_0);
                 mv.visitVarInsn(ISTORE, vars.stateVar);
             }
-        }
-        else {
+        } else {
             mv.visitVarInsn(ILOAD, vars.stateVar);
             mv.visitInsn(ICONST_M1);
             mv.visitJumpInsn(IF_ICMPEQ, failLabel);
@@ -280,15 +274,16 @@ public class DFACompiler {
         mv.visitLabel(returnLabel);
         emitInvokeWasAccepted(mv, vars);
         mv.visitInsn(IRETURN);
-        mv.visitMaxs(-1,-1);
+        mv.visitMaxs(-1, -1);
         mv.visitEnd();
     }
 
     /**
      * Emits bytecodes to invoke the was accepted method, reading the state variable from the local variables
-     *
+     * <p>
      * This method consumes nothing from the stack and pushes an int to the stack
-     * @param mv the visitor for the current method
+     *
+     * @param mv   the visitor for the current method
      * @param vars the variable indices for the current method
      */
     private void emitInvokeWasAccepted(MethodVisitor mv, MatchingVars vars) {
@@ -299,11 +294,11 @@ public class DFACompiler {
 
     /**
      * Emits bytecodes to check that we haven't reached the end of the string, jumping to the return label if we have
-     *
+     * <p>
      * This method does not modify the stack.
      *
-     * @param mv the current method's visitor
-     * @param vars the current method variable indices
+     * @param mv          the current method's visitor
+     * @param vars        the current method variable indices
      * @param returnLabel the label to jump to in case we've reached the end of the string
      */
     private void emitBoundsCheck(MethodVisitor mv, MatchingVars vars, Label returnLabel) {
@@ -315,19 +310,19 @@ public class DFACompiler {
     /**
      * Read a character from the string and increments the counter variable. Uses a local variable or field for the
      * string depending on what is available.
-     *
+     * <p>
      * Modifies the stack by consuming nothing and pushing a character.
-     *
+     * <p>
      * This method does not do a bounds check.
-     * @param mv the current method visitor
+     *
+     * @param mv   the current method visitor
      * @param vars the variable indices for the current method
      */
     private void emitReadChar(MethodVisitor mv, MatchingVars vars) {
         if (vars.stringVar < 0) {
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, className, STRING_FIELD, "Ljava/lang/String;");
-        }
-        else {
+        } else {
             mv.visitVarInsn(ALOAD, vars.stringVar);
         }
         mv.visitVarInsn(ILOAD, vars.counterVar);
@@ -337,11 +332,12 @@ public class DFACompiler {
 
     /**
      * Emit an explicit loop searching for the first character of a pattern without entering the full state machine.
-     * @param mv the current method visitor
-     * @param vars the indexed variables for the current method
-     * @param chars the prefix characters of the pattern
+     *
+     * @param mv                   the current method visitor
+     * @param vars                 the indexed variables for the current method
+     * @param chars                the prefix characters of the pattern
      * @param postStateChangeLabel the label to jump to when a match is found
-     * @param failLabel the label to jump to if we exhaust the string without finding our initial character
+     * @param failLabel            the label to jump to if we exhaust the string without finding our initial character
      */
     private void emitPrefixFindingLoop(MethodVisitor mv, MatchingVars vars, List<Character> chars, Label postStateChangeLabel, Label returnLabel, Label failLabel) {
         Label innerIterationLabel = new Label();
@@ -355,8 +351,7 @@ public class DFACompiler {
             pushShortInt(mv, chars.get(0));
             mv.visitJumpInsn(IF_ICMPNE, innerIterationLabel);
             pushShortInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
-        }
-        else {
+        } else {
             Label postMatchLabel = new Label();
             Label[] charLabels = makeLabels(chars.size());
             int[] charArray = new int[chars.size()];
@@ -407,12 +402,10 @@ public class DFACompiler {
             mv.visitVarInsn(ILOAD, vars.counterVar);
             mv.visitVarInsn(ILOAD, vars.stateVar);
             mv.visitMethodInsn(INVOKEVIRTUAL, className, "stateGroup" + (start / 64), "(CII)I", false);
-        }
-        else if (selfTransitioning) {
+        } else if (selfTransitioning) {
             mv.visitVarInsn(ILOAD, vars.counterVar);
             mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + start, "(CI)I", false);
-        }
-        else {
+        } else {
             mv.visitMethodInsn(INVOKEVIRTUAL, className, "state" + start, "(C)I", false);
         }
         mv.visitVarInsn(ISTORE, vars.stateVar);
@@ -443,7 +436,7 @@ public class DFACompiler {
         mv.visitLabel(success);
         mv.visitInsn(ICONST_1);
         mv.visitInsn(IRETURN);
-        mv.visitMaxs(-1,-1);
+        mv.visitMaxs(-1, -1);
         mv.visitEnd();
     }
 
@@ -467,7 +460,7 @@ public class DFACompiler {
         mv.visitLabel(noMatch);
         mv.visitInsn(ICONST_0);
         mv.visitInsn(IRETURN);
-        mv.visitMaxs(-1,-1);
+        mv.visitMaxs(-1, -1);
         mv.visitEnd();
     }
 
@@ -498,7 +491,7 @@ public class DFACompiler {
         mv.visitIntInsn(BIPUSH, 8);
         mv.visitInsn(IDIV); // stack = (1 << state % 8), state / 8
         // default is impossible, so just use labels[0] for simplicity
-        mv.visitTableSwitchInsn(-1, places.length -1, labels[labels.length - 1], labels);
+        mv.visitTableSwitchInsn(-1, places.length - 1, labels[labels.length - 1], labels);
         // push a label for state -1, which indicates failure
         mv.visitLabel(labels[0]);
         mv.visitIntInsn(BIPUSH, 0);
@@ -541,8 +534,7 @@ public class DFACompiler {
         boolean hasSelfTransition = node.hasSelfTransition();
         if (hasSelfTransition) {
             mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(CI)I", null, null);
-        }
-        else {
+        } else {
             mv = this.classWriter.visitMethod(ACC_PRIVATE, "state" + transitionNumber, "(C)I", null, null);
         }
 
@@ -551,8 +543,7 @@ public class DFACompiler {
         // put state in var
         if (hasSelfTransition) {
             mv.visitIntInsn(SIPUSH, transitionNumber);
-        }
-        else {
+        } else {
             mv.visitIntInsn(SIPUSH, -1);
         }
         mv.visitVarInsn(ISTORE, vars.stateVar);
@@ -576,12 +567,10 @@ public class DFACompiler {
         if (!transitions.isEmpty()) {
             if (transitions.size() == 1 && transitions.get(0).getLeft().isSingleCharRange()) {
                 generateSingleCharTransition(node, mv, iterLabel, failLabel);
-            }
-            else {
+            } else {
                 if (node.charCount() <= MAX_STATES_FOR_SWITCH) {
                     generateSwitchTransitions(node, mv, iterLabel, failLabel);
-                }
-                else {
+                } else {
                     generateTransitionJumps(node, mv, iterLabel, failLabel);
                 }
             }
@@ -648,8 +637,7 @@ public class DFACompiler {
         for (Pair<CharRange, DFA> pair : node.getTransitions()) {
             if (pair.getLeft().isSingleCharRange()) {
                 chars[i++] = pair.getLeft().getStart();
-            }
-            else {
+            } else {
                 CharRange range = pair.getLeft();
                 int c = range.getStart();
                 while (c <= range.getEnd()) {
@@ -683,8 +671,7 @@ public class DFACompiler {
             if (charRange.isSingleCharRange()) {
                 pushCharConst(mv, charRange.getStart());
                 mv.visitJumpInsn(IF_ICMPEQ, transitionLabel);
-            }
-            else {
+            } else {
                 pushCharConst(mv, charRange.getStart());
                 mv.visitJumpInsn(IF_ICMPLT, failLabel);
 
@@ -708,14 +695,14 @@ public class DFACompiler {
 
     /**
      * Push a char constant onto the stack. Requires that the character has already been added to rangeconstants.
+     *
      * @param mv the current method visitor
-     * @param c the character constant
+     * @param c  the character constant
      */
     private void pushCharConst(MethodVisitor mv, char c) {
         if ((int) c <= Short.MAX_VALUE) {
             pushShortInt(mv, (int) c);
-        }
-        else {
+        } else {
             mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(c), "C");
         }
     }
@@ -784,7 +771,8 @@ public class DFACompiler {
 
     /**
      * Utility method, push an int onto the stack, assuming it is no bigger than a short
-     * @param mv method visitor
+     *
+     * @param mv       method visitor
      * @param constant the constant
      */
     private void pushShortInt(MethodVisitor mv, int constant) {
@@ -814,11 +802,9 @@ public class DFACompiler {
                     mv.visitInsn(ICONST_5);
                 }
             }
-        }
-        else if (constant <= 127) {
+        } else if (constant <= 127) {
             mv.visitIntInsn(BIPUSH, constant);
-        }
-        else {
+        } else {
             mv.visitIntInsn(SIPUSH, constant);
         }
     }
