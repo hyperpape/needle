@@ -204,6 +204,10 @@ public class DFACompiler {
         mv.visitVarInsn(ISTORE, vars.lengthVar);
         mv.visitVarInsn(ILOAD, vars.lengthVar);
 
+        if (containedIn) {
+            mv.visitInsn(ICONST_M1);
+            mv.visitVarInsn(ISTORE, vars.stateVar);
+        }
         mv.visitLabel(iterateLabel);
 
         // Check state. If we're in matching mode, return when state is negative, otherwise continue.
