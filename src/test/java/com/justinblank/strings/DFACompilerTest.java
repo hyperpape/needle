@@ -68,6 +68,18 @@ public class DFACompilerTest {
     }
 
     @Test
+    public void testLiteralRepetitionRegex() {
+        Pattern pattern = DFACompiler.compile("a*", "aStarRegex");
+        match(pattern, "");
+        match(pattern, "a");
+        match(pattern, "aa");
+        match(pattern, "aaa");
+        match(pattern, "aaaa");
+
+        assertTrue(pattern.matcher("ab").containedIn());
+    }
+
+    @Test
     public void testLiteralRepetitionLiteralRegex() {
         Pattern pattern = DFACompiler.compile("ad*g", "literalReptitionLiteralRegex");
         match(pattern, "ag");
@@ -167,6 +179,7 @@ public class DFACompilerTest {
 
         fail(pattern, "");
         assertFalse(pattern.matcher("059{").matches());
+        assertTrue(pattern.matcher("12{").containedIn());
         assertTrue(pattern.matcher("059{").containedIn());
     }
 
