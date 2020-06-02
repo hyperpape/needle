@@ -91,6 +91,7 @@ public class DFACompiler {
 
     protected void compile() {
         addFields();
+        classWriter.visitField( ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2);
         addCharConstants();
         addConstructor();
         generateTransitionMethods();
@@ -270,7 +271,7 @@ public class DFACompiler {
 
         // handle case of failure
         mv.visitLabel(failLabel);
-        mv.visitInsn(ICONST_0);
+        emitLoadContainedInFailure(mv);
         mv.visitInsn(IRETURN);
 
         // check if the dfa had a match
@@ -378,6 +379,10 @@ public class DFACompiler {
         mv.visitJumpInsn(IF_ICMPNE, returnLabel);
 
         mv.visitJumpInsn(GOTO, postStateChangeLabel);
+    }
+
+    private void emitLoadContainedInFailure(MethodVisitor mv) {
+        mv.visitFieldInsn(GETSTATIC, className, "CONTAINED_IN_FAILURE", "I");
     }
 
     /**
