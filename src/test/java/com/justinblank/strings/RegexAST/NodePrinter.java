@@ -91,7 +91,7 @@ public class NodePrinter {
             case ']':
             case '$':
             case '^':
-                return "/" + c;
+                return "\\" + c;
             default:
                 return String.valueOf(c);
         }
