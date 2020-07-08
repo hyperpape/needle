@@ -326,6 +326,12 @@ public class RegexParserTest {
         check(parse("(())"), "");
     }
 
+    @Test
+    public void testNestedBrackets() {
+        check(parse("[[sa]]"), "(a)|(s)");
+        check(parse("[[[sa]]]"), "(a)|(s)");
+    }
+
     private static void check(Node node, String representation) {
         assertEquals(representation, NodePrinter.print(node));
         assertNotNull(java.util.regex.Pattern.compile(representation));

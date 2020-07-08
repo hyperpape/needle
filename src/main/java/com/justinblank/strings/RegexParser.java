@@ -379,7 +379,15 @@ public class RegexParser {
                 ranges.add(new CharRange(last, next));
                 last = null;
             } else if (c == '[') {
-                throw new RegexSyntaxException("Unexpected '[' inside of character class");
+                Optional<Node> maybeNode = buildCharSet();
+                if (maybeNode.isEmpty()) {
+                    throw new RegexSyntaxException("Unbalanced [ token");
+                }
+                char next = takeChar();
+                if (next != ']') {
+                    throw new RegexSyntaxException("Unbalanced [ token");
+                }
+                return maybeNode;
             } else {
                 if (last != null) {
                     characterSet.add(last);
