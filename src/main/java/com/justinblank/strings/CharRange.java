@@ -19,6 +19,9 @@ public class CharRange implements Comparable<CharRange> {
     public CharRange(char start, char end) {
         this.start = start;
         this.end = end;
+        if (this.start > this.end) {
+            throw new IllegalArgumentException("Tried to create a character range with start=" + start + " larger than end=" + end);
+        }
         empty = false;
     }
 

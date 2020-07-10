@@ -68,7 +68,9 @@ public class Alternation extends Node {
             if (last != null) {
                 char low = (char) (((int) last.range().getEnd()) + 1);
                 char high = (char) (((int) current.range().getStart() - 1));
-                complementedNodes.add(new CharRangeNode(low, high));
+                if (low <= high) {
+                    complementedNodes.add(new CharRangeNode(low, high));
+                }
             }
             else {
                 char high = (char) (((int) current.range().getStart()) -1);
