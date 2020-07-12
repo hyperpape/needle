@@ -8,8 +8,7 @@ import java.util.Set;
 
 import static com.justinblank.strings.TestUtil.parse;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class RegexParserTest {
 
@@ -433,6 +432,39 @@ public class RegexParserTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testParsingHasFixedPoint() {
+        Random random = new Random();
+        for (int maxSize = 1; maxSize < 24; maxSize++) {
+            for (int i = 0; i < 100; i++) {
+                Node node = new RegexGenerator(random, maxSize).generate();
+                checkParsingHasFixedPoint(node);
+            }
+        }
+    }
+
+    private void checkParsingHasFixedPoint(Node node) {
+        String last = null;
+        String regex = NodePrinter.print(node);
+        // catch any errors in our NodePrinter
+        // TODO: remove this check
+        try {
+            java.util.regex.Pattern.compile(regex);
+        } catch (Exception e) {
+            return;
+        }
+
+        for (int iteration = 0; iteration < 12; iteration++) {
+            if (regex.equals(last)) {
+                return;
+            }
+            node = RegexParser.parse(regex);
+            last = regex;
+            regex = NodePrinter.print(node);
+        }
+        assertFalse(false);
     }
 }
 

@@ -1,10 +1,14 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
+import com.justinblank.strings.RegexAST.NodePrinter;
 import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
+import org.junit.experimental.theories.suppliers.TestedOn;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.generators.StringsDSL;
+
+import java.util.Random;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static junit.framework.TestCase.assertTrue;
@@ -412,6 +416,11 @@ public class IntegrationTest {
         assertFalse(searchMethod.matches("%^"));
         assertFalse(searchMethod.matches("{}"));
     }
+    
+    @Test
+    public void testAlternationOfRepeatedRangeWithOverlappingRangeFollowedByLiteral() {
+        check("([BQ]*|[Q-x])l");
+    }
 
     @Test
     public void testPeriod() {
@@ -429,5 +438,48 @@ public class IntegrationTest {
         SearchMethod nfa = NFA.createNFA("(EAD)|(DEAD)");
         find(nfa, "DEAD");
         assertEquals(MatchResult.success(0, 4), nfa.find("DEAD"));
+    }
+
+    public void check(String regex) {
+        RegexGenerator regexGenerator = new RegexGenerator(new Random(), 1);
+        Node node = RegexParser.parse(regex);
+        SearchMethod method = NFA.createNFA(regex);
+        String shortestFailure = null;
+        for (int i = 0; i < 10000; i++) {
+            String s = regexGenerator.generateString(node);
+            if (shortestFailure == null || s.length() < shortestFailure.length()) {
+                MatchResult result = method.find(s);
+                if (result.start != 0 || result.end != s.length()) {
+                    shortestFailure = s;
+                }
+            }
+        }
+        assertNull(shortestFailure);
+    }
+
+    @Test
+    public void generativeMatchingTest() {
+        Random random = new Random();
+        for (int maxSize = 1; maxSize < 24; maxSize++) {
+            for (int i = 0; i < 20; i++) {
+                RegexGenerator regexGenerator = new RegexGenerator(random, maxSize);
+                Node node = regexGenerator.generate();
+                String regex = NodePrinter.print(node);
+                // catch any errors in our NodePrinter
+                // TODO: remove this check
+                try {
+                    java.util.regex.Pattern.compile(regex);
+                } catch (Exception e) {
+                    continue;
+                }
+                String hayStack = regexGenerator.generateString(node);
+                try {
+                    match(NFA.createNFA(regex), hayStack);
+                } catch (Throwable t) {
+                    System.out.println("failed to match regex='" + regex + "' against hayStack='" + hayStack + "'");
+                    throw t;
+                }
+            }
+        }
     }
 }

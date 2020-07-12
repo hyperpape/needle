@@ -82,5 +82,56 @@ class RegexGenerator {
         return c;
     }
 
+    String generateString(Node node) {
+        StringBuilder sb = new StringBuilder();
+        addToString(node, sb);
+        return sb.toString();
+    }
 
+    private void addToString(Node node, StringBuilder sb) {
+        if (node instanceof LiteralNode) {
+            sb.append(((LiteralNode) node).getLiteral());
+        }
+        else if (node instanceof CharRangeNode) {
+            var range = (CharRangeNode) node;
+            if (range.range().getStart() == range.range().getEnd()) {
+                sb.append(range.range().getStart());
+            }
+            else {
+                var x = random.nextInt(range.range().getEnd() - range.range().getStart());
+                var c = (char) ((int) (range.range().getStart()) + x);
+                sb.append(c);
+            }
+        }
+        else if (node instanceof Concatenation) {
+            var c = (Concatenation) node;
+            addToString(c.head, sb);
+            addToString(c.tail, sb);
+        }
+        else if (node instanceof Alternation) {
+            var a = (Alternation) node;
+            var b = random.nextBoolean();
+            addToString(b ? a.left : a.right, sb);
+        }
+        else if (node instanceof Repetition) {
+            var n = ((Repetition) node).node;
+            var count = random.nextInt(8);
+            for (int i = 0; i < count; i++) {
+                addToString(n, sb);
+            }
+        }
+        else if (node instanceof CountedRepetition) {
+            var cr = ((CountedRepetition) node);
+            int count;
+            if (cr.max == cr.min) {
+                count = cr.max;
+            }
+            else {
+                count = cr.min + random.nextInt(cr.max - cr.min);
+            }
+            for (int i = 0; i < count; i++) {
+                addToString(cr.node, sb);
+            }
+        }
+    }
 }

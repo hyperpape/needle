@@ -208,7 +208,7 @@ public class RegexParser {
 
     private Node parseEscapeSequence() {
         if (index >= regex.length()) {
-            throw new RegexSyntaxException("'\' character with nothing following it at index" + (index - 1));
+            throw new RegexSyntaxException("'\\' character with nothing following it at index" + (index - 1));
         }
         char c = takeChar();
         switch (c) {
