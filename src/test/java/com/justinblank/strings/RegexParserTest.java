@@ -3,12 +3,17 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.*;
 import org.junit.Test;
 
+import java.util.Random;
+import java.util.Set;
+
 import static com.justinblank.strings.TestUtil.parse;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class RegexParserTest {
+
+    static final Set<Character> ESCAPED_AS_LITERAL_CHARS = Set.of('*', '(', ')', '[', '$', '^', '+', ':', '?', '{');
 
     @Test
     public void testSingleChar() {
@@ -327,9 +332,26 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testNestedBrackets() {
+    public void testEscapedLiterals() {
+        for (Character c : ESCAPED_AS_LITERAL_CHARS) {
+            check(parse("\\" + c), "\\" + c);
+        }
+    }
+
+    @Test
+    public void testTrivialNestedBrackets() {
         check(parse("[[sa]]"), "(a)|(s)");
         check(parse("[[[sa]]]"), "(a)|(s)");
+    }
+
+    @Test
+    public void testEscapedNestedBrackets() {
+        check(parse("[\\[a]"), "(\\[)|(a)");
+    }
+
+    @Test
+    public void testEscapedBracketInCharRange() {
+        check(parse("[A-\\[]"), "[A-\\[]");
     }
 
     private static void check(Node node, String representation) {
@@ -371,4 +393,29 @@ public class RegexParserTest {
     public void testRightMismatchedBracket() {
         parse("]");
     }
+
+    @Test
+    public void generativeParsingTest() {
+        Random random = new Random();
+        for (int maxSize = 1; maxSize < 24; maxSize++) {
+            for (int i = 0; i < 1000; i++) {
+                Node node = new RegexGenerator(random, maxSize).generate();
+                String regex = NodePrinter.print(node);
+                // catch any errors in our NodePrinter
+                // TODO: remove this check
+                try {
+                    java.util.regex.Pattern.compile(regex);
+                } catch (Exception e) {
+                    continue;
+                }
+                try {
+                    RegexParser.parse(regex);
+                } catch (Exception e) {
+                    System.out.println(regex);
+                    throw e;
+                }
+            }
+        }
+    }
 }
+

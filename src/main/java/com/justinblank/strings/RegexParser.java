@@ -9,6 +9,7 @@ public class RegexParser {
 
     private int index = 0;
     private int parenDepth = 0;
+    private int charRangeDepth = 1;
     private String regex;
     private Stack<Node> nodes = new Stack<>();
 
@@ -25,7 +26,7 @@ public class RegexParser {
         }
         catch (Exception e) {
             // Any other exception is a bug, wrap and rethrow
-            throw new RegexSyntaxException("Unexpected error while parsing regex ' " + regex + "' ", e);
+            throw new RegexSyntaxException("Unexpected error while parsing regex '" + regex + "' ", e);
         }
     }
 
@@ -285,6 +286,23 @@ public class RegexParser {
             case '\\': {
                 return new CharRangeNode('\\', '\\');
             }
+            case '[': {
+                if (charRangeDepth > 0) {
+                    return new CharRangeNode('[', '[');
+                }
+            }
+            case '|':
+            case '(':
+            case ')':
+            case '$':
+            case '*':
+            case '?':
+            case '+':
+            case '{':
+            case ':':
+            case '^': {
+                return new CharRangeNode(c, c);
+            }
         }
         throw new RegexSyntaxException("Escape with unrecognized escaped character: '" + c + "'");
     }
@@ -352,6 +370,7 @@ public class RegexParser {
     }
 
     private Optional<Node> buildCharSet() {
+        charRangeDepth++;
         Set<Character> characterSet = new HashSet<>();
         Set<CharRange> ranges = new HashSet<>();
         Character last = null;
@@ -365,6 +384,7 @@ public class RegexParser {
                 if (last != null) {
                     characterSet.add(last);
                 }
+                charRangeDepth--;
                 return buildNode(characterSet, ranges, complemented);
             } else if (c == '-') {
                 if (index == regex.length()) {
@@ -376,18 +396,38 @@ public class RegexParser {
                     continue;
                 }
                 char next = takeChar();
+                if (next == '\\') {
+                    if (peekLBracket()) {
+                        next = '[';
+                    }
+                    else if (peekRBracket()) {
+                        next = ']';
+                    }
+                }
                 ranges.add(new CharRange(last, next));
                 last = null;
             } else if (c == '[') {
+                int currentIndex = index;
                 Optional<Node> maybeNode = buildCharSet();
                 if (maybeNode.isEmpty()) {
-                    throw new RegexSyntaxException("Unbalanced [ token");
+                    throw new RegexSyntaxException("Unbalanced [ token at index=" + currentIndex);
                 }
                 char next = takeChar();
                 if (next != ']') {
-                    throw new RegexSyntaxException("Unbalanced [ token");
+                    throw new RegexSyntaxException("Unbalanced [ token at index=" + currentIndex);
                 }
+                charRangeDepth--;
                 return maybeNode;
+            } else if (c == '\\') {
+                if (peekLBracket()) {
+                    characterSet.add('[');
+                }
+                else if (peekRBracket()) {
+                    characterSet.add(']');
+                }
+                else {
+                    characterSet.add('\\');
+                }
             } else {
                 if (last != null) {
                     characterSet.add(last);
@@ -396,6 +436,23 @@ public class RegexParser {
             }
         }
         throw new RegexSyntaxException("Parsing failed, unmatched [");
+    }
+
+    private List<CharRange> explodeChars(Node node) {
+        List<CharRange> ranges = new ArrayList<>();
+        if (node instanceof Alternation) {
+            Alternation alt = (Alternation) node;
+            ranges.addAll(explodeChars(alt.left));
+            ranges.addAll(explodeChars(alt.right));
+        }
+        else if (node instanceof CharRangeNode) {
+            var list = new ArrayList<>();
+            list.add(((CharRangeNode) node).range());
+        }
+        else {
+            throw new IllegalArgumentException("Unexpected argument type of " + node);
+        }
+        return ranges;
     }
 
     private Optional<Node> buildNode(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
@@ -450,23 +507,20 @@ public class RegexParser {
         return CharRange.compact(charRanges);
     }
 
-    private boolean peekStar() {
-        if (index < regex.length() && regex.charAt(index) == '*') {
+    private boolean peekLBracket() {
+        if (index < regex.length() && regex.charAt(index) == '[') {
             index++;
             return true;
         }
         return false;
     }
 
-    private boolean peekPlus() {
-        if (index < regex.length() && regex.charAt(index) == '+') {
+    private boolean peekRBracket() {
+        if (index < regex.length() && regex.charAt(index) == ']') {
+            index++;
             return true;
         }
         return false;
-    }
-
-    private boolean peekChar() {
-        return index < regex.length();
     }
 
     private boolean peekOctal() {

@@ -15,6 +15,7 @@ public class TestUtil {
         catch (RegexSyntaxException e) {
             try {
                 java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
+                e.printStackTrace();
                 fail("Encountered exception parsing '" + regex + "', which was parsed by the Java library");
             }
             catch (Exception e2) {
