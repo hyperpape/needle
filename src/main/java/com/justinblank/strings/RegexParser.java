@@ -419,15 +419,18 @@ public class RegexParser {
                 charRangeDepth--;
                 return maybeNode;
             } else if (c == '\\') {
+                char next;
                 if (peekLBracket()) {
-                    characterSet.add('[');
+                    next = '[';
                 }
                 else if (peekRBracket()) {
-                    characterSet.add(']');
+                    next = ']';
                 }
                 else {
-                    characterSet.add('\\');
+                    next = '\\';
                 }
+                characterSet.add(next);
+                last = next;
             } else {
                 if (last != null) {
                     characterSet.add(last);

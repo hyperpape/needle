@@ -76,6 +76,12 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testBackslashAsPartOfCharRange() {
+        SearchMethod method = NFA.createNFA("[\\-r]");
+        assertTrue(method.matches("n"));
+    }
+
+    @Test
     public void testAlternationWithRepetitionDFAMatchesMultipleRepetitions() {
         DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
         assertTrue(dfa.matches("123234234123"));
