@@ -172,6 +172,7 @@ public class EscapeSequenceTests {
     public void testEscape_0() {
         SearchMethod nfa = NFA.createNFA("\\061");
         match(nfa, "1");
+        find(nfa, "a1b");
         find(nfa, "abc1def");
         fail(nfa, "hi");
         expectError("\\099");

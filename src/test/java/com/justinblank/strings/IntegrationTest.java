@@ -8,8 +8,7 @@ import org.quicktheories.generators.StringsDSL;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class IntegrationTest {
 
@@ -73,6 +72,24 @@ public class IntegrationTest {
     public void testAlternationWithRepetitionDFAMatchesOneRepetition() {
         DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
         assertTrue(dfa.matches("123"));
+    }
+
+    @Test
+    public void testUpperAndLowerCaseRange() {
+        var method = NFA.createNFA("[S-l]");
+        match(method, "g");
+    }
+
+    @Test
+    public void testUpperAndLowerCaseRangeWithCountedRepetition() {
+        var method = NFA.createNFA("[S-l]{0,2}");
+        match(method, "g");
+    }
+
+    @Test
+    public void testTriplyRepeatedConcatenatedCharPlusCharRange() {
+        var method = NFA.createNFA("(((((`)([m-o]))*)*)*)(a)");
+        match(method, "`ma");
     }
 
     @Test

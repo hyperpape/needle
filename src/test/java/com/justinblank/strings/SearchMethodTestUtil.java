@@ -10,7 +10,7 @@ public class SearchMethodTestUtil {
         assertTrue(method.containedIn(s));
         MatchResult result = method.find(s, start, end);
         assertTrue(result.matched);
-        assertTrue(method.find(s, start, end, true).matched);
+        assertTrue(method.find(s, start, end, false).matched);
         assertTrue(method.matches(s.substring(result.start, result.end)));
     }
 

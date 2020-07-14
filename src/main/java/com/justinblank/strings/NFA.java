@@ -166,7 +166,7 @@ class NFA implements SearchMethod {
                     if (target1Instr.opcode != MATCH) {
                         if (origin < stateOrigins[target1]) {
                             stateOrigins[target1] = origin;
-                            j = Math.min(j, activeStates.indexOf(target1));
+                            j = Math.max(Math.min(j, activeStates.indexOf(target1) - 1), 0);
                         }
                     }
                     int target2 = instr.target2;
@@ -175,7 +175,7 @@ class NFA implements SearchMethod {
                         activeStates.add(target2);
                         if (origin < stateOrigins[target2]) {
                             stateOrigins[target2] = origin;
-                            j = Math.min(j, activeStates.indexOf(target2));
+                            j = Math.max(Math.min(j, activeStates.indexOf(target2) - 1), 0);
                         }
                     }
                     if (target1Instr.opcode == MATCH) {
