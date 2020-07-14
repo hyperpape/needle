@@ -2,14 +2,12 @@ package com.justinblank.strings;
 
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static com.justinblank.strings.Factorization.best;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class FactorizationTest {
 
@@ -75,6 +73,7 @@ public class FactorizationTest {
     public void testFactorization() {
         var node = RegexParser.parse("((GA|AAA)*)(TA|AG)");
         assertEquals(Set.of("TA", "AG"), node.bestFactors().getFactors());
+
     }
 
     @Test
@@ -106,13 +105,35 @@ public class FactorizationTest {
     }
 
     @Test
+    public void testPotentiallyEmptyCountedRepetition() {
+        var node = RegexParser.parse("(AB){0,2}");
+        var factorization = node.bestFactors();
+        var expectedFactors = Set.of("", "AB", "ABAB");
+        assertEquals(expectedFactors, factorization.getFactors());
+        assertEquals(expectedFactors, factorization.getPrefixes());
+        assertEquals(expectedFactors, factorization.getSuffixes());
+        assertEquals(expectedFactors, factorization.getAll());
+    }
+
+    @Test
     public void testCountedRepetition() {
         var node = RegexParser.parse("(AB){1,2}");
         var factorization = node.bestFactors();
-        assertEquals(Set.of("AB", "ABAB"), factorization.getFactors());
-        assertEquals(Set.of("AB", "ABAB"), factorization.getPrefixes());
-        assertEquals(Set.of("AB", "ABAB"), factorization.getSuffixes());
-        assertEquals(Set.of("AB", "ABAB"), factorization.getAll());
+        Set<String> expectedFactors = Set.of("AB", "ABAB");
+        assertEquals(expectedFactors, factorization.getFactors());
+        assertEquals(expectedFactors, factorization.getPrefixes());
+        assertEquals(expectedFactors, factorization.getSuffixes());
+        assertEquals(expectedFactors, factorization.getAll());
+    }
+
+    @Test
+    public void testPotentiallyEmptyCountedRepetitionWithLargeRange() {
+        var node = RegexParser.parse("[A-Z]{0,2}");
+        var factorization = node.bestFactors();
+        assertEquals(Set.of(""), factorization.getFactors());
+        assertEquals(Set.of(""), factorization.getPrefixes());
+        assertEquals(Set.of(""), factorization.getSuffixes());
+        assertNull(factorization.getAll());
     }
 
     @Test

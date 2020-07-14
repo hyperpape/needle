@@ -3,7 +3,8 @@ package com.justinblank.strings;
 import java.util.*;
 
 /**
- * Class containing data for the computation of the factors of a regular expression.
+ * Class containing data for the computation of the factors of a regular expression, roughly based on the scheme
+ * introduced in Navarro and Rafinot, Flexible Pattern Matching in Strings section 5.5.2.
  *
  * This class is mutated by operations on it.
  */
@@ -13,9 +14,24 @@ public class Factorization {
     public static final int MAX_CHAR_RANGE_FACTORS = 4;
     // TODO: tune this
     public static final int MAX_REPETITION_COUNT = 2;
+
+    // Note: none of these sets are ever internally mutated, outside of the constructors.
+
+    /**
+     * The set of all factors that can be matched by the regular expression.
+     */
     private Set<String> all;
+    /**
+     * The set of all suffixes that the regular expression can have.
+     */
     private Set<String> suffixes;
+    /**
+     * The set of all prefixes that the regular expression can have.
+     */
     private Set<String> prefixes;
+    /**
+     * A set of factors such that one of them must be present.
+     */
     private Set<String> factors;
 
     private Factorization() {
@@ -71,6 +87,10 @@ public class Factorization {
         return new Factorization(null, null, null, null);
     }
 
+    static Factorization copy(Factorization factorization) {
+        return new Factorization(factorization.all, factorization.suffixes, factorization.prefixes, factorization.factors);
+    }
+
     Set<String> getAll() {
         return all;
     }
@@ -87,6 +107,11 @@ public class Factorization {
         return factors;
     }
 
+    /**
+     * Alternation does set union on all the components of a factorization. For any component, if either side is null,
+     * then the result is null.
+     * @param factorization the other factorization
+     */
     public void alternate(Factorization factorization) {
         if (this.all == null || factorization.all == null) {
             all = null;
@@ -128,7 +153,12 @@ public class Factorization {
         var localFactors = factors;
         var localAll = all;
 
-        all = concatenateStrings(localAll, factorization.all);
+        if (localAll == null || factorization.all == null) {
+            all = null;
+        }
+        else {
+            all = concatenateStrings(localAll, factorization.all);
+        }
         prefixes = best(localPrefixes, concatenateStrings(localAll, factorization.prefixes));
         suffixes = best(factorization.suffixes, concatenateStrings(localSuffixes, factorization.all));
         var firstFactors = best(localFactors, factorization.factors);
@@ -213,14 +243,14 @@ public class Factorization {
     public Factorization countedRepetition(int min, int max) {
         Factorization factorization = this;
         if (max > MAX_REPETITION_COUNT) {
-            return Factorization.empty();
+            return empty();
         }
         if (min == 0) {
             factorization = fromString("");
         }
         for (int i = min; i <= max; i++) {
             Factorization newFactors = fromString("");
-            for (int j = 1; j <= i; j++) {
+            for (int j = 0; j < i; j++) {
                 newFactors.concatenate(this);
             }
             factorization.alternate(newFactors);
