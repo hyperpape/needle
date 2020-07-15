@@ -113,7 +113,7 @@ public class RegexParser {
         }
         Node node = nodes.pop();
         if (node instanceof LParenNode) {
-            throw new RegexSyntaxException("Unbalanced '('");
+            throw new RegexSyntaxException("Unbalanced '(' found parsing regex=" + regex);
         }
         while (!nodes.isEmpty()) {
             Node next = nodes.pop();
@@ -125,7 +125,7 @@ public class RegexParser {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
             }
             else if (next instanceof LParenNode) {
-                throw new RegexSyntaxException("Unbalanced ( found");
+                throw new RegexSyntaxException("Unbalanced '(' found parsing regex=" + regex);
             }
             else {
                 node = concatenate(next, node);
@@ -397,11 +397,14 @@ public class RegexParser {
                 }
                 char next = takeChar();
                 if (next == '\\') {
-                    if (peekLBracket()) {
-                        next = '[';
+                    if (peekChar('[')) {
+                        next = takeChar();
                     }
-                    else if (peekRBracket()) {
-                        next = ']';
+                    else if (peekChar(']')) {
+                        next = takeChar();
+                    }
+                    else if (peekChar('\\')) {
+                        next = takeChar();
                     }
                 }
                 ranges.add(new CharRange(last, next));
@@ -420,14 +423,11 @@ public class RegexParser {
                 return maybeNode;
             } else if (c == '\\') {
                 char next;
-                if (peekLBracket()) {
-                    next = '[';
-                }
-                else if (peekRBracket()) {
-                    next = ']';
+                if (peekChar('[') || peekChar(']') || peekChar('\\')) {
+                    next = takeChar();
                 }
                 else {
-                    next = '\\';
+                    throw new RegexSyntaxException("Illegal escape in CharRange");
                 }
                 characterSet.add(next);
                 last = next;
@@ -510,20 +510,8 @@ public class RegexParser {
         return CharRange.compact(charRanges);
     }
 
-    private boolean peekLBracket() {
-        if (index < regex.length() && regex.charAt(index) == '[') {
-            index++;
-            return true;
-        }
-        return false;
-    }
-
-    private boolean peekRBracket() {
-        if (index < regex.length() && regex.charAt(index) == ']') {
-            index++;
-            return true;
-        }
-        return false;
+    private boolean peekChar(char c) {
+        return (index < regex.length() && regex.charAt(index) == c);
     }
 
     private boolean peekOctal() {

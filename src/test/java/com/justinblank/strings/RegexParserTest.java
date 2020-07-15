@@ -15,6 +15,7 @@ public class RegexParserTest {
 
     static final Set<Character> ESCAPED_AS_LITERAL_CHARS = Set.of('*', '(', ')', '[', '$', '^', '+', ':', '?', '{');
 
+
     @Test
     public void testSingleChar() {
         Node node = parse("a");
@@ -108,6 +109,11 @@ public class RegexParserTest {
     public void testPlusHasHighPrecedence() {
         Node node = parse("ab+");
         check(node, "(a)((b)((b)*))");
+    }
+
+    @Test
+    public void testBackslashInCharRange() {
+        check(RegexParser.parse("[L-\\\\]"), "[L-\\\\]");
     }
 
     @Test
@@ -351,7 +357,12 @@ public class RegexParserTest {
 
     @Test
     public void testEscapedBracketInCharRange() {
-        check(parse("[A-\\[]"), "[A-\\[]");
+        check("[A-\\[]", "[A-\\[]");
+    }
+
+    private static void check(String regex, String representation) {
+        assertEquals(representation, NodePrinter.print(RegexParser.parse(regex)));
+        assertNotNull(java.util.regex.Pattern.compile(representation));
     }
 
     private static void check(Node node, String representation) {
@@ -406,7 +417,7 @@ public class RegexParserTest {
                 try {
                     java.util.regex.Pattern.compile(regex);
                 } catch (Exception e) {
-                    continue;
+                    continue; // throw e;
                 }
                 try {
                     RegexParser.parse(regex);

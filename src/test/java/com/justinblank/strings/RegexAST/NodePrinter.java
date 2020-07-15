@@ -42,7 +42,7 @@ public class NodePrinter {
             else {
                 sb.append('[');
                 char start = crNode.range().getStart();
-                if (start == '[' || start == ']') {
+                if (start == '[' || start == ']' || start == '\\') {
                     sb.append('\\').append(start);
                 }
                 else {
@@ -50,7 +50,7 @@ public class NodePrinter {
                 }
                 sb.append('-');
                 char end = crNode.range().getEnd();
-                if (end == '[' || end == ']') {
+                if (end == '[' || end == ']' || end == '\\') {
                     sb.append('\\').append(end);
                 }
                 else {

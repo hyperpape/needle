@@ -94,8 +94,10 @@ public class IntegrationTest {
 
     @Test
     public void testBackslashAsPartOfCharRange() {
-        SearchMethod method = NFA.createNFA("[\\-r]");
-        assertTrue(method.matches("n"));
+        SearchMethod method = NFA.createNFA("[\\\\-r]");
+        match(method, "\\");
+        match(method, "n");
+        match(method, "r");
     }
 
     @Test

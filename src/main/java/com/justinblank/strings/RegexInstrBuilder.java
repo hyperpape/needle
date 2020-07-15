@@ -60,11 +60,9 @@ public class RegexInstrBuilder {
         for (int i = 0; i < regex.size(); i++) {
             RegexInstr instr = regex.get(i);
             if (instr.opcode == JUMP) {
-                // Useless to jump to immediately following instruction
-                assert instr.target1 != i + 1 : "pointless jump target in Regex--fix simplification logic";
                 assert regex.get(instr.target1).opcode != JUMP;
             }
-            if (instr.opcode == SPLIT) {
+            else if (instr.opcode == SPLIT) {
                 assert regex.get(instr.target1).opcode != JUMP;
                 assert regex.get(instr.target2).opcode != JUMP;
             }
