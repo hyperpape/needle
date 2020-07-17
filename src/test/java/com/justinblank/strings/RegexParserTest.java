@@ -148,13 +148,13 @@ public class RegexParserTest {
     @Test
     public void testBracketsFollowedBySomething() {
         Node node = parse("[Ss]h");
-        check(node, "((S)|(s))(h)");
+        check(node, "(S|s)(h)");
     }
 
     @Test
     public void testBracketsFollowedBySomethingWrappedInParens() {
         Node node = parse("([Ss]h)");
-        check(node, "((S)|(s))(h)");
+        check(node, "(S|s)(h)");
     }
 
     @Test
@@ -202,7 +202,7 @@ public class RegexParserTest {
         Node node = parse("[0-9A-Z]");
         assertNotNull(node);
         assertTrue(node instanceof Alternation);
-        check(node, "([0-9])|([A-Z])");
+        check(node, "[0-9]|[A-Z]");
     }
 
     @Test
@@ -210,6 +210,12 @@ public class RegexParserTest {
         Node node = parse("[0-12-34-56-78-9]");
         assertNotNull(node);
         check(node, "[0-9]");
+    }
+
+    @Test
+    public void testRepeatedCharRange() {
+        Node node = parse("[0-9]*");
+        check(node, "[0-9]*");
     }
 
     @Test
@@ -346,13 +352,13 @@ public class RegexParserTest {
 
     @Test
     public void testTrivialNestedBrackets() {
-        check(parse("[[sa]]"), "(a)|(s)");
-        check(parse("[[[sa]]]"), "(a)|(s)");
+        check(parse("[[sa]]"), "a|s");
+        check(parse("[[[sa]]]"), "a|s");
     }
 
     @Test
     public void testEscapedNestedBrackets() {
-        check(parse("[\\[a]"), "(\\[)|(a)");
+        check(parse("[\\[a]"), "\\[|a");
     }
 
     @Test

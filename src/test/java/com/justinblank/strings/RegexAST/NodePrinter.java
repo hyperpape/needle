@@ -8,8 +8,8 @@ import java.util.Stack;
  */
 public class NodePrinter {
 
-    private StringBuilder sb = new StringBuilder();
-    private Stack<Object> stack = new Stack<>();
+    private final StringBuilder sb = new StringBuilder();
+    private final Stack<Object> stack = new Stack<>();
 
     private NodePrinter(Node node) {
         stack.push(node);
@@ -67,37 +67,67 @@ public class NodePrinter {
         }
         else if (node instanceof Concatenation) {
             Concatenation c = (Concatenation) node;
-            stack.push(")");
+            if (needsParens(c.tail)) {
+                stack.push(")");
+            }
             stack.push(c.tail);
-            stack.push("(");
-            stack.push(")");
+            if (needsParens(c.tail)) {
+                stack.push("(");
+            }
+            if (needsParens(c.head)) {
+                stack.push(")");
+            }
             stack.push(c.head);
-            stack.push("(");
+            if (needsParens(c.head)) {
+                stack.push("(");
+            }
         }
         else if (node instanceof Alternation) {
             Alternation alt = (Alternation) node;
-            stack.push(")");
+            if (needsParens(alt.right)) {
+                stack.push(")");
+            }
             stack.push(alt.right);
-            stack.push("(");
+            if (needsParens(alt.right)) {
+                stack.push("(");
+            }
             stack.push("|");
-            stack.push(")");
+            if (needsParens(alt.left)) {
+                stack.push(")");
+            }
             stack.push(alt.left);
-            stack.push("(");
+            if (needsParens(alt.left)) {
+                stack.push("(");
+            }
         }
         else if (node instanceof CountedRepetition) {
             CountedRepetition cr = (CountedRepetition) node;
+            var child = ((CountedRepetition) node).node;
             stack.push("{" + cr.min + "," + cr.max + "}");
-            stack.push(")");
-            stack.push(((CountedRepetition) node).node);
-            stack.push("(");
+            if (needsParens(child)) {
+                stack.push(")");
+            }
+            stack.push(child);
+            if (needsParens(child)) {
+                stack.push("(");
+            }
         }
         else if (node instanceof Repetition) {
             stack.push("*");
-            stack.push(")");
-            stack.push(((Repetition) node).node);
-            stack.push("(");
+            var child = ((Repetition) node).node;
+            if (needsParens(child)) {
+                stack.push(")");
+            }
+            stack.push(child);
+            if (needsParens(child)) {
+                stack.push("(");
+            }
         }
 
+    }
+
+    private boolean needsParens(Node child) {
+        return !(child instanceof CharRangeNode);
     }
 
     private String escape(char c) {
@@ -113,6 +143,7 @@ public class NodePrinter {
             case '^':
             case ':':
             case '|':
+            case '\\':
                 return "\\" + c;
             default:
                 return String.valueOf(c);
