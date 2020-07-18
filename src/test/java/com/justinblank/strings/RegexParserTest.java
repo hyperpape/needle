@@ -448,13 +448,6 @@ public class RegexParserTest {
     private void checkParsingHasFixedPoint(Node node) {
         String last = null;
         String regex = NodePrinter.print(node);
-        // catch any errors in our NodePrinter
-        // TODO: remove this check
-        try {
-            java.util.regex.Pattern.compile(regex);
-        } catch (Exception e) {
-            return;
-        }
 
         for (int iteration = 0; iteration < 12; iteration++) {
             if (regex.equals(last)) {

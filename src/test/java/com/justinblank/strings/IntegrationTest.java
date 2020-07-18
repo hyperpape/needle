@@ -465,13 +465,6 @@ public class IntegrationTest {
                 RegexGenerator regexGenerator = new RegexGenerator(random, maxSize);
                 Node node = regexGenerator.generate();
                 String regex = NodePrinter.print(node);
-                // catch any errors in our NodePrinter
-                // TODO: remove this check
-                try {
-                    java.util.regex.Pattern.compile(regex);
-                } catch (Exception e) {
-                    continue;
-                }
                 String hayStack = regexGenerator.generateString(node);
                 try {
                     match(NFA.createNFA(regex), hayStack);
