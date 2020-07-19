@@ -84,7 +84,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testFactorizationAlternationOfLiterals() {
+    public void testFactorizationUnionOfLiterals() {
         var node = RegexParser.parse("((ABC)|(DEF))");
         var factorization = node.bestFactors();
         assertEquals(Set.of("ABC", "DEF"), factorization.getFactors());

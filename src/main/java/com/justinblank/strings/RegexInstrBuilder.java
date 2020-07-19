@@ -102,8 +102,8 @@ public class RegexInstrBuilder {
                 instrs.set(switchLocation, RegexInstr.split(switchLocation + 1, finalLocation));
             }
         }
-        else if (ast instanceof Alternation) {
-            Alternation a = (Alternation) ast;
+        else if (ast instanceof Union) {
+            Union a = (Union) ast;
 
             int splitIndex = instrs.size();
             instrs.add(null);

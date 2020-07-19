@@ -263,7 +263,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAlternationOfLiterals() {
+    public void testUnionOfLiterals() {
         SearchMethod method = NFA.createNFA("A|BCD|E");
         match(method, "A");
         match(method, "BCD");

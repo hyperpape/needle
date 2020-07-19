@@ -8,7 +8,7 @@ class RegexGenerator {
 
     static final int TYPE_COUNTED = 0;
     static final int TYPE_REPETITION = 1;
-    static final int TYPE_ALTERNATION = 2;
+    static final int TYPE_UNION = 2;
     static final int TYPE_CONCATENATION = 3;
     static final int TYPE_LITERAL = 6;
     static final int TYPE_RANGE = 7;
@@ -43,7 +43,7 @@ class RegexGenerator {
             case 2:
                 child1 = generate();
                 child2 = generate();
-                return new Alternation(child1, child2);
+                return new Union(child1, child2);
             case 3:
             case 4:
             case 5:
@@ -108,8 +108,8 @@ class RegexGenerator {
             addToString(c.head, sb);
             addToString(c.tail, sb);
         }
-        else if (node instanceof Alternation) {
-            var a = (Alternation) node;
+        else if (node instanceof Union) {
+            var a = (Union) node;
             var b = random.nextBoolean();
             addToString(b ? a.left : a.right, sb);
         }

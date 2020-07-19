@@ -85,7 +85,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testTwoCharAlternation() {
+    public void testTwoCharUnion() {
         Node node = parse("a|b");
         assertNotNull(node);
         check(node, "(a)|(b)");
@@ -121,11 +121,11 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testAlternationHasLowPrecedence() {
+    public void testUnionHasLowPrecedence() {
         Node node = parse("A|BCD|E");
-        assertTrue(node instanceof Alternation);
-        assertTrue(((Alternation) node).left instanceof Alternation);
-        assertTrue(((Alternation) node).right instanceof LiteralNode);
+        assertTrue(node instanceof Union);
+        assertTrue(((Union) node).left instanceof Union);
+        assertTrue(((Union) node).right instanceof LiteralNode);
         check(node, "((A)|(BCD))|(E)");
     }
 
@@ -137,7 +137,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testConcatenatedAlternations() {
+    public void testConcatenatedUnions() {
         Node node = parse("(a|b)(c|d)");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
@@ -181,7 +181,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testCountedRepetitionOfParenthesizedAlternations() {
+    public void testCountedRepetitionOfParenthesizedUnions() {
         Node node = parse("((12)|(34)){2,3}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -200,7 +200,7 @@ public class RegexParserTest {
     public void testMultiCharRange() {
         Node node = parse("[0-9A-Z]");
         assertNotNull(node);
-        assertTrue(node instanceof Alternation);
+        assertTrue(node instanceof Union);
         check(node, "[0-9]|[A-Z]");
     }
 
@@ -236,16 +236,16 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testAlternationOfGroups() {
+    public void testUnionOfGroups() {
         String s = "(AB)|(BC)";
         Node node = parse(s);
         assertNotNull(node);
-        assertTrue(node instanceof Alternation);
+        assertTrue(node instanceof Union);
         check(node, "(AB)|(BC)");
     }
 
     @Test
-    public void testAlternationOfSingleCharsWithCountedRepetition() {
+    public void testUnionOfSingleCharsWithCountedRepetition() {
         Node node = parse("(A|B){1,2}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -253,7 +253,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testAlternationOfMultipleCharsWithCountedRepetition() {
+    public void testUnionOfMultipleCharsWithCountedRepetition() {
         Node node = parse("(A|(BC)){1,2}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -261,13 +261,13 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testAlternationWithExtraneousParens() {
+    public void testUnionWithExtraneousParens() {
         Node node = parse("((A)|(BC))");
         assertNotNull(node);
-        assertTrue(node instanceof Alternation);
-        Alternation alt = (Alternation) node;
-        assertTrue(alt.left instanceof LiteralNode);
-        assertTrue(alt.right instanceof LiteralNode);
+        assertTrue(node instanceof Union);
+        Union union = (Union) node;
+        assertTrue(union.left instanceof LiteralNode);
+        assertTrue(union.right instanceof LiteralNode);
         check(node, "(A)|(BC)");
     }
 
@@ -280,8 +280,8 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(1, cr.min);
         assertEquals(2, cr.max);
-        assertTrue(cr.node instanceof Alternation);
-        Alternation alt = (Alternation) cr.node;
+        assertTrue(cr.node instanceof Union);
+        Union union = (Union) cr.node;
     }
 
     @Test

@@ -101,8 +101,8 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testGroupedDFAAlternation() throws Exception {
-        Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAAlternation");
+    public void testGroupedDFAUnion() throws Exception {
+        Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAUnion");
         match(pattern, "AB");
 
         match(pattern, "BA");
@@ -144,9 +144,9 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetitionOfAlternation() {
+    public void testCountedRepetitionOfUnion() {
         String regexString = "((AB)|(BA)){1,2}";
-        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfAlternation");
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion");
         fail(pattern, "");
         match(pattern, "BA");
         match(pattern, "ABBA");
@@ -191,8 +191,8 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testDFACompiledAlternationOfLiterals() throws Exception {
-        Pattern pattern = DFACompiler.compile("A|BCD|E", "alternation1");
+    public void testDFACompiledUnionOfLiterals() throws Exception {
+        Pattern pattern = DFACompiler.compile("A|BCD|E", "union1");
         match(pattern, "A");
         match(pattern, "BCD");
         match(pattern, "E");
@@ -219,14 +219,12 @@ public class DFACompilerTest {
         match(pattern, "AZDabcdef");
     }
 
-
     @Test
     public void testLargeRangePrefixWithInfixLiteralAndLargeRangeSuffix() {
         Pattern pattern = DFACompiler.compile("[A-Z]+abcdef[A-Z]+", "LargeRangePrefixWithInfixLiteralAndLargeRangeSuffix");
         match(pattern, "AabcdefZ");
         match(pattern, "AZDabcdefDZA");
     }
-
 
 //    @Test(expected =  IllegalArgumentException.class)
 //    public void testDFACompileFailsLargePattern() {

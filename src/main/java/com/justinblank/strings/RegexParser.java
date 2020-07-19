@@ -91,7 +91,7 @@ public class RegexParser {
                     assertNonEmpty("'|' cannot be the final character in a regex");
                     collapseLiterals();
                     Node last = nodes.pop();
-                    nodes.push(new Alternation(last, null));
+                    nodes.push(new Union(last, null));
                     break;
                 case '\\':
                     nodes.push(parseEscapeSequence());
@@ -117,9 +117,9 @@ public class RegexParser {
         }
         while (!nodes.isEmpty()) {
             Node next = nodes.pop();
-            if (next instanceof Alternation && ((Alternation) next).right == null) {
-                Alternation alt = (Alternation) next;
-                node = new Alternation(alt.left, node);
+            if (next instanceof Union && ((Union) next).right == null) {
+                Union union = (Union) next;
+                node = new Union(union.left, node);
             }
             else if (next instanceof LiteralNode && node instanceof LiteralNode) {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
@@ -143,11 +143,11 @@ public class RegexParser {
                 previous = nodes.pop();
                 last = concatenate(previous, last);
             }
-            else if (previous instanceof Alternation) {
-                Alternation alt = (Alternation) previous;
-                if (alt.right == null) {
+            else if (previous instanceof Union) {
+                Union union = (Union) previous;
+                if (union.right == null) {
                     nodes.pop();
-                    last = new Alternation(alt.left, last);
+                    last = new Union(union.left, last);
                 }
             }
             else {
@@ -165,19 +165,19 @@ public class RegexParser {
             if (node == null) {
                 node = next;
             }
-            else if (next instanceof Alternation) {
-                Alternation alt = (Alternation) next;
-                if (alt.left != null && alt.right != null) {
-                    node = new Concatenation(alt, node);
+            else if (next instanceof Union) {
+                Union union = (Union) next;
+                if (union.left != null && union.right != null) {
+                    node = new Concatenation(union, node);
                     continue;
                 }
                 assertNonEmpty("found '|' with no preceding content");
                 Node nextNext = nodes.pop();
                 if (nextNext instanceof LParenNode) {
-                    nodes.push(new Alternation(alt.left, node));
+                    nodes.push(new Union(union.left, node));
                     return;
                 }
-                node = new Alternation(alt.left, node);
+                node = new Union(union.left, node);
             }
             else {
                 node = concatenate(next, node);
@@ -231,7 +231,7 @@ public class RegexParser {
                 return new CharRangeNode('0', '9');
             }
             case 'D': {
-                return Alternation.complement(List.of(new CharRangeNode('0', '9')));
+                return Union.complement(List.of(new CharRangeNode('0', '9')));
             }
             case 'e': {
                 return new CharRangeNode('\u001B', '\u001B');
@@ -243,16 +243,16 @@ public class RegexParser {
                 throw new RegexSyntaxException("\\G not supported yet");
             }
             case 'h': {
-                return Alternation.ofChars(" \u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\200a\u202f\u205f\u3000");
+                return Union.ofChars(" \u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\200a\u202f\u205f\u3000");
             }
             case 'p': {
                 throw new RegexSyntaxException("\\p not supported yet");
             }
             case 's': {
-                return Alternation.ofChars(" \t\n\u000B\f\r");
+                return Union.ofChars(" \t\n\u000B\f\r");
             }
             case 'S': {
-                return Alternation.complement(" \t\n\u000B\f\r");
+                return Union.complement(" \t\n\u000B\f\r");
             }
             case 't': {
                 return new CharRangeNode('\t', '\t');
@@ -262,14 +262,14 @@ public class RegexParser {
                 var alpha1 = new CharRangeNode('a', 'z');
                 var alpha2 = new CharRangeNode('A', 'Z');
                 var underscore = new CharRangeNode('_', '_');
-                return new Alternation(digits, new Alternation(underscore, new Alternation(alpha1, alpha2)));
+                return new Union(digits, new Union(underscore, new Union(alpha1, alpha2)));
             }
             case 'W': {
                 var digits = new CharRangeNode('0', '9');
                 var alpha1 = new CharRangeNode('a', 'z');
                 var alpha2 = new CharRangeNode('A', 'Z');
                 var underscore = new CharRangeNode('_', '_');
-                return Alternation.complement(List.of(digits, underscore, alpha1, alpha2));
+                return Union.complement(List.of(digits, underscore, alpha1, alpha2));
             }
             case 'x': {
                 return parseHexadecimal();
@@ -443,10 +443,10 @@ public class RegexParser {
 
     private List<CharRange> explodeChars(Node node) {
         List<CharRange> ranges = new ArrayList<>();
-        if (node instanceof Alternation) {
-            Alternation alt = (Alternation) node;
-            ranges.addAll(explodeChars(alt.left));
-            ranges.addAll(explodeChars(alt.right));
+        if (node instanceof Union) {
+            Union union = (Union) node;
+            ranges.addAll(explodeChars(union.left));
+            ranges.addAll(explodeChars(union.right));
         }
         else if (node instanceof CharRangeNode) {
             var list = new ArrayList<>();
@@ -465,14 +465,14 @@ public class RegexParser {
             CharRange range = ranges.iterator().next();
             CharRangeNode rangeNode = new CharRangeNode(range);
             if (complemented) {
-                return Optional.of(Alternation.complement(List.of(rangeNode)));
+                return Optional.of(Union.complement(List.of(rangeNode)));
             }
             return Optional.of(rangeNode);
         } else if (ranges.isEmpty() && characterSet.size() == 1) {
             Character character = characterSet.iterator().next();
             CharRangeNode rangeNode = new CharRangeNode(character, character);
             if (complemented) {
-                return Optional.of(Alternation.complement(List.of(rangeNode)));
+                return Optional.of(Union.complement(List.of(rangeNode)));
             }
             return Optional.of(rangeNode);
         } else {
@@ -485,18 +485,18 @@ public class RegexParser {
         if (sortedCharRanges.size() == 1) {
             CharRangeNode rangeNode = new CharRangeNode(sortedCharRanges.get(0));
             if (complemented) {
-                return Alternation.complement(List.of(rangeNode));
+                return Union.complement(List.of(rangeNode));
             }
             return rangeNode;
         } else {
             if (complemented) {
-                return Alternation.complement(sortedCharRanges.stream().map(CharRangeNode::new).collect(Collectors.toList()));
+                return Union.complement(sortedCharRanges.stream().map(CharRangeNode::new).collect(Collectors.toList()));
             }
             CharRangeNode first = new CharRangeNode(sortedCharRanges.get(0));
             CharRangeNode second = new CharRangeNode(sortedCharRanges.get(1));
-            Node node = new Alternation(first, second);
+            Node node = new Union(first, second);
             for (int i = 2; i < sortedCharRanges.size(); i++) {
-                node = new Alternation(node, new CharRangeNode(sortedCharRanges.get(i)));
+                node = new Union(node, new CharRangeNode(sortedCharRanges.get(i)));
             }
             return node;
         }
@@ -535,22 +535,5 @@ public class RegexParser {
             }
         }
         return false;
-    }
-
-    private boolean tryTakeRightParen() {
-        if (parenDepth > 0 && index < regex.length() && regex.charAt(index) == ')') {
-            index++;
-            parenDepth--;
-            return true;
-        }
-        return false;
-    }
-
-    enum ParseContext {
-        PAREN,
-        ALTERNATION,
-        RANGE,
-        CHARS,
-        COUNTED
     }
 }

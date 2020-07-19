@@ -28,7 +28,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testEmptyStringAlternation() {
+    public void testEmptyStringUnion() {
         SearchMethod searchMethod = NFA.createNFA("()|(abc)");
         find(searchMethod, "", 0, 0);
         find(searchMethod, "def", 0, 0);
@@ -73,7 +73,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testAlternationWithRepetitionDFAMatchesOneRepetition() {
+    public void testUnionWithRepetitionDFAMatchesOneRepetition() {
         DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
         assertTrue(dfa.matches("123"));
     }
@@ -105,7 +105,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testAlternationWithRepetitionDFAMatchesMultipleRepetitions() {
+    public void testUnionWithRepetitionDFAMatchesMultipleRepetitions() {
         DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
         assertTrue(dfa.matches("123234234123"));
     }
@@ -165,7 +165,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAAlternation() {
+    public void testDFAUnion() {
         DFA dfa = DFA.createDFA("A|B");
         assertTrue(dfa.matches("A"));
         assertTrue(dfa.matches("B"));
@@ -173,7 +173,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAAlternationSearch() {
+    public void testDFAUnionSearch() {
         DFA dfa = DFA.createDFA("A|B");
         assertTrue(dfa.search("A").matched);
         assertTrue(dfa.search("B").matched);
@@ -187,13 +187,13 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAAlternationThreeOptions() {
+    public void testDFAUnionThreeOptions() {
         DFA dfa = DFA.createDFA("A|B|C");
         assertTrue(dfa.matches("B"));
     }
 
     @Test
-    public void testGroupedDFAAlternation() {
+    public void testGroupedDFAUnion() {
         DFA dfa = DFA.createDFA("(AB)|(BA)");
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("BA"));
@@ -201,19 +201,19 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAAlternationThreeGroupsSameSize() {
+    public void testDFAUnionThreeGroupsSameSize() {
         DFA dfa = DFA.createDFA("(AB)|(BC)|(CD)");
         assertTrue(dfa.matches("BC"));
     }
 
     @Test
-    public void testDFAAlternationThreeGroupsDifferentSizes() {
+    public void testDFAUnionThreeGroupsDifferentSizes() {
         DFA dfa = DFA.createDFA("(AB)|(BC)|(CDE)");
         assertTrue(dfa.matches("BC"));
     }
 
     @Test
-    public void testDFAAlternationGroupsWithRepetition() {
+    public void testDFAUnionGroupsWithRepetition() {
         DFA dfa = DFA.createDFA("((AB)|(BC)){1,2}");
         assertFalse(dfa.matches(""));
         assertTrue(dfa.matches("AB"));
@@ -223,7 +223,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testGroupedDFAAlternationWithDifferentSizedGroupsAndRepetitions() {
+    public void testGroupedDFAUnionWithDifferentSizedGroupsAndRepetitions() {
         String regex = "((A)|(B)|(CD)){1,2}";
         SearchMethod method = NFA.createNFA(regex);
         find(method, "AB", 0, 1);
@@ -243,7 +243,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testGroupedDFAAlternationSearch() {
+    public void testGroupedDFAUnionSearch() {
         DFA dfa = DFA.createDFA("(AB)|(BA)");
         assertTrue(dfa.search("AB").matched);
         assertTrue(dfa.search("BA").matched);
@@ -418,7 +418,7 @@ public class IntegrationTest {
     }
     
     @Test
-    public void testAlternationOfRepeatedRangeWithOverlappingRangeFollowedByLiteral() {
+    public void testUnionOfRepeatedRangeWithOverlappingRangeFollowedByLiteral() {
         check("([BQ]*|[Q-x])l");
     }
 

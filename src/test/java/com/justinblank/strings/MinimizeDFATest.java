@@ -60,7 +60,7 @@ public class MinimizeDFATest {
     }
 
     @Test
-    public void testMinimizeDFAHandlesAlternation() {
+    public void testMinimizeDFAHandlesUnion() {
         assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("[0-9]")).matches("2"));
     }
 

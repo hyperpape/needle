@@ -6,14 +6,14 @@ import java.util.Objects;
 
 import java.util.*;
 
-public class Alternation extends Node {
+public class Union extends Node {
 
     public final Node left;
     public final Node right;
 
-    public Alternation(Node left, Node right) {
-        Objects.requireNonNull(left, "Cannot alternate nothing");
-        // Objects.requireNonNull(right, "Cannot alternate nothing");
+    public Union(Node left, Node right) {
+        Objects.requireNonNull(left, "Cannot union nothing");
+        // Objects.requireNonNull(right, "Cannot union nothing");
         this.left = left;
         this.right = right;
     }
@@ -31,30 +31,30 @@ public class Alternation extends Node {
     public Factorization bestFactors() {
         Factorization leftFactors = left.bestFactors();
         Factorization rightFactors = right.bestFactors();
-        leftFactors.alternate(rightFactors);
+        leftFactors.union(rightFactors);
         return leftFactors;
     }
 
     @Override
     public Node reversed() {
-        return new Alternation(left.reversed(), right.reversed());
+        return new Union(left.reversed(), right.reversed());
     }
 
-    public static Alternation ofChars(String s) {
+    public static Union ofChars(String s) {
         if (s.length() < 2) {
-            throw new IllegalArgumentException("silly alternation");
+            throw new IllegalArgumentException("silly union");
         }
         char s1 = s.charAt(0);
         char s2 = s.charAt(1);
-        Alternation alternation = new Alternation(new CharRangeNode(s1, s1), new CharRangeNode(s2, s2));
+        Union union = new Union(new CharRangeNode(s1, s1), new CharRangeNode(s2, s2));
         for (int i = 2; i < s.length(); i++) {
             char c = s.charAt(i);
-            alternation = new Alternation(new CharRangeNode(c, c), alternation);
+            union = new Union(new CharRangeNode(c, c), union);
         }
-        return alternation;
+        return union;
     }
 
-    public static Alternation complement(List<CharRangeNode> ranges) {
+    public static Union complement(List<CharRangeNode> ranges) {
         if (ranges.isEmpty()) {
             throw new IllegalArgumentException("Can't complement empty set of ranges");
         }
@@ -82,14 +82,14 @@ public class Alternation extends Node {
         complementedNodes.add(new CharRangeNode(low, '\uFFFF'));
         CharRangeNode first = complementedNodes.get(0);
         CharRangeNode second = complementedNodes.get(1);
-        Alternation alternation = new Alternation(first, second);
+        Union union = new Union(first, second);
         for (int i = 2; i < complementedNodes.size(); i++) {
-            alternation = new Alternation(alternation, complementedNodes.get(i));
+            union = new Union(union, complementedNodes.get(i));
         }
-        return alternation;
+        return union;
     }
 
-    public static Alternation complement(String s) {
+    public static Union complement(String s) {
         if (s.length() < 2) {
             throw new IllegalArgumentException("Silly short complement");
         }
@@ -102,6 +102,6 @@ public class Alternation extends Node {
         for (Character c : chars) {
             nodes.add(new CharRangeNode(c, c));
         }
-        return Alternation.complement(nodes);
+        return Union.complement(nodes);
     }
 }

@@ -108,11 +108,11 @@ public class Factorization {
     }
 
     /**
-     * Alternation does set union on all the components of a factorization. For any component, if either side is null,
+     * Union does set union on all the components of a factorization. For any component, if either side is null,
      * then the result is null.
      * @param factorization the other factorization
      */
-    public void alternate(Factorization factorization) {
+    public void union(Factorization factorization) {
         if (this.all == null || factorization.all == null) {
             all = null;
         }
@@ -253,7 +253,7 @@ public class Factorization {
             for (int j = 0; j < i; j++) {
                 newFactors.concatenate(this);
             }
-            factorization.alternate(newFactors);
+            factorization.union(newFactors);
         }
         return factorization;
     }

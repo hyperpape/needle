@@ -82,21 +82,21 @@ public class NodePrinter {
                 stack.push("(");
             }
         }
-        else if (node instanceof Alternation) {
-            Alternation alt = (Alternation) node;
-            if (needsParens(alt.right)) {
+        else if (node instanceof Union) {
+            Union union = (Union) node;
+            if (needsParens(union.right)) {
                 stack.push(")");
             }
-            stack.push(alt.right);
-            if (needsParens(alt.right)) {
+            stack.push(union.right);
+            if (needsParens(union.right)) {
                 stack.push("(");
             }
             stack.push("|");
-            if (needsParens(alt.left)) {
+            if (needsParens(union.left)) {
                 stack.push(")");
             }
-            stack.push(alt.left);
-            if (needsParens(alt.left)) {
+            stack.push(union.left);
+            if (needsParens(union.left)) {
                 stack.push("(");
             }
         }

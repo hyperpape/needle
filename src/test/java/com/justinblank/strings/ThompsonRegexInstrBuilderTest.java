@@ -17,7 +17,7 @@ public class ThompsonRegexInstrBuilderTest {
     }
 
     @Test
-    public void testCompilesAlternations() {
+    public void testCompilesUnions() {
         assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("(123)|(234){0,1}")));
     }
 }
