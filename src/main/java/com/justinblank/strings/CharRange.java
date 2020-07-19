@@ -67,7 +67,7 @@ public class CharRange implements Comparable<CharRange> {
      * @param ranges a list of character ranges
      * @return a minimized list of character ranges
      */
-    public static List<CharRange> minimalCovering(List<CharRange> ranges) {
+    static List<CharRange> minimalCovering(List<CharRange> ranges) {
         List<CharRange> minimized = new ArrayList<>();
         ranges = new ArrayList<>(ranges);
         ranges.sort(Comparator.comparingInt(CharRange::getStart));
@@ -91,7 +91,7 @@ public class CharRange implements Comparable<CharRange> {
                 }
                 for (int j = i + 1; j < ranges.size(); j++) {
                     CharRange next = ranges.get(j);
-                    if (next.getStart() > start && next.getStart() < end) {
+                    if (next.getStart() > start && next.getStart() <= end) {
                         end = (char) (next.getStart() - 1);
                     }
                     if (next.getEnd() >= start && next.getEnd() <= end) {
@@ -106,7 +106,22 @@ public class CharRange implements Comparable<CharRange> {
         }
 
         minimized.sort(Comparator.comparingInt(CharRange::getStart));
+        assert checkRep(minimized);
         return minimized;
+    }
+
+    static boolean checkRep(List<CharRange> ranges) {
+        for (int i = 0; i < ranges.size() - 1; i++) {
+            var range1 = ranges.get(i);
+            var range2 = ranges.get(i + 1);
+            if (range2.getStart() <= range1.getStart()) {
+                return false;
+            }
+            else if (range2.getStart() <= range1.getEnd()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Note that this assumes non-overlapping ranges

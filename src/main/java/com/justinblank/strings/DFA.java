@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
+import com.justinblank.strings.Search.SearchMethod;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -236,6 +237,7 @@ class DFA {
         assert states.stream().allMatch(dfa -> dfa.root == this);
         assert states.stream().map(DFA::getStateNumber).count() == states.size();
         assert states.contains(this) : "root not included in states";
+        assert states.stream().anyMatch(DFA::isAccepting) : "no accepting state found";
         assert transitions.stream().map(Pair::getRight).allMatch(dfa -> states.contains(dfa));
         return true;
     }

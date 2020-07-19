@@ -44,4 +44,13 @@ public class CharRangeTest {
         assertEquals(minimized.get(3), new CharRange('f', 'h'));
 
     }
+
+    @Test
+    public void testThreeRangesWithOneCharRangeContainedInOtherRange() {
+        var ranges = List.of(new CharRange('T', '_'), new CharRange('b', 'e'), new CharRange('e', 'e'));
+        var minimized = CharRange.minimalCovering(ranges);
+        assertEquals(new CharRange('T', '_'), minimized.get(0));
+        assertEquals(new CharRange('b', 'd'), minimized.get(1));
+        assertEquals(new CharRange('e', 'e'), minimized.get(2));
+    }
 }
