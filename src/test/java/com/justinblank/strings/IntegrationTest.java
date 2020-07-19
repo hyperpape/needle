@@ -440,6 +440,13 @@ public class IntegrationTest {
         assertEquals(MatchResult.success(0, 4), nfa.find("DEAD"));
     }
 
+    @Test
+    public void testDFAFailure() {
+        String regex = "(([b-e]|[T-_])*)e";
+        var dfa = DFA.createDFA(regex);
+        assertTrue(dfa.matches("e"));
+    }
+
     public void check(String regex) {
         RegexGenerator regexGenerator = new RegexGenerator(new Random(), 1);
         Node node = RegexParser.parse(regex);
@@ -458,7 +465,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void generativeMatchingTest() {
+    public void generativeNFAMatchingTest() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 24; maxSize++) {
             for (int i = 0; i < 20; i++) {
@@ -468,6 +475,25 @@ public class IntegrationTest {
                 String hayStack = regexGenerator.generateString(node);
                 try {
                     match(NFA.createNFA(regex), hayStack);
+                } catch (Throwable t) {
+                    System.out.println("failed to match regex='" + regex + "' against hayStack='" + hayStack + "'");
+                    throw t;
+                }
+            }
+        }
+    }
+
+    @Test
+    public void generativeDFAMatchingTest() {
+        Random random = new Random();
+        for (int maxSize = 1; maxSize < 8; maxSize++) {
+            for (int i = 0; i < 20; i++) {
+                RegexGenerator regexGenerator = new RegexGenerator(random, maxSize);
+                Node node = regexGenerator.generate();
+                String regex = NodePrinter.print(node);
+                String hayStack = regexGenerator.generateString(node);
+                try {
+                    assertTrue(DFA.createDFA(regex).matches(hayStack));
                 } catch (Throwable t) {
                     System.out.println("failed to match regex='" + regex + "' against hayStack='" + hayStack + "'");
                     throw t;
