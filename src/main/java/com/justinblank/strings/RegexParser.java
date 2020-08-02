@@ -332,16 +332,17 @@ public class RegexParser {
         throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
     }
 
+    public RegexParser() {
+        super();
+    }
+
     private Node parseOctal() {
         int count = 0;
         var str = new StringBuilder();
-        while (count < 4 && peekOctal()) {
+        while (count < 3 && peekOctal()) {
             var c = takeChar();
             count++;
             str.append(c);
-        }
-        if (count > 3) {
-            throw new RegexSyntaxException("Wrong number of hex chars: " + count);
         }
         if (count > 2) {
             char first = str.charAt(0);

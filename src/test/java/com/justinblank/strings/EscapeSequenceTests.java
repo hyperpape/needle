@@ -5,6 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static com.justinblank.strings.RegexParserMalformedRegexTest.expectError;
+import static com.justinblank.strings.RegexParserTest.check;
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -170,11 +171,12 @@ public class EscapeSequenceTests {
 
     @Test
     public void testEscape_0() {
-        SearchMethod nfa = NFA.createNFA("\\061");
-        match(nfa, "1");
-        find(nfa, "a1b");
-        find(nfa, "abc1def");
-        fail(nfa, "hi");
+        check("\\061", "1");
         expectError("\\099");
+    }
+
+    @Test
+    public void testEscape_0_WorksWithLongDigitStrings() {
+        check("\\01234", "" + ((char) 83) + "(4)");
     }
 }

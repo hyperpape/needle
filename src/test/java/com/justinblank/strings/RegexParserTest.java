@@ -384,12 +384,12 @@ public class RegexParserTest {
         check("[A-\\[]", "[A-\\[]");
     }
 
-    private static void check(String regex, String representation) {
+    static void check(String regex, String representation) {
         assertEquals(representation, NodePrinter.print(RegexParser.parse(regex)));
         assertNotNull(java.util.regex.Pattern.compile(representation));
     }
 
-    private static void check(Node node, String representation) {
+    static void check(Node node, String representation) {
         assertEquals(representation, NodePrinter.print(node));
         assertNotNull(java.util.regex.Pattern.compile(representation));
     }
