@@ -34,7 +34,11 @@ class RegexGenerator {
         switch (nodeType) {
             case 0:
                 child1 = generate();
-                int i1 = random.nextInt(10);
+                // Choosing higher numbers here can occasionally lead to very large regexes/haystacks.
+                // I wrapped IntegrationTest#generativeNFAMatchingTest in a timing loop to measure:
+                // At 7, IntegrationTest#generativeNFAMatchingTest had 1 iteration > 10 seconds out of 1000.
+                // At 8, I had at least 5 out of a 1000, including a 5 minute run.
+                int i1 = random.nextInt(7);
                 int i2 = i1 == 0 ? 0 : random.nextInt(i1);
                 return new CountedRepetition(child1, i2, i1);
             case 1:
