@@ -142,6 +142,11 @@ public class RegexParserMalformedRegexTest {
         }
     }
 
+    @Test
+    public void testLiteralAlternationLeftParen() {
+        expectError("a|(");
+    }
+
     public static void expectError(String regexString) {
         try {
             parse(regexString);

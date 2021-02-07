@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.RegexAST.NodePrinter;
+import com.justinblank.strings.RegexAST.Union;
 import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
 import org.junit.experimental.theories.suppliers.TestedOn;
@@ -254,6 +255,18 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testUnionOfUnionFollowedByLiteralWithLiteral() {
+        String test = "(a|a)a|ab";
+        check(test);
+        var dfa = DFA.createDFA(test);
+        assertTrue(dfa.matches("aa"));
+        assertTrue(dfa.matches("ab"));
+
+        assertFalse(dfa.matches("b"));
+        assertFalse(dfa.matches("aab"));
+    }
+
+    @Test
     public void testManyStateRegex() {
         SearchMethod nfa = NFA.createNFA(MANY_STATE_REGEX_STRING);
         find(nfa, "456", 0, 3);
@@ -451,6 +464,7 @@ public class IntegrationTest {
         RegexGenerator regexGenerator = new RegexGenerator(new Random(), 1);
         Node node = RegexParser.parse(regex);
         SearchMethod method = NFA.createNFA(regex);
+        var javaPattern = java.util.regex.Pattern.compile(regex);
         String shortestFailure = null;
         for (int i = 0; i < 10000; i++) {
             String s = regexGenerator.generateString(node);
@@ -458,6 +472,9 @@ public class IntegrationTest {
                 MatchResult result = method.find(s);
                 if (result.start != 0 || result.end != s.length()) {
                     shortestFailure = s;
+                }
+                else if (!javaPattern.matcher(s).matches()) {
+                    fail("Regex=" + regex + " matched hayStack that java regex didn't, hayStack=" + s);
                 }
             }
         }
@@ -494,6 +511,7 @@ public class IntegrationTest {
                 String hayStack = regexGenerator.generateString(node);
                 try {
                     assertTrue(DFA.createDFA(regex).matches(hayStack));
+                    assertTrue(java.util.regex.Pattern.compile(regex).matcher(hayStack).matches());
                 } catch (Throwable t) {
                     System.out.println("failed to match regex='" + regex + "' against hayStack='" + hayStack + "'");
                     throw t;

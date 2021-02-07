@@ -473,5 +473,12 @@ public class RegexParserTest {
         }
         assertFalse(false);
     }
+
+    @Test
+    public void testUnionOfUnionFollowedByLiteralWithLiteral() {
+        String test = "(a|a)a|a";
+        var node = RegexParser.parse(test);
+        assertTrue(node instanceof Union);
+    }
 }
 

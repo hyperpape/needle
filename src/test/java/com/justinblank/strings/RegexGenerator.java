@@ -212,11 +212,11 @@ class RegexGenerator {
             if (left.isPresent() && right.isPresent()) {
                 var lString = left.get();
                 var rString = right.get();
-                if (compare(lString, rString) <= 0) {
-                    sb.append(lString);
+                if (compare(lString, rString) < 0) {
+                    sb.append(rString);
                 }
                 else {
-                    sb.append(rString);
+                    sb.append(lString);
                 }
                 return Optional.of(sb);
             }
@@ -239,7 +239,7 @@ class RegexGenerator {
         }
     }
 
-    static int compare(StringBuilder s1, StringBuilder s2) {
+    private static int compare(StringBuilder s1, StringBuilder s2) {
         if (s1.length() < s2.length()) {
             return -1;
         }

@@ -47,7 +47,7 @@ public class RegexGeneratorTest {
     @Test
     public void testMaximalGenerationUnion() {
         var s = new RegexGenerator(new Random(), DUMMY).generateMaximalMatch("(abc)|(def)");
-        assertEquals(Optional.of("abc"), s);
+        assertEquals(Optional.of("def"), s);
     }
 
     @Test

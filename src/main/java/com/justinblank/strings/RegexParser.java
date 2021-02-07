@@ -149,6 +149,9 @@ public class RegexParser {
                     nodes.pop();
                     last = new Union(union.left, last);
                 }
+                else {
+                    last = new Concatenation(nodes.pop(), last);
+                }
             }
             else {
                 break;
