@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
 
+import java.util.Optional;
 import java.util.Random;
 
 class RegexGenerator {
@@ -85,6 +86,54 @@ class RegexGenerator {
         return sb.toString();
     }
 
+    public String generateMinimalMatch(String regex) {
+        var sb = new StringBuilder();
+        var node = RegexParser.parse(regex);
+        addMinimalMatchToString(node, sb);
+        return sb.toString();
+    }
+
+    public Optional<String> generateMaximalMatch(String regex) {
+        var sb = new StringBuilder();
+        var node = RegexParser.parse(regex);
+        return addMaximalMatchToString(node, sb).map(StringBuilder::toString);
+    }
+
+    void addMinimalMatchToString(Node node, StringBuilder sb) {
+        if (node instanceof LiteralNode) {
+            sb.append(((LiteralNode) node).getLiteral());
+        }
+        else if (node instanceof CharRangeNode) {
+            var range = (CharRangeNode) node;
+            sb.append(range.range().getStart());
+        }
+        else if (node instanceof Concatenation) {
+            var c = (Concatenation) node;
+            addMinimalMatchToString(c.head, sb);
+            addMinimalMatchToString(c.tail, sb);
+        }
+        else if (node instanceof Union) {
+            var a = (Union) node;
+            var left = new StringBuilder();
+            var right = new StringBuilder();
+            addMinimalMatchToString(a.left, left);
+            addMinimalMatchToString(a.right, right);
+            if (compare(left, right) > 0) {
+                sb.append(right);
+            }
+            else {
+                sb.append(left);
+            }
+        }
+        else if (node instanceof CountedRepetition) {
+            var cr = ((CountedRepetition) node);
+            int count = cr.min;
+            for (int i = 0; i < count; i++) {
+                addToString(cr.node, sb);
+            }
+        }
+    }
+
     private void addToString(Node node, StringBuilder sb) {
         if (node instanceof LiteralNode) {
             sb.append(((LiteralNode) node).getLiteral());
@@ -129,6 +178,76 @@ class RegexGenerator {
             for (int i = 0; i < count; i++) {
                 addToString(cr.node, sb);
             }
+        }
+    }
+
+    private Optional<StringBuilder> addMaximalMatchToString(Node node, StringBuilder sb) {
+        if (node instanceof LiteralNode) {
+            sb.append(((LiteralNode) node).getLiteral());
+            return Optional.of(sb);
+        }
+        else if (node instanceof CharRangeNode) {
+            var range = (CharRangeNode) node;
+            if (range.range().getStart() == range.range().getEnd()) {
+                sb.append(range.range().getStart());
+            }
+            else {
+                var x = random.nextInt(range.range().getEnd() - range.range().getStart());
+                var c = (char) ((int) (range.range().getStart()) + x);
+                sb.append(c);
+            }
+            return Optional.of(sb);
+        }
+        else if (node instanceof Concatenation) {
+            var c = (Concatenation) node;
+            var left = addMaximalMatchToString(c.head, new StringBuilder());
+            var right = addMaximalMatchToString(c.tail, new StringBuilder());
+            var result = left.map(sb::append);
+            return right.flatMap(r -> result.flatMap(x -> Optional.of(r.append(x))));
+        }
+        else if (node instanceof Union) {
+            var a = (Union) node;
+            var left = addMaximalMatchToString(a.left, new StringBuilder());
+            var right = addMaximalMatchToString(a.right, new StringBuilder());
+            if (left.isPresent() && right.isPresent()) {
+                var lString = left.get();
+                var rString = right.get();
+                if (compare(lString, rString) <= 0) {
+                    sb.append(lString);
+                }
+                else {
+                    sb.append(rString);
+                }
+                return Optional.of(sb);
+            }
+            else {
+                return left.map(sb::append).or(() -> right.map(sb::append));
+            }
+        }
+        else if (node instanceof Repetition) {
+            return Optional.empty();
+        }
+        else if (node instanceof CountedRepetition) {
+            var cr = ((CountedRepetition) node);
+            for (int i = 0; i < cr.max; i++) {
+                addToString(cr.node, sb);
+            }
+            return Optional.of(sb);
+        }
+        else {
+            throw new IllegalStateException("Encountered an ");
+        }
+    }
+
+    static int compare(StringBuilder s1, StringBuilder s2) {
+        if (s1.length() < s2.length()) {
+            return -1;
+        }
+        else if (s1.length() > s2.length()) {
+            return 1;
+        }
+        else {
+            return s1.compareTo(s2);
         }
     }
 }
