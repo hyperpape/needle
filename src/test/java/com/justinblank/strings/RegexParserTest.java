@@ -14,7 +14,6 @@ public class RegexParserTest {
 
     static final Set<Character> ESCAPED_AS_LITERAL_CHARS = Set.of('*', '(', ')', '[', '$', '^', '+', ':', '?', '{');
 
-
     @Test
     public void testSingleChar() {
         Node node = parse("a");
@@ -272,7 +271,22 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testSomething() {
+    public void testUnionOfUnions() {
+        Node node = parse("(A|B)|(A|B)");
+        assertNotNull(node);
+        assertTrue(node instanceof Union);
+        check(node, "((A)|(B))|((A)|(B))");
+    }
+
+    @Test
+    public void testLiteralBeforeUnionOfLiteralAndUnion() {
+        Node node = parse("A(BA|(A|BB))");
+        assertNotNull(node);
+        assertTrue(node instanceof Concatenation);
+    }
+
+    @Test
+    public void testCountedRepetitionOfParenthesizedUnionOfLiterals() {
         String regex = "((A)|(B)|(CD)){1,2}";
         Node node = parse(regex);
         assertNotNull(node);
