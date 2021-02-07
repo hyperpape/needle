@@ -6,13 +6,6 @@ import java.util.Random;
 
 class RegexGenerator {
 
-    static final int TYPE_COUNTED = 0;
-    static final int TYPE_REPETITION = 1;
-    static final int TYPE_UNION = 2;
-    static final int TYPE_CONCATENATION = 3;
-    static final int TYPE_LITERAL = 6;
-    static final int TYPE_RANGE = 7;
-
     private final Random random;
     private int count;
     private final int maxSize;
