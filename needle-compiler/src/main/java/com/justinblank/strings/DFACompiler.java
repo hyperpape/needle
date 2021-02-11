@@ -27,6 +27,22 @@ public class DFACompiler {
     }
 
     static Pattern compile(String regex, String className, boolean debug) {
+        byte[] classBytes = compileToBytes(regex, className, debug);
+        Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
+        Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
+        try {
+            return (Pattern) c.getDeclaredConstructors()[0].newInstance();
+        } catch (Throwable t) {
+            // TODO: determine good exceptions/result types
+            throw new RuntimeException(t);
+        }
+    }
+
+    public static byte[] compileToBytes(String regex, String className) {
+        return compileToBytes(regex, className, false);
+    }
+
+    static byte[] compileToBytes(String regex, String className, boolean debug) {
         Node node = RegexParser.parse(regex);
         Factorization factors = node.bestFactors();
         factors.setMinLength(node.minLength());
@@ -38,14 +54,7 @@ public class DFACompiler {
         DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, node);
         DFAClassCompiler compiler = new DFAClassCompiler(builder, debug);
         byte[] classBytes = compiler.generateClassAsBytes();
-        Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
-        Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
-        try {
-            return (Pattern) c.getDeclaredConstructors()[0].newInstance();
-        } catch (Throwable t) {
-            // TODO: determine good exceptions/result types
-            throw new RuntimeException(t);
-        }
+        return classBytes;
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
