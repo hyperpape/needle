@@ -5,6 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static com.justinblank.strings.TestUtil.parse;
+import static org.junit.Assert.assertTrue;
 
 public class RegexParserMalformedRegexTest {
 
@@ -21,6 +22,11 @@ public class RegexParserMalformedRegexTest {
     @Test(expected = RegexSyntaxException.class)
     public void testInsideOutBrackets() {
         parse("][");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
+    public void testEscapeInCharRange() {
+        parse("[a-\\c]");
     }
 
     @Test(expected = RegexSyntaxException.class)
@@ -114,6 +120,11 @@ public class RegexParserMalformedRegexTest {
     @Test(expected = RegexSyntaxException.class)
     public void testPlusLeading() {
         Node node = parse("+a");
+    }
+
+    @Test
+    public void testBadOctal0999() {
+        expectError("\\0999");
     }
 
     @Test

@@ -395,6 +395,21 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testBellInBrackets() {
+        parse("[\\a]");
+    }
+
+    @Test
+    public void testDoubleCharEscapeInBrackets() {
+        parse("[\\a\\d]");
+    }
+
+    @Test
+    public void testTripleCharEscapeInBrackets() {
+        parse("[\\a\\d\\D]");
+    }
+
+    @Test
     public void testLParenInBrackets() {
         parse("[(]");
     }

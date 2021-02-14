@@ -378,6 +378,7 @@ public class RegexParser {
         Set<CharRange> ranges = new HashSet<>();
         Character last = null;
         int startingIndex = index;
+        Node alternateNode = null;
         boolean complemented = false;
         while (index < regex.length()) {
             char c = takeChar();
@@ -388,7 +389,8 @@ public class RegexParser {
                     characterSet.add(last);
                 }
                 charRangeDepth--;
-                return buildNode(characterSet, ranges, complemented);
+                var node = buildNode(characterSet, ranges, complemented);
+                return withAlternate(node, alternateNode);
             } else if (c == '-') {
                 if (index == regex.length()) {
                     throw new RegexSyntaxException("");
@@ -423,17 +425,17 @@ public class RegexParser {
                     throw new RegexSyntaxException("Unbalanced [ token at index=" + currentIndex);
                 }
                 charRangeDepth--;
-                return maybeNode;
+                return withAlternate(maybeNode, alternateNode);
             } else if (c == '\\') {
                 char next;
                 if (peekChar('[') || peekChar(']') || peekChar('\\')) {
                     next = takeChar();
+                    characterSet.add(next);
+                    last = next;
                 }
                 else {
-                    throw new RegexSyntaxException("Illegal escape in CharRange");
+                    alternateNode = parseEscapeSequence();
                 }
-                characterSet.add(next);
-                last = next;
             } else {
                 if (last != null) {
                     characterSet.add(last);
@@ -442,6 +444,17 @@ public class RegexParser {
             }
         }
         throw new RegexSyntaxException("Parsing failed, unmatched [");
+    }
+
+    private Optional<Node> withAlternate(Optional<Node> node, Node alternate) {
+        var union = node.map(n -> {
+            if (alternate != null) {
+                return new Union(n, alternate);
+            } else {
+                return n;
+            }
+        }).orElse(alternate);
+        return Optional.ofNullable(union);
     }
 
     private List<CharRange> explodeChars(Node node) {
