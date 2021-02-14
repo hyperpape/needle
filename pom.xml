@@ -36,7 +36,7 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.9.10</version>
+            <version>1.10.20</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -53,12 +53,7 @@
         <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
-            <version>6.2.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-all</artifactId>
-            <version>5.2</version>
+            <version>9.0</version>
         </dependency>
     </dependencies>
 
