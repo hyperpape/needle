@@ -73,7 +73,17 @@ public class FactorizationTest {
     public void testFactorization() {
         var node = RegexParser.parse("((GA|AAA)*)(TA|AG)");
         assertEquals(Set.of("TA", "AG"), node.bestFactors().getFactors());
+    }
 
+    @Test
+    public void testFactorizationCharRangeUnion() {
+        var node = RegexParser.parse("[AB][CD]");
+        var factorization = node.bestFactors();
+        var factorSet = Set.of("BC", "AC", "BD", "AD");
+        assertEquals(factorSet, factorization.getPrefixes());
+        assertEquals(factorSet, factorization.getSuffixes());
+        assertEquals(factorSet, factorization.getFactors());
+        assertEquals(factorSet, factorization.getAll());
     }
 
     @Test
@@ -102,6 +112,16 @@ public class FactorizationTest {
         assertEquals(factorSet, factorization.getSuffixes());
         assertEquals(factorSet, factorization.getFactors());
         assertEquals(factorSet, factorization.getAll());
+    }
+
+    @Test
+    public void testOneOrMoreRepetitionCharRange() {
+        var node = RegexParser.parse("[A-Z]*");
+        var factorization = node.bestFactors();
+        assertNull(factorization.getPrefixes());
+        assertNull(factorization.getSuffixes());
+        assertNull(factorization.getFactors());
+        assertNull(factorization.getAll());
     }
 
     @Test

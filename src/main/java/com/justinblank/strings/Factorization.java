@@ -231,11 +231,7 @@ public class Factorization {
         }
         return set1;
     }
-
-    public boolean hasFactors() {
-        return this.factors != null && !this.factors.isEmpty();
-    }
-
+    
     public boolean isComplete() {
         return this.all != null && !this.all.isEmpty();
     }
@@ -296,5 +292,15 @@ public class Factorization {
             }
         }
         return Optional.of(sharedPrefix);
+    }
+
+    @Override
+    public String toString() {
+        return "Factorization{" +
+                "all=" + all +
+                ", suffixes=" + suffixes +
+                ", prefixes=" + prefixes +
+                ", factors=" + factors +
+                '}';
     }
 }
