@@ -5,6 +5,7 @@ import com.justinblank.strings.Search.SearchMethod;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 class DFA {
@@ -167,9 +168,7 @@ class DFA {
     }
 
     private void clearSearchStateArray(int[] stateStarts) {
-        for (int i = 0; i < stateStarts.length; i++) {
-            stateStarts[i] = -1;
-        }
+        Arrays.fill(stateStarts, -1);
     }
 
     public int statesCount() {
@@ -191,6 +190,33 @@ class DFA {
             }
         }
         return false;
+    }
+
+    Optional<Pair<Integer, Character>> calculateOffset() {
+        var seen = new HashSet<>();
+        var count = new AtomicInteger();
+        var next = this;
+        Optional<Pair<Integer, Character>> best = Optional.empty();
+        while (true) {
+            if (seen.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0) {
+                return best;
+            }
+            if (next.transitions.size() != 1) {
+                for (int i = 0; i < next.transitions.size() - 1; i++) {
+                    if (next.transitions.get(i).getRight() != next.transitions.get(i + 1).getRight()) {
+                        return best;
+                    }
+                }
+            }
+            seen.add(next);
+
+            var transition = next.transitions.get(0);
+            next = transition.getRight();
+            if (count.get() > 0 && transition.getLeft().isSingleCharRange()) {
+                best = Optional.of(Pair.of(count.get(), transition.getLeft().getStart()));
+            }
+            count.incrementAndGet();
+        }
     }
 
     protected int charCount() {
