@@ -192,11 +192,11 @@ class DFA {
         return false;
     }
 
-    Optional<Pair<Integer, Character>> calculateOffset() {
+    Optional<Pair<Integer, CharRange>> calculateOffset() {
         var seen = new HashSet<>();
         var count = new AtomicInteger();
         var next = this;
-        Optional<Pair<Integer, Character>> best = Optional.empty();
+        Optional<Pair<Integer, CharRange>> best = Optional.empty();
         while (true) {
             if (seen.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0) {
                 return best;
@@ -212,8 +212,8 @@ class DFA {
 
             var transition = next.transitions.get(0);
             next = transition.getRight();
-            if (count.get() > 0 && transition.getLeft().isSingleCharRange()) {
-                best = Optional.of(Pair.of(count.get(), transition.getLeft().getStart()));
+            if (count.get() > 0) {
+                best = Optional.of(Pair.of(count.get(), transition.getLeft()));
             }
             count.incrementAndGet();
         }

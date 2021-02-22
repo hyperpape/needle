@@ -20,21 +20,28 @@ public class DFATest {
     public void testCalculateOffsetLiteral() {
         var dfa = DFA.createDFA("abc");
         var optOffset = dfa.calculateOffset();
-        assertEquals(Optional.of(Pair.of(2, 'c')), optOffset);
+        assertEquals(Optional.of(Pair.of(2, new CharRange('c', 'c'))), optOffset);
+    }
+
+    @Test
+    public void testCalculateOffsetLiteralFollowedByRange() {
+        var dfa = DFA.createDFA("ab[c-d]");
+        var optOffset = dfa.calculateOffset();
+        assertEquals(Optional.of(Pair.of(2, new CharRange('c', 'd'))), optOffset);
     }
 
     @Test
     public void testCalculateOffsetWithInternalCharRange() {
         var dfa = DFA.createDFA("a[0-9]c");
         var optOffset = dfa.calculateOffset();
-        assertEquals(Optional.of(Pair.of(2, 'c')), optOffset);
+        assertEquals(Optional.of(Pair.of(2, new CharRange('c', 'c'))), optOffset);
     }
 
     @Test
     public void testCalculateOffsetWithInternalUnionWithSameChild() {
         var dfa = DFA.createDFA("a([0-9]|b)c");
         var optOffset = dfa.calculateOffset();
-        assertEquals(Optional.of(Pair.of(2, 'c')), optOffset);
+        assertEquals(Optional.of(Pair.of(2, new CharRange('c', 'c'))), optOffset);
     }
 
     @Test
@@ -48,7 +55,7 @@ public class DFATest {
     public void testLiteralPrefixGivesOffset() {
         var dfa = DFA.createDFA("abc*");
         var optOffset = dfa.calculateOffset();
-        assertEquals(Optional.of(Pair.of(1, 'b')), optOffset);
+        assertEquals(Optional.of(Pair.of(1, new CharRange('b','b'))), optOffset);
     }
 
 }
