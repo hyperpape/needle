@@ -14,9 +14,13 @@ public interface SearchMethod extends Pattern {
         return -1;
     }
 
-    MatchResult find(String s);
+    default MatchResult find(String s) {
+        return find(s, 0, s.length());
+    }
 
-    MatchResult find(String s, int start, int end);
+    default MatchResult find(String s, int start, int end) {
+        return find(s, start, end, false);
+    }
 
     MatchResult find(String s, int start, int end, boolean anchored);
 

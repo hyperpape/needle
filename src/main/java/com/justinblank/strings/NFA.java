@@ -109,16 +109,6 @@ class NFA implements SearchMethod {
         return result.start;
     }
 
-    @Override
-    public MatchResult find(String s) {
-        return find(s, 0, s.length(), false);
-    }
-
-    @Override
-    public MatchResult find(String s, int start, int end) {
-        return find(s, start, end, false);
-    }
-
     public MatchResult find(String s, int start, int end, boolean anchored) {
         SearchMethodUtil.checkIndices(s, start, end);
         int i = start;

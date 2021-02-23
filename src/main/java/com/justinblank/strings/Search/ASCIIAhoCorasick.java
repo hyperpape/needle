@@ -18,16 +18,6 @@ class ASCIIAhoCorasick implements SearchMethod {
         return result.matched && result.end == s.length();
     }
 
-    @Override
-    public MatchResult find(String s) {
-        return find(s, 0, s.length(), false);
-    }
-
-    @Override
-    public MatchResult find(String s, int start, int end) {
-        return find(s, start, end, false);
-    }
-
     public MatchResult find(String s, int start, int end, boolean anchored) {
         if (anchored) {
             return find(partialTrie, s, start, end);
