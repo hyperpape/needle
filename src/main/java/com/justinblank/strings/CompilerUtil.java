@@ -32,8 +32,11 @@ class CompilerUtil {
      * @param constant the constant
      */
     static void pushShortInt(MethodVisitor mv, int constant) {
-        if (constant < 6) {
+        if (constant < 6 && constant >= -1) {
             switch (constant) {
+                case -1: {
+                    mv.visitInsn(ICONST_M1);
+                }
                 case 0: {
                     mv.visitInsn(ICONST_0);
                     break;
@@ -58,7 +61,7 @@ class CompilerUtil {
                     mv.visitInsn(ICONST_5);
                 }
             }
-        } else if (constant <= 127) {
+        } else if (constant <= 127 && constant >= 0) {
             mv.visitIntInsn(BIPUSH, constant);
         } else {
             mv.visitIntInsn(SIPUSH, constant);
