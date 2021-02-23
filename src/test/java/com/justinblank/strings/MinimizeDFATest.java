@@ -67,14 +67,23 @@ public class MinimizeDFATest {
     @Test
     public void testMinimizeDFAHandlesRepetition() {
         DFA dfa = MinimizeDFA.minimizeDFA(DFA.createDFA("a*"));
+        assertEquals(1, dfa.statesCount());
         assertTrue(dfa.matches("a"));
     }
 
     @Test
     public void testCountedRepetition() {
-        DFA original = DFA.createDFA("1{0,2}");
+        var nfa = new NFA(RegexInstrBuilder.createNFA(RegexParser.parse("1{0,2}")));
+        DFA original = new NFAToDFACompiler(nfa)._compile(nfa);
         assertTrue(original.matches("1"));
         DFA dfa = MinimizeDFA.minimizeDFA(original);
         assertTrue(dfa.matches("1"));
+    }
+
+    @Test
+    public void testMinimizeRange() {
+        var dfa = DFA.createDFA("(a|b)");
+        assertEquals(2, dfa.statesCount());
+
     }
 }

@@ -11,7 +11,7 @@ public class NFAToDFACompiler {
     private DFA root;
     private final NFA nfa;
 
-    private NFAToDFACompiler(NFA nfa) {
+    NFAToDFACompiler(NFA nfa) {
         this.nfa = nfa;
     }
 
@@ -20,7 +20,7 @@ public class NFAToDFACompiler {
         return MinimizeDFA.minimizeDFA(dfa);
     }
 
-    private DFA _compile(NFA nfa) {
+    DFA _compile(NFA nfa) {
         Set<Integer> states = nfa.epsilonClosure(0);
         root = DFA.root(nfa.hasAcceptingState(states));
         addNFAStatesToDFA(states, root);
