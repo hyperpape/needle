@@ -10,12 +10,6 @@ public class CharRange implements Comparable<CharRange> {
     private final char end;
     private final boolean empty;
 
-    private static final CharRange EMPTY_RANGE = new CharRange();
-
-    public static CharRange emptyRange() {
-        return EMPTY_RANGE;
-    }
-
     public CharRange(char start, char end) {
         this.start = start;
         this.end = end;
@@ -23,12 +17,6 @@ public class CharRange implements Comparable<CharRange> {
             throw new IllegalArgumentException("Tried to create a character range with start=" + start + " larger than end=" + end);
         }
         empty = false;
-    }
-
-    private CharRange() {
-        start = '0';
-        end = '0';
-        empty = true;
     }
 
     public char getStart() {

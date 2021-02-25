@@ -19,15 +19,6 @@ public final class SearchMethods {
         }
     }
 
-    private static boolean containsEmpty(Collection<String> strings) {
-        for (String s : strings) {
-            if ("".equals(s)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     // I keep double-checking StringUtils for where I missed this
     protected static boolean allAscii(String s) {
         for (int i = 0; i < s.length(); i++) {
