@@ -3,6 +3,7 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.Factorization;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class CountedRepetition extends Node {
     public final Node node;
@@ -20,12 +21,16 @@ public class CountedRepetition extends Node {
     }
 
     protected int minLength() {
-        return min;
+        return min * node.minLength();
+    }
+
+    protected Optional<Integer> maxLength() {
+        return node.maxLength().map(n -> n * max);
     }
 
     @Override
-    protected int depth() {
-        return 1 + node.depth();
+    protected int height() {
+        return 1 + node.height();
     }
 
     @Override

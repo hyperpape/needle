@@ -3,6 +3,8 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.Factorization;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Optional;
+
 public class LiteralNode extends Node {
 
     private StringBuilder string = new StringBuilder();
@@ -21,7 +23,12 @@ public class LiteralNode extends Node {
     }
 
     @Override
-    protected int depth() {
+    protected Optional<Integer> maxLength() {
+        return Optional.of(string.length());
+    }
+
+    @Override
+    protected int height() {
         return 0;
     }
 

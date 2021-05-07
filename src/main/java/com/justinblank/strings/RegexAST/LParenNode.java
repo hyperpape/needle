@@ -2,6 +2,8 @@ package com.justinblank.strings.RegexAST;
 
 import com.justinblank.strings.Factorization;
 
+import java.util.Optional;
+
 public class LParenNode extends Node {
 
     private static final LParenNode NODE = new LParenNode();
@@ -18,7 +20,12 @@ public class LParenNode extends Node {
     }
 
     @Override
-    protected int depth() {
+    protected Optional<Integer> maxLength() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected int height() {
         throw new UnsupportedOperationException();
     }
 

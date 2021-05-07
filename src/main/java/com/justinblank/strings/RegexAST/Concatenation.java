@@ -3,6 +3,7 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.Factorization;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class Concatenation extends Node {
 
@@ -20,9 +21,13 @@ public class Concatenation extends Node {
         return head.minLength() + tail.minLength();
     }
 
+    protected Optional<Integer> maxLength() {
+        return head.maxLength().flatMap(n -> tail.maxLength().map(m -> Math.max(n, m)));
+    }
+
     @Override
-    protected int depth() {
-        return 1 + Math.max(head.depth(), tail.depth());
+    protected int height() {
+        return 1 + Math.max(head.height(), tail.height());
     }
 
     public Factorization bestFactors() {

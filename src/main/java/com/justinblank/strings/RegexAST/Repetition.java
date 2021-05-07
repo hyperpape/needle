@@ -3,6 +3,7 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.Factorization;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class Repetition extends Node {
 
@@ -17,9 +18,13 @@ public class Repetition extends Node {
         return 0;
     }
 
+    protected Optional<Integer> maxLength() {
+        return Optional.empty();
+    }
+
     @Override
-    protected int depth() {
-        return 1 + node.depth();
+    protected int height() {
+        return 1 + node.height();
     }
 
     @Override

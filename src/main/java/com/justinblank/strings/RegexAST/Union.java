@@ -22,9 +22,13 @@ public class Union extends Node {
         return Math.min(left.minLength(), right.minLength());
     }
 
+    protected Optional<Integer> maxLength() {
+        return left.maxLength().flatMap(n -> right.maxLength().map(m -> Math.max(n, m)));
+    }
+
     @Override
-    protected int depth() {
-        return 1 + Math.max(left.depth(), right.depth());
+    protected int height() {
+        return 1 + Math.max(left.height(), right.height());
     }
 
     @Override

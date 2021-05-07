@@ -3,6 +3,8 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.CharRange;
 import com.justinblank.strings.Factorization;
 
+import java.util.Optional;
+
 public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
 
     private final CharRange range;
@@ -23,8 +25,12 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
         return 1;
     }
 
+    protected Optional<Integer> maxLength() {
+        return Optional.of(1);
+    }
+
     @Override
-    protected int depth() {
+    protected int height() {
         return 0;
     }
 
