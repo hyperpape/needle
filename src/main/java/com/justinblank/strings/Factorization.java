@@ -34,6 +34,9 @@ public class Factorization {
      */
     private Set<String> factors;
 
+    private int minLength = 0;
+    private int maxLength = -1;
+
     private Factorization() {
         all = new HashSet<>();
         suffixes = new HashSet<>();
@@ -292,6 +295,31 @@ public class Factorization {
             }
         }
         return Optional.of(sharedPrefix);
+    }
+
+    public int getMinLength() {
+        return minLength;
+    }
+
+    public void setMinLength(int minLength) {
+        if (minLength < 0) {
+            throw new IllegalArgumentException("min length must be >= 0");
+        }
+        this.minLength = minLength;
+    }
+
+    public void setMaxLength(int maxLength) {
+        if (maxLength < 0) {
+            throw new IllegalArgumentException("max length must be >= 0");
+        }
+        this.maxLength = maxLength;
+    }
+
+    public Optional<Integer> getMaxLength() {
+        if (maxLength == -1) {
+            return Optional.empty();
+        }
+        return Optional.of(maxLength);
     }
 
     @Override

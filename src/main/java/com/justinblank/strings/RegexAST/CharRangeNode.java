@@ -21,11 +21,11 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
         this.range = new CharRange(start, end);
     }
 
-    protected int minLength() {
+    public int minLength() {
         return 1;
     }
 
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         return Optional.of(1);
     }
 

@@ -18,12 +18,12 @@ public class LiteralNode extends Node {
     }
 
     @Override
-    protected int minLength() {
+    public int minLength() {
         return string.length();
     }
 
     @Override
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         return Optional.of(string.length());
     }
 

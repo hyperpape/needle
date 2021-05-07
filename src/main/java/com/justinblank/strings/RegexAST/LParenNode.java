@@ -15,12 +15,12 @@ public class LParenNode extends Node {
     }
 
     @Override
-    protected int minLength() {
+    public int minLength() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         throw new UnsupportedOperationException();
     }
 

@@ -18,11 +18,11 @@ public class Union extends Node {
         this.right = right;
     }
 
-    protected int minLength() {
+    public int minLength() {
         return Math.min(left.minLength(), right.minLength());
     }
 
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         return left.maxLength().flatMap(n -> right.maxLength().map(m -> Math.max(n, m)));
     }
 

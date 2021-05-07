@@ -20,11 +20,11 @@ public class CountedRepetition extends Node {
         this.max = max;
     }
 
-    protected int minLength() {
+    public int minLength() {
         return min * node.minLength();
     }
 
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         return node.maxLength().map(n -> n * max);
     }
 

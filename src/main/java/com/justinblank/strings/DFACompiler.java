@@ -55,6 +55,8 @@ public class DFACompiler {
     public static Pattern compile(String regex, String className) {
         Node node = RegexParser.parse(regex);
         Factorization factors = node.bestFactors();
+        factors.setMinLength(node.minLength());
+        node.maxLength().ifPresent(factors::setMaxLength);
         DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)));
         DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
         byte[] classBytes = generateClassAsBytes(dfa, dfaReversed, factors, className);

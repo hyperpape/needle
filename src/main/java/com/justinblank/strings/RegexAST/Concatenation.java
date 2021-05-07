@@ -17,11 +17,11 @@ public class Concatenation extends Node {
         this.tail = tail;
     }
 
-    protected int minLength() {
+    public int minLength() {
         return head.minLength() + tail.minLength();
     }
 
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         return head.maxLength().flatMap(n -> tail.maxLength().map(m -> Math.max(n, m)));
     }
 

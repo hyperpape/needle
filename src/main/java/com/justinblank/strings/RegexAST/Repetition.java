@@ -14,11 +14,11 @@ public class Repetition extends Node {
         this.node = node;
     }
 
-    protected int minLength() {
+    public int minLength() {
         return 0;
     }
 
-    protected Optional<Integer> maxLength() {
+    public Optional<Integer> maxLength() {
         return Optional.empty();
     }
 
