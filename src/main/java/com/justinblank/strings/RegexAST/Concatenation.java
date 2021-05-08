@@ -22,7 +22,7 @@ public class Concatenation extends Node {
     }
 
     public Optional<Integer> maxLength() {
-        return head.maxLength().flatMap(n -> tail.maxLength().map(m -> Math.max(n, m)));
+        return head.maxLength().flatMap(n -> tail.maxLength().map(m -> m + n));
     }
 
     @Override
