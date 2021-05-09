@@ -283,4 +283,15 @@ class DFA {
     protected boolean isRoot() {
         return this == root;
     }
+
+    public Optional<DFA> after(String prefix) {
+        var dfa = this;
+        for (int i = 0; i < prefix.length(); i++) {
+            dfa = dfa.transition(prefix.charAt(i));
+            if (dfa == null) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(dfa);
+    }
 }

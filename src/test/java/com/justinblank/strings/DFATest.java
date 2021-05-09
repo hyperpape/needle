@@ -57,5 +57,4 @@ public class DFATest {
         var optOffset = dfa.calculateOffset();
         assertEquals(Optional.of(Pair.of(1, new CharRange('b','b'))), optOffset);
     }
-
 }
