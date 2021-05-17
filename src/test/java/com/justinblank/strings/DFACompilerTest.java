@@ -38,6 +38,8 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("xyz").containedIn());
         assertFalse(pattern.matcher("zxy").matches());
         assertTrue(pattern.matcher("zxy").containedIn());
+        assertFalse(pattern.matcher("xzxy").matches());
+        assertTrue(pattern.matcher("xzxy").containedIn());
         fail(pattern, "XY{");
     }
 
@@ -51,7 +53,9 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("abcd").containedIn());
         assertFalse(pattern.matcher("dabc").matches());
         assertTrue(pattern.matcher("dabc").containedIn());
+        assertTrue(pattern.matcher("abdabc").containedIn());
         fail(pattern, "AB{");
+        fail(pattern, "abd");
     }
 
     @Test
@@ -65,6 +69,8 @@ public class DFACompilerTest {
         assertFalse(pattern.matcher("eabcd").matches());
         assertTrue(pattern.matcher("eabcd").containedIn());
         fail(pattern, "ABC{");
+        fail(pattern, "abc");
+        fail(pattern, "abce");
     }
 
     @Test
@@ -77,6 +83,7 @@ public class DFACompilerTest {
         match(pattern, "aaaa");
 
         assertTrue(pattern.matcher("ab").containedIn());
+        assertTrue(pattern.matcher("e").containedIn());
     }
 
     @Test
@@ -108,12 +115,14 @@ public class DFACompilerTest {
         match(pattern, "BA");
         assertFalse(pattern.matcher("ABBA").matches());
         assertTrue(pattern.matcher("ABBA").containedIn());
+        fail(pattern, "AA");
     }
 
     @Test
     public void testTwoAcceptingStateDFA() throws Exception {
         Pattern pattern = DFACompiler.compile("(A+)|(B+)", "testTwoAcceptingStateDFA");
         match(pattern, "A");
+        match(pattern, "B");
         match(pattern, "AA");
         match(pattern, "BB");
         assertFalse(pattern.matcher("AB").matches());
