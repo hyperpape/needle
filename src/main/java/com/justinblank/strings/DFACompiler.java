@@ -34,6 +34,7 @@ public class DFACompiler {
     private Map<Integer, DFA> stateMap = new HashMap<>();
     private String className;
     private ClassWriter classWriter;
+    // private final ClassBuilder classBuilder;
     private DFA dfa;
     private DFA dfaReversed;
     private Factorization factors;
@@ -47,6 +48,8 @@ public class DFACompiler {
         }
         this.classWriter = classWriter;
         this.className = className;
+        // this.classBuilder = DFAClassBuilder.build(className, dfa, node);
+
         this.dfa = dfa;
         this.dfaReversed = dfaReversed;
         this.factors = factors;
@@ -61,7 +64,7 @@ public class DFACompiler {
         DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
         byte[] classBytes = generateClassAsBytes(dfa, dfaReversed, factors, className);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
-        Class<? extends Pattern> c = createPatternClass("Pattern"  + className, (Class<? extends Matcher>) matcherClass);
+        Class<? extends Pattern> c = createPatternClass("Pattern" + className, (Class<? extends Matcher>) matcherClass);
         try {
             return (Pattern) c.getDeclaredConstructors()[0].newInstance();
         } catch (Throwable t) {
@@ -94,7 +97,7 @@ public class DFACompiler {
 
     protected void compile() {
         addFields();
-        classWriter.visitField( ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2);
+        classWriter.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2);
         addCharConstants();
         addConstructor();
         generateTransitionMethods();
@@ -538,6 +541,13 @@ public class DFACompiler {
         for (DFA target : dfa.allStates()) {
             generateTransitionMethod(target, methodDesignator(target));
         }
+//        for (Method method : classBuilder.stateMethods) {
+//            generateTransitionMethod(method);
+//        }
+    }
+
+    private void generateTransitionMethod(Method method) {
+        MethodVisitor mv = this.classWriter.visitMethod(ACC_PRIVATE, method.methodName, method.descriptor(), null, null);
     }
 
     protected void generateTransitionMethod(DFA node, Integer transitionNumber) {

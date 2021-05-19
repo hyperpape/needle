@@ -10,6 +10,7 @@ import static org.objectweb.asm.Opcodes.SIPUSH;
 
 class CompilerUtil {
 
+    public static final String OBJECT_DESCRIPTOR = "Ljava/lang/Object;";
     public static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
 
     static Label[] makeLabelsForCollection(Collection<?> collection) {
@@ -36,6 +37,7 @@ class CompilerUtil {
             switch (constant) {
                 case -1: {
                     mv.visitInsn(ICONST_M1);
+                    break;
                 }
                 case 0: {
                     mv.visitInsn(ICONST_0);

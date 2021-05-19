@@ -6,4 +6,8 @@ public interface Matcher {
 
     // TODO: this is a really weird interface
     boolean containedIn();
+
+    MatchResult find();
+
+    MatchResult find(int start, int end);
 }
