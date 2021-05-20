@@ -255,7 +255,7 @@ public class DFACompiler {
             stateLabels[i] = new Label();
         }
         if (largeStateCount) {
-            pushShortInt(mv, 64);
+            pushInt(mv, 64);
             mv.visitInsn(IDIV);
         }
         mv.visitTableSwitchInsn(0, labelCount - 1, failLabel, stateLabels);
@@ -355,9 +355,9 @@ public class DFACompiler {
         emitBoundsCheck(mv, vars, failLabel);
         emitReadChar(mv, vars);
         if (chars.size() == 1) {
-            pushShortInt(mv, chars.get(0));
+            pushInt(mv, chars.get(0));
             mv.visitJumpInsn(IF_ICMPNE, innerIterationLabel);
-            pushShortInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
+            pushInt(mv, dfa.getTransitions().get(0).getRight().getStateNumber());
         } else {
             Label postMatchLabel = new Label();
             Label[] charLabels = makeLabels(chars.size());
@@ -369,7 +369,7 @@ public class DFACompiler {
             for (int i = 0; i < chars.size(); i++) {
                 mv.visitLabel(charLabels[i]);
                 DFA target = dfa.transition(chars.get(i));
-                pushShortInt(mv, target.getStateNumber());
+                pushInt(mv, target.getStateNumber());
                 mv.visitJumpInsn(GOTO, postMatchLabel);
             }
             // switch insn;
@@ -439,7 +439,7 @@ public class DFACompiler {
         MethodVisitor mv = classWriter.visitMethod(ACC_PRIVATE, "wasAccepted", "(I)Z", null, null);
         int acceptingState = acceptingStates.get(0).getStateNumber();
         mv.visitVarInsn(ILOAD, 1);
-        pushShortInt(mv, acceptingState);
+        pushInt(mv, acceptingState);
         Label success = new Label();
         mv.visitJumpInsn(IF_ICMPEQ, success);
         mv.visitInsn(ICONST_0);
@@ -591,7 +591,7 @@ public class DFACompiler {
             // check state and return if need be
             mv.visitLabel(iterLabel);
             mv.visitVarInsn(ILOAD, vars.stateVar);
-            pushShortInt(mv, transitionNumber);
+            pushInt(mv, transitionNumber);
             mv.visitJumpInsn(IF_ICMPNE, pushStateBeforeReturnLabel);
             // check position and return if need be
             emitBoundsCheck(mv, vars, pushStateBeforeReturnLabel);
@@ -636,7 +636,7 @@ public class DFACompiler {
             mv.visitLabel(labels[index++]);
             int nextState = methodDesignator(transition.getRight());
 
-            pushShortInt(mv, nextState);
+            pushInt(mv, nextState);
             mv.visitVarInsn(ISTORE, 4);
             mv.visitJumpInsn(GOTO, iterLabel);
         }
@@ -684,7 +684,7 @@ public class DFACompiler {
             mv.visitLabel(e.getValue());
             int nextState = methodDesignator(e.getKey());
 
-            pushShortInt(mv, nextState);
+            pushInt(mv, nextState);
             mv.visitVarInsn(ISTORE, 4);
             // pushShortInt(mv, nextState);
             mv.visitJumpInsn(GOTO, returnLabel);
@@ -699,7 +699,7 @@ public class DFACompiler {
      */
     private void pushCharConst(MethodVisitor mv, char c) {
         if ((int) c <= Short.MAX_VALUE) {
-            pushShortInt(mv, (int) c);
+            pushInt(mv, (int) c);
         } else {
             mv.visitFieldInsn(GETSTATIC, this.className, rangeConstants.get(c), "C");
         }
@@ -711,7 +711,7 @@ public class DFACompiler {
         mv.visitVarInsn(ILOAD, 1);
         pushCharConst(mv, charRange.getStart());
         mv.visitJumpInsn(IF_ICMPNE, failLabel);
-        pushShortInt(mv, methodDesignator(next));
+        pushInt(mv, methodDesignator(next));
         mv.visitVarInsn(ISTORE, 4);
         // pushShortInt(mv, methodDesignator(next));
         mv.visitJumpInsn(GOTO, returnLabel);
@@ -784,7 +784,7 @@ public class DFACompiler {
     }
 
     public void emitDebug(MethodVisitor mv, int i) {
-        pushShortInt(mv, i);
+        pushInt(mv, i);
         mv.visitMethodInsn(INVOKESTATIC, "com/justinblank/strings/DFACompiler", "debug", "(I)V", false);
     }
 
