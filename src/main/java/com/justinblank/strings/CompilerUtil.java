@@ -13,19 +13,6 @@ class CompilerUtil {
     public static final String OBJECT_DESCRIPTOR = "Ljava/lang/Object;";
     public static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
 
-    static Label[] makeLabelsForCollection(Collection<?> collection) {
-        int labelSize = collection.size();
-        return makeLabels(labelSize);
-    }
-
-    static Label[] makeLabels(int labelSize) {
-        Label[] labels = new Label[labelSize];
-        for (int i = 0; i < labelSize; i++) {
-            labels[i] = new Label();
-        }
-        return labels;
-    }
-
     /**
      * Utility method, push an int onto the stack, assuming it is no bigger than a short
      *
