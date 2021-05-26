@@ -192,31 +192,60 @@ class DFA {
         return false;
     }
 
-    Optional<Pair<Integer, CharRange>> calculateOffset() {
+    Map<Integer, Offset> calculateOffsets() {
+        var map = new HashMap<Integer, Offset>();
         var seen = new HashSet<>();
-        var count = new AtomicInteger();
+        for (var state : states) {
+            // TODO: this is an oversimplification, but we could
+            if (!seen.contains(state.stateNumber)) {
+                var offset = state.calculateOffset();
+                offset.ifPresent(o -> {
+                    seen.addAll(o.passedStates);
+                    map.put(state.stateNumber, o);
+                });
+            }
+
+        }
+        return map;
+    }
+
+    Optional<Offset> calculateOffset() {
+        Set<Integer> passedStates = new HashSet<>();
+        var count = -1;
+        CharRange charRange = null;
         var next = this;
-        Optional<Pair<Integer, CharRange>> best = Optional.empty();
         while (true) {
-            if (seen.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0) {
-                return best;
+            if (passedStates.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0) {
+                break;
             }
             if (next.transitions.size() != 1) {
-                for (int i = 0; i < next.transitions.size() - 1; i++) {
-                    if (next.transitions.get(i).getRight() != next.transitions.get(i + 1).getRight()) {
-                        return best;
-                    }
+                if (!next.allTransitionsLeadToSameState()) {
+                    break;
                 }
             }
-            seen.add(next);
+            passedStates.add(next.stateNumber);
 
             var transition = next.transitions.get(0);
             next = transition.getRight();
-            if (count.get() > 0) {
-                best = Optional.of(Pair.of(count.get(), transition.getLeft()));
-            }
-            count.incrementAndGet();
+            count++;
+            charRange = transition.getLeft();
         }
+
+        if (count > 0) {
+            return Optional.of(new Offset(count, passedStates, charRange));
+        }
+        else {
+            return Optional.empty();
+        }
+    }
+
+    private boolean allTransitionsLeadToSameState() {
+        for (int i = 0; i < transitions.size() - 1; i++) {
+            if (transitions.get(i).getRight() != transitions.get(i + 1).getRight()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected int charCount() {
