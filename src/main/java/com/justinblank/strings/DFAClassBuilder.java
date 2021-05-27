@@ -23,6 +23,7 @@ public class DFAClassBuilder extends ClassBuilder {
     private final DFA dfa;
     private final DFA reversed;
     private final Factorization factorization;
+    private final Map<Integer, Offset> offsets;
 
     final List<Method> stateMethods = new ArrayList<>();
     final List<Method> backwardsStateMethods = new ArrayList<>();
@@ -40,6 +41,8 @@ public class DFAClassBuilder extends ClassBuilder {
         this.dfa = dfa;
         this.reversed = reversed;
         this.factorization = factorization;
+        // YOLO
+        this.offsets = dfa != null ? dfa.calculateOffsets() : null;
     }
 
     void initMethods() {
@@ -251,11 +254,35 @@ public class DFAClassBuilder extends ClassBuilder {
         Block charBlock = method.addBlock();
 
         var successBlock = method.addBlock();
-        successBlock.addReturn(IRETURN);
 
         var failBlock = method.addBlock();
         failBlock.push(-1);
         failBlock.addReturn(IRETURN);
+
+        var offset = offsets.get(dfaState.getStateNumber());
+        if (offset != null) {
+            successBlock
+                    .readThis()
+                    .readField(STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR)
+                    .readThis()
+                    .readField(LENGTH_FIELD, true, "I")
+                    .call("charAt", "java/lang/String", "(I)C")
+                    .setVar(vars, MatchingVars.CHAR, "C");
+            if (offset.charRange.isSingleCharRange()) {
+                successBlock.readVar(vars, MatchingVars.CHAR, "C");
+
+                successBlock.push(offset.charRange.getStart())
+                        .jump(failBlock, IF_ICMPNE);
+            }
+            else {
+                successBlock.push(offset.charRange.getStart())
+                        .jump(failBlock, IF_ICMPLE)
+                        .readVar(vars, MatchingVars.CHAR, "C")
+                        .jump(failBlock, IF_ICMPGT);
+            }
+        }
+        successBlock.addReturn(IRETURN);
+
         charBlock.operations.add(Operation.checkChars(dfaState, failBlock));
     }
 
@@ -528,6 +555,9 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     public static DFAClassBuilder build(String name, DFA dfa, Node node) {
+        Objects.requireNonNull(name, "name cannot be null");
+        Objects.requireNonNull(dfa, "dfa cannot be null");
+        Objects.requireNonNull(node, "node cannot be null");
 
         var factorization = node.bestFactors();
         factorization.setMinLength(node.minLength());
