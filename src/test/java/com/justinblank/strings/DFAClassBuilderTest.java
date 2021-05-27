@@ -231,7 +231,7 @@ public class DFAClassBuilderTest {
             throw new RuntimeException(t);
         }
     }
-
+    
     @Test
     public void testReadChar() {
         try {

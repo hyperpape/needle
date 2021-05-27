@@ -98,7 +98,7 @@ public class DFAClassBuilder extends ClassBuilder {
             var lastMatchBlock = method.addBlockAfter(initialBlock);
             lastMatchBlock.readThis();
             lastMatchBlock.readVar(vars, MatchingVars.STATE, "I");
-            lastMatchBlock.call(WAS_ACCEPTED_METHOD,getClassName(),"(I)Z");
+            lastMatchBlock.call(forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(),"(I)Z");
             lastMatchBlock.jump(matchLoopBlock,IFEQ);
             lastMatchBlock.readVar(vars, MatchingVars.INDEX, "I");
             lastMatchBlock.setVar(vars,MatchingVars.LAST_MATCH,"I");
@@ -414,7 +414,7 @@ public class DFAClassBuilder extends ClassBuilder {
             if (isGreedy) {
                 tail.readThis();
                 tail.readVar(vars, MatchingVars.STATE, "I");
-                tail.call(WAS_ACCEPTED_METHOD,getClassName(),"(I)Z");
+                tail.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(),"(I)Z");
                 tail.setVar(vars,MatchingVars.WAS_ACCEPTED,"I");
                 tail.readVar(vars, MatchingVars.WAS_ACCEPTED, "I");
 
