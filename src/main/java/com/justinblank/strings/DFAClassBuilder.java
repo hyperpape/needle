@@ -71,31 +71,31 @@ public class DFAClassBuilder extends ClassBuilder {
         vars.setLastMatchVar(7);
         var method = mkMethod(forwards ? INDEX_FORWARDS : INDEX_BACKWARDS, List.of("I"), "I", vars);
 
-        var ultraInitialBlock = method.addBlock();
-        var initialBlock = method.addBlock();
+        var setupBlock = method.addBlock();
+        var seekBlock = method.addBlock();
         var matchLoopBlock = method.addBlock();
         var returnBlock = method.addBlock();
         returnBlock.readVar(vars, MatchingVars.LAST_MATCH, "I");
         returnBlock.addReturn(IRETURN);
         var failureBlock = addFailureBlock(method, -1);
 
-        addReadStringLength(vars, ultraInitialBlock);
+        addReadStringLength(vars, setupBlock);
         if (vars.forwards) {
-            addLengthCheck(vars, ultraInitialBlock, failureBlock, false);
+            addLengthCheck(vars, setupBlock, failureBlock, false);
         }
 
-        addContainedInPrefaceBlock(vars, initialBlock, failureBlock);
+        addContainedInPrefaceBlock(vars, seekBlock, failureBlock);
         if (dfa.isAccepting()) {
-            initialBlock.push(0);
-            initialBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
+            seekBlock.push(0);
+            seekBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
         }
         else {
-            initialBlock.push(-1);
-            initialBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
+            seekBlock.push(-1);
+            seekBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
         }
         if (vars.forwards && factorization.getSharedPrefix().isPresent()) {
             // If we consumed a prefix, then we need to save the last match
-            var lastMatchBlock = method.addBlockAfter(initialBlock);
+            var lastMatchBlock = method.addBlockAfter(seekBlock);
             lastMatchBlock.readThis();
             lastMatchBlock.readVar(vars, MatchingVars.STATE, "I");
             lastMatchBlock.call(forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(),"(I)Z");
@@ -103,7 +103,7 @@ public class DFAClassBuilder extends ClassBuilder {
             lastMatchBlock.readVar(vars, MatchingVars.INDEX, "I");
             lastMatchBlock.setVar(vars,MatchingVars.LAST_MATCH,"I");
         }
-        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, initialBlock, false, true);
+        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, seekBlock, false, true);
 
         return method;
     }
@@ -290,12 +290,12 @@ public class DFAClassBuilder extends ClassBuilder {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("matches", new ArrayList<>(), "Z", vars);
 
-        var initialBlock = method.addBlock();
+        var setupAndSeekBlock = method.addBlock();
         var matchLoopBlock = method.addBlock();
         var returnBlock = addReturnBlock(method, vars);
         var failBlock = addFailureBlock(method, 0);
 
-        addMatchesPrefaceBlock(vars, initialBlock, failBlock);
+        addMatchesPrefaceBlock(vars, setupAndSeekBlock, failBlock);
         fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, failBlock, true, true);
 
         return method;
@@ -385,7 +385,6 @@ public class DFAClassBuilder extends ClassBuilder {
             head.push(0);
             head.jump(returnBlock,IF_ICMPEQ);
         }
-
 
         if (!vars.forwards) {
             head.addOperation(Operation.mkOperation(Operation.Inst.DECREMENT_INDEX));
@@ -528,29 +527,29 @@ public class DFAClassBuilder extends ClassBuilder {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 
-        var ultraInitialBlock = method.addBlock();
-        var initialBlock = method.addBlock();
+        var setupBlock = method.addBlock();
+        var seekBlock = method.addBlock();
         var matchLoopBlock = method.addBlock();
         var returnBlock = addReturnBlock(method, vars);
         var failureBlock = addFailureBlock(method, 0);
 
         // Initialize variables
-        ultraInitialBlock.push(0);
-        ultraInitialBlock.setVar(vars,MatchingVars.INDEX,"I");
-        addReadStringLength(vars, ultraInitialBlock);
-        addLengthCheck(vars, ultraInitialBlock, failureBlock, false);
+        setupBlock.push(0);
+        setupBlock.setVar(vars,MatchingVars.INDEX,"I");
+        addReadStringLength(vars, setupBlock);
+        addLengthCheck(vars, setupBlock, failureBlock, false);
 
-        addContainedInPrefaceBlock(vars, initialBlock, failureBlock);
+        addContainedInPrefaceBlock(vars, seekBlock, failureBlock);
         var prefix = factorization.getSharedPrefix().orElse("");
         if (dfa.after(prefix.substring(0, Math.min(1, prefix.length()))).get().isAccepting()) {
-            var wasAcceptedPostPrefixBlock = method.addBlockAfter(initialBlock);
+            var wasAcceptedPostPrefixBlock = method.addBlockAfter(seekBlock);
             wasAcceptedPostPrefixBlock.readThis();
             wasAcceptedPostPrefixBlock.readVar(vars, MatchingVars.STATE, "I");
             wasAcceptedPostPrefixBlock.call(WAS_ACCEPTED_METHOD,getClassName(),"(I)Z");
             wasAcceptedPostPrefixBlock.jump(returnBlock, IFNE);
         }
 
-        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, initialBlock, false, false);
+        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, seekBlock, false, false);
         return method;
     }
 
