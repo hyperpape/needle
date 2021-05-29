@@ -374,6 +374,8 @@ public class DFAClassBuilder extends ClassBuilder {
             loopPreface.push(-1);
             loopPreface.readVar(vars, MatchingVars.STATE, "I");
             loopPreface.jump(head,IF_ICMPNE);
+            loopPreface.push(0);
+            loopPreface.setVar(vars, MatchingVars.STATE, "I");
             loopPreface.jump(returnBlock,GOTO);
         }
 
@@ -400,7 +402,24 @@ public class DFAClassBuilder extends ClassBuilder {
         head.readVar(vars, STATE_FIELD, "I");
         head.addOperation(Operation.mkCallState(tail));
 
-        tail.setVar(vars.stateVar,"I");
+        // If we're doing a containedIn style match, we have to reconsider the initial state whenever we hit a failure
+        // mode
+        if (!isMatch && vars.forwards) {
+            var stateResetBlock = tail;
+            tail = method.addBlockAfter(tail);
+            stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
+            stateResetBlock.push(-1).readVar(vars, MatchingVars.STATE, "I").jump(tail, IF_ICMPNE);
+            stateResetBlock.push(0).setVar(vars, MatchingVars.STATE, "I");
+            stateResetBlock.addOperation(Operation.mkOperation(Operation.Inst.DECREMENT_INDEX));
+            stateResetBlock.readThis().addOperation(Operation.mkReadChar());
+            stateResetBlock.call("state0", getClassName(), "(C)I");
+            stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
+            stateResetBlock.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
+        }
+        else {
+            tail.setVar(vars.stateVar, "I");
+        }
+
         if (isMatch) {
             if (isGreedy) {
                 tail.readVar(vars.stateVar,"I");
@@ -523,7 +542,7 @@ public class DFAClassBuilder extends ClassBuilder {
         return returnBlock;
     }
 
-    private Method createContainedInMethod() {
+    Method createContainedInMethod() {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 

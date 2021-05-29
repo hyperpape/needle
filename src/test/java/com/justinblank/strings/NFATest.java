@@ -22,18 +22,6 @@ import static org.junit.Assert.*;
 
 public class NFATest {
 
-    /**
-     * Using a small alphabet seems to be more effective at finding bugs, but also provides more readable output and
-     * better shrinking. So in many tests, I use the small alphabet first, then run with a large alphabet later. I don't
-     * hide any bugs that might somehow happen with the large alphabet, but in general, I'll see the nicer output from
-     * the small alphabet if need be.
-     */
-    private static final StringsDSL.StringGeneratorBuilder SMALL_ALPHABET = new StringsDSL().betweenCodePoints(97, 101);
-    private static final StringsDSL.StringGeneratorBuilder A_THROUGH_Z = new StringsDSL().betweenCodePoints(65, 90);
-    private static final StringsDSL.StringGeneratorBuilder NON_METACHAR_BMP = new StringsDSL().betweenCodePoints(256, 256 * 256);
-    private static final StringsDSL.StringGeneratorBuilder SMALL_BMP = new StringsDSL().betweenCodePoints(0x00c5, 0x00c9);// 0x05D0, 0x05D4);
-    private static final int SMALL_DATA_SIZE = 10;
-    private static final int LARGE_DATA_SIZE = 64;
 
     @Test
     public void testAsciiSingleStringMatching() {

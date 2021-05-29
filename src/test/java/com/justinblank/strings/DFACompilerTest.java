@@ -1,13 +1,18 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
 import org.junit.Test;
+import org.quicktheories.QuickTheory;
+import org.quicktheories.core.Gen;
+import org.quicktheories.generators.StringsDSL;
 
-import static com.justinblank.strings.SearchMethodTestUtil.fail;
-import static com.justinblank.strings.SearchMethodTestUtil.match;
+import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class DFACompilerTest {
+
+    static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE);
 
     // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
     // handling prefixes, so we'll explicitly test sizes 1-4
@@ -26,6 +31,11 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("bad").containedIn());
 
         fail(pattern, "AB{");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "a", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -41,6 +51,11 @@ public class DFACompilerTest {
         assertFalse(pattern.matcher("xzxy").matches());
         assertTrue(pattern.matcher("xzxy").containedIn());
         fail(pattern, "XY{");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "xy", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -56,6 +71,11 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("abdabc").containedIn());
         fail(pattern, "AB{");
         fail(pattern, "abd");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "abc", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -71,6 +91,25 @@ public class DFACompilerTest {
         fail(pattern, "ABC{");
         fail(pattern, "abc");
         fail(pattern, "abce");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "abcd", prefix, suffix);
+            return true;
+        });
+    }
+
+    @Test
+    public void testNineCharLiteralRegex() {
+        Pattern pattern = DFACompiler.compile("abcdefghi", "NineCharLiteralRegex");
+        match(pattern, "abcdefghi");
+
+        fail(pattern, "abcd");
+        fail(pattern, "abcdefgh");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "abcdefghi", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -84,6 +123,14 @@ public class DFACompilerTest {
 
         assertTrue(pattern.matcher("ab").containedIn());
         assertTrue(pattern.matcher("e").containedIn());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "a", prefix, suffix);
+            find(pattern, "aa", prefix, suffix);
+            find(pattern, "aaa", prefix, suffix);
+            find(pattern, "aaaa", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -94,6 +141,14 @@ public class DFACompilerTest {
         match(pattern, "adddg");
 
         fail(pattern, "adeg");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "ag", prefix, suffix);
+            find(pattern, "adg", prefix, suffix);
+            find(pattern, "addg", prefix, suffix);
+            find(pattern, "adddg", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -105,17 +160,33 @@ public class DFACompilerTest {
         match(pattern, "ABC09az");
         assertFalse(pattern.matcher("AB{").matches());
         assertTrue(pattern.matcher("AB{").containedIn());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "AB", prefix, suffix);
+            find(pattern, "BA", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
     public void testGroupedDFAUnion() throws Exception {
         Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAUnion");
         match(pattern, "AB");
-
         match(pattern, "BA");
+
         assertFalse(pattern.matcher("ABBA").matches());
         assertTrue(pattern.matcher("ABBA").containedIn());
+
+        fail(pattern, "A");
         fail(pattern, "AA");
+        fail(pattern, "B");
+        fail(pattern, "BB");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "AB", prefix, suffix);
+            find(pattern, "BA", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -125,8 +196,17 @@ public class DFACompilerTest {
         match(pattern, "B");
         match(pattern, "AA");
         match(pattern, "BB");
+        fail(pattern, "");
         assertFalse(pattern.matcher("AB").matches());
         assertTrue(pattern.matcher("AB").containedIn());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "A", prefix, suffix);
+            find(pattern, "B", prefix, suffix);
+            find(pattern, "AA", prefix, suffix);
+            find(pattern, "BB", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -138,6 +218,12 @@ public class DFACompilerTest {
 
         fail(pattern, "");
         fail(pattern, "059{");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "456", prefix, suffix);
+            find(pattern, "456456", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -150,6 +236,12 @@ public class DFACompilerTest {
         fail(pattern, "BB");
         fail(pattern, "AA");
         assertFalse(pattern.matcher("ABABAB").matches());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "AB", prefix, suffix);
+            find(pattern, "ABAB", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -161,15 +253,31 @@ public class DFACompilerTest {
         match(pattern, "ABBA");
         match(pattern, "BAAB");
         match(pattern, "BABA");
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,"BA", prefix, suffix);
+            find(pattern, "ABBA", prefix, suffix);
+            find(pattern, "BAAB", prefix, suffix);
+            find(pattern, "BABA", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
     public void testCountedRepetitionWithLiteralSuffix() {
-        String regexString = "((12)|(23)){1,2}" + "ab";
+        String regexString = "((AB)|(CD)){1,2}" + "AB";
         Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
-        match(pattern, "12ab");
-        match(pattern, "2323ab");
+        match(pattern, "ABAB");
+        match(pattern, "ABCDAB");
+        match(pattern, "CDAB");
+        match(pattern, "CDCDAB");
         fail(pattern, "");
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "ABAB", prefix, suffix);
+            find(pattern, "ABCDAB", prefix, suffix);
+            find(pattern, "CDAB", prefix, suffix);
+            find(pattern, "CDCDAB", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -179,6 +287,29 @@ public class DFACompilerTest {
         match(pattern, "123ab");
         match(pattern, "234234ab");
         fail(pattern, "");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "123ab", prefix, suffix);
+            find(pattern, "234234ab", prefix, suffix);
+            return true;
+        });
+    }
+
+    @Test
+    public void testDFACompiledDigit() throws Exception {
+        Pattern pattern = DFACompiler.compile("[0-9]", "testDFACompiledDigit");
+        match(pattern, "0");
+
+        fail(pattern, "");
+        assertFalse(pattern.matcher("0{").matches());
+        assertTrue(pattern.matcher("1{").containedIn());
+        assertTrue(pattern.matcher("0{").containedIn());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,  "1{", prefix, suffix);
+            find(pattern,"0{", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -190,6 +321,12 @@ public class DFACompilerTest {
         assertFalse(pattern.matcher("059{").matches());
         assertTrue(pattern.matcher("12{").containedIn());
         assertTrue(pattern.matcher("059{").containedIn());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,  "12{", prefix, suffix);
+            find(pattern,"059{", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -207,6 +344,13 @@ public class DFACompilerTest {
         match(pattern, "E");
         assertFalse(pattern.matcher("F").matches());
         assertFalse(pattern.matcher("F").containedIn());
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,"A", prefix, suffix);
+            find(pattern, "BCD", prefix, suffix);
+            find(pattern, "E", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -219,6 +363,15 @@ public class DFACompilerTest {
         match(pattern, "AZDabcdef");
 
         match(pattern, "aZDaabcdef");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,"Aabcdef", prefix, suffix);
+            find(pattern, "aabcdef", prefix, suffix);
+            find(pattern, "AZDabcdef", prefix, suffix);
+            find(pattern, "AZDabcdef", prefix, suffix);
+            find(pattern, "aZDaabcdef", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -226,6 +379,12 @@ public class DFACompilerTest {
         Pattern pattern = DFACompiler.compile("[A-Z]+abcdef", "PrefixLargeRangeWithSuffixLiteral");
         match(pattern, "Aabcdef");
         match(pattern, "AZDabcdef");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,"Aabcdef", prefix, suffix);
+            find(pattern, "AZDabcdef", prefix, suffix);
+            return true;
+        });
     }
 
     @Test
@@ -233,6 +392,12 @@ public class DFACompilerTest {
         Pattern pattern = DFACompiler.compile("[A-Z]+abcdef[A-Z]+", "LargeRangePrefixWithInfixLiteralAndLargeRangeSuffix");
         match(pattern, "AabcdefZ");
         match(pattern, "AZDabcdefDZA");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,"AabcdefZ", prefix, suffix);
+            find(pattern, "AZDabcdefDZA", prefix, suffix);
+            return true;
+        });
     }
 
     @Test

@@ -280,4 +280,13 @@ class NFA implements SearchMethod {
         }
         return closure;
     }
+
+    public NFA selfTransitioning() {
+        var list = new ArrayList<RegexInstr>();
+        for (var instr : regexInstrs) {
+            list.add(instr);
+        }
+
+        return new NFA(list.toArray(new RegexInstr[0]));
+    }
 }
