@@ -54,16 +54,8 @@ public class DFAClassBuilderTest {
     }
 
     private Class<?> compileFromBuilder(DFAClassBuilder builder, String name) throws IOException {
-        var compiler = new DFAClassCompiler(builder);
+        var compiler = new DFAClassCompiler(builder, true);
         byte[] classBytes = compiler.generateClassAsBytes();
-        try (FileOutputStream fos = new FileOutputStream("target/"  + name + ".class")) {
-            fos.write(classBytes);
-        }
-
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        CheckClassAdapter.verify(new ClassReader(classBytes), false, printWriter);
-        // assertEquals("", stringWriter.toString());
         return MyClassLoader.getInstance().loadClass(name, classBytes);
     }
 

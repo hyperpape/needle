@@ -16,7 +16,11 @@ public class DFAClassCompiler extends ClassCompiler {
     private final List<Method> backwardsStateMethods;
 
     DFAClassCompiler(DFAClassBuilder classBuilder) {
-        super(classBuilder);
+        this(classBuilder, false);
+    }
+
+    DFAClassCompiler(DFAClassBuilder classBuilder, boolean debug) {
+        super(classBuilder, debug);
         this.stateMethods = classBuilder.stateMethods;
         this.backwardsStateMethods = classBuilder.backwardsStateMethods;
         for (Method method : classBuilder.allMethods()) {

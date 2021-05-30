@@ -23,6 +23,10 @@ import static org.objectweb.asm.Opcodes.*;
 public class DFACompiler {
 
     public static Pattern compile(String regex, String className) {
+        return compile(regex, className, false);
+    }
+
+    static Pattern compile(String regex, String className, boolean debug) {
         Node node = RegexParser.parse(regex);
         Factorization factors = node.bestFactors();
         factors.setMinLength(node.minLength());
@@ -32,7 +36,7 @@ public class DFACompiler {
             throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
         }
         DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, node);
-        DFAClassCompiler compiler = new DFAClassCompiler(builder);
+        DFAClassCompiler compiler = new DFAClassCompiler(builder, debug);
         byte[] classBytes = compiler.generateClassAsBytes();
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
         Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);

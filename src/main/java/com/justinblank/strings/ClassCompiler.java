@@ -4,6 +4,10 @@ import com.justinblank.classloader.MyClassLoader;
 import org.objectweb.asm.*;
 import org.objectweb.asm.util.CheckClassAdapter;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -20,14 +24,16 @@ public class ClassCompiler {
     private final ClassVisitor classVisitor;
     private final ClassBuilder classBuilder;
     private final String className;
+    private final boolean debug;
     private int lineNumber = 1;
 
     protected ClassCompiler(ClassBuilder classBuilder) {
-        this(classBuilder, true);
+        this(classBuilder, false);
     }
 
     protected ClassCompiler(ClassBuilder classBuilder, boolean debug) {
         this.classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        this.debug = debug;
         if (debug) {
             this.classVisitor = new CheckClassAdapter(this.classWriter);
         }
@@ -52,6 +58,12 @@ public class ClassCompiler {
     }
 
     protected byte[] writeClassAsBytes() {
+        if (debug) {
+            var stringWriter = new StringWriter();
+            var printer = new ClassPrinter(new PrintWriter(stringWriter));
+            printer.printClass(classBuilder);
+            System.out.println(stringWriter);
+        }
         defineClass(classBuilder);
         addFields();
 
@@ -59,7 +71,16 @@ public class ClassCompiler {
         for (var method : classBuilder.allMethods()) {
             writeMethod(method);
         }
-        return classWriter.toByteArray();
+        byte[] classBytes = classWriter.toByteArray();
+        if (debug) {
+            try (FileOutputStream fos = new FileOutputStream("target/" + className + ".class")) {
+                fos.write(classBytes);
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return classBytes;
     }
 
     protected ClassBuilder getClassBuilder() {
