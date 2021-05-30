@@ -25,6 +25,20 @@ performance. Those compile time-efforts currently take two forms:
 
 This project has no users as of yet. 
 
+### Usage
+
+```java
+static final Pattern URL_PATTERN = DFACompiler.compile("http://.+", "OverSimplifiedURLMatcher");
+....
+Matcher matcher = URL_PATTERN.matcher("http://www.google.com");
+assertTrue(matcher.matches());
+assertTrue(matcher.containedIn());
+MatchResult matchResult = matcher.find();
+assertTrue(matchResult.matched);
+assertEquals(0, matchResult.start);
+assertEquals(21, matchResult.end);
+```
+
 ### Syntax
 
 Attempts to match the standard library syntax for all supported operations. Capturing groups and backreferences are not

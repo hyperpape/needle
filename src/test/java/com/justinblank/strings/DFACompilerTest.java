@@ -7,8 +7,7 @@ import org.quicktheories.core.Gen;
 import org.quicktheories.generators.StringsDSL;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class DFACompilerTest {
 
@@ -398,6 +397,18 @@ public class DFACompilerTest {
             find(pattern, "AZDabcdefDZA", prefix, suffix);
             return true;
         });
+    }
+
+    @Test
+    public void testOverSimplifiedURLMatcher() {
+        final Pattern pattern = DFACompiler.compile("http://.+", "OverSimplifiedURLMatcher");
+        Matcher matcher = pattern.matcher("http://www.google.com");
+        matcher.matches(); // true;
+        matcher.containedIn(); // true;
+        MatchResult matchResult = matcher.find();
+        assertTrue(matchResult.matched);
+        assertEquals(0, matchResult.start);
+        assertEquals(21, matchResult.end);
     }
 
     @Test
