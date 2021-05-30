@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.justinblank</groupId>
-    <artifactId>BytecodeRegex</artifactId>
+    <artifactId>needle</artifactId>
     <version>0.1-SNAPSHOT</version>
     <build>
         <plugins>
