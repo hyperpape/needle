@@ -1,8 +1,32 @@
 package com.justinblank.strings;
 
+import org.objectweb.asm.Opcodes;
+
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
 
 class ClassPrinter {
+
+    static final Map<Integer, String> REPRESENTATIONS = new HashMap<Integer, String>();
+
+    static {
+        REPRESENTATIONS.put(Opcodes.IFEQ, "IFEQ");
+        REPRESENTATIONS.put(Opcodes.IFNE, "IFNE");
+        REPRESENTATIONS.put(Opcodes.IFLT, "IFLT");
+        REPRESENTATIONS.put(Opcodes.IFGE, "IFGE");
+        REPRESENTATIONS.put(Opcodes.IFGT, "IFGT");
+        REPRESENTATIONS.put(Opcodes.IFLE, "IFLE");
+        REPRESENTATIONS.put(Opcodes.IF_ICMPEQ, "IF_ICMPEQ");
+        REPRESENTATIONS.put(Opcodes.IF_ICMPNE, "ICMPNE");
+        REPRESENTATIONS.put(Opcodes.IF_ICMPLT, "IF_ICMPLT");
+        REPRESENTATIONS.put(Opcodes.IF_ICMPGE, "IF_ICMPGE");
+        REPRESENTATIONS.put(Opcodes.IF_ICMPGT, "IF_ICMPGT");
+        REPRESENTATIONS.put(Opcodes.IF_ICMPLE, "IF_ICMPLE");
+        REPRESENTATIONS.put(Opcodes.IF_ACMPEQ, "IF_ACMPEQ");
+        REPRESENTATIONS.put(Opcodes.IF_ACMPNE, "IF_ACMPNE");
+        REPRESENTATIONS.put(Opcodes.GOTO, "GOTO");
+    }
 
     int indentation;
     PrintWriter pw;
@@ -55,12 +79,10 @@ class ClassPrinter {
             case VALUE:
                 println(op.count);
                 return;
-            case CMP:
-                // TODO: pretty-print these
-                print(op.count);
+            case JUMP:
+                print(REPRESENTATIONS.get(op.count));
                 print(' ');
             case CHECK_BOUNDS:
-            case JUMP:
                 println(op.target);
                 return;
             case CALL:

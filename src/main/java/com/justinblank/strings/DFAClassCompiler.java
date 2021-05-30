@@ -38,7 +38,7 @@ public class DFAClassCompiler extends ClassCompiler {
                         var vars = method.getMatchingVars().get();
                         transformed.add(Operation.mkReadVar(vars, MatchingVars.INDEX, "I"));
                         transformed.add(Operation.mkReadVar(vars, MatchingVars.LENGTH, "I"));
-                        transformed.add(Operation.mkCmp(op.target, IF_ICMPGE));
+                        transformed.add(Operation.mkJump(op.target, IF_ICMPGE));
                         break;
                     case CHECK_CHARS:
                         var newBlocks = new ArrayList<Block>();
@@ -50,7 +50,7 @@ public class DFAClassCompiler extends ClassCompiler {
                             var transition = op.transitions.get(0);
                             transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                             transformed.add(Operation.pushValue(transition.getLeft().getStart()));
-                            transformed.add(Operation.mkCmp(op.target, Opcodes.IF_ICMPNE));
+                            transformed.add(Operation.mkJump(op.target, Opcodes.IF_ICMPNE));
                             transformed.add(Operation.pushValue(transition.getRight()));
                             transformed.add(Operation.mkReturn(IRETURN));
                         }
@@ -65,10 +65,10 @@ public class DFAClassCompiler extends ClassCompiler {
 
                                 transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                                 transformed.add(Operation.pushValue(transition.getLeft().getStart()));
-                                transformed.add(Operation.mkCmp(op.target, Opcodes.IF_ICMPLT));
+                                transformed.add(Operation.mkJump(op.target, Opcodes.IF_ICMPLT));
                                 transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                                 transformed.add(Operation.pushValue(transition.getLeft().getEnd()));
-                                transformed.add(Operation.mkCmp(transitionBlock, Opcodes.IF_ICMPLE));
+                                transformed.add(Operation.mkJump(transitionBlock, Opcodes.IF_ICMPLE));
                             }
                         }
                         transformed.add(Operation.mkJump(op.target, GOTO));

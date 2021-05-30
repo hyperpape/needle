@@ -219,7 +219,6 @@ public class ClassCompiler {
                 mv.visitVarInsn(ISTORE, vars.get().stateVar);
                 return;
             case JUMP:
-            case CMP:
                 mv.visitJumpInsn(op.count, op.target.getLabel());
                 return;
             case NEW:

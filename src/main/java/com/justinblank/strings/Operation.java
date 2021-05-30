@@ -15,10 +15,6 @@ class Operation {
     RefSpec spec;
     List<Integer> ints;
 
-    public static Operation mkCmp(Block target, int insn) {
-        return new Operation(Inst.CMP, insn, null, target, null, null);
-    }
-
     public static Operation mkReadChar() {
         return new Operation(Inst.READ_CHAR, -1, null, null, null, null);
     }
@@ -192,7 +188,6 @@ class Operation {
         PUT_STATIC,
         READ_FIELD,
         READ_VAR,
-        CMP,
         PASSTHROUGH,
         JUMP,
         LOOKUPSWITCH,

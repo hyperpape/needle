@@ -61,7 +61,7 @@ class Block {
     }
 
     Block cmp(Block target, int i) {
-        addOperation(Operation.mkCmp(target, i));
+        addOperation(Operation.mkJump(target, i));
         return this;
     }
 
