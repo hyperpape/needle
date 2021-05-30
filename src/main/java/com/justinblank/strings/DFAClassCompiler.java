@@ -50,20 +50,22 @@ public class DFAClassCompiler extends ClassCompiler {
                             transformed.add(Operation.pushValue(transition.getRight()));
                             transformed.add(Operation.mkReturn(IRETURN));
                         }
-                        for (int i = 0; i < op.transitions.size(); i++) {
-                            var transition = op.transitions.get(i);
+                        else {
+                            for (int i = 0; i < op.transitions.size(); i++) {
+                                var transition = op.transitions.get(i);
 
-                            var transitionBlock = new Block(-1, new ArrayList<>());
-                            newBlocks.add(transitionBlock);
-                            transitionBlock.push(transition.getRight());
-                            transitionBlock.addReturn(IRETURN);
+                                var transitionBlock = new Block(-1, new ArrayList<>());
+                                newBlocks.add(transitionBlock);
+                                transitionBlock.push(transition.getRight());
+                                transitionBlock.addReturn(IRETURN);
 
-                            transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
-                            transformed.add(Operation.pushValue(transition.getLeft().getStart()));
-                            transformed.add(Operation.mkCmp(op.target, Opcodes.IF_ICMPLT));
-                            transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
-                            transformed.add(Operation.pushValue(transition.getLeft().getEnd()));
-                            transformed.add(Operation.mkCmp(transitionBlock, Opcodes.IF_ICMPLE));
+                                transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
+                                transformed.add(Operation.pushValue(transition.getLeft().getStart()));
+                                transformed.add(Operation.mkCmp(op.target, Opcodes.IF_ICMPLT));
+                                transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
+                                transformed.add(Operation.pushValue(transition.getLeft().getEnd()));
+                                transformed.add(Operation.mkCmp(transitionBlock, Opcodes.IF_ICMPLE));
+                            }
                         }
                         transformed.add(Operation.mkJump(op.target, GOTO));
                         break;
