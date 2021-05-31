@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static com.justinblank.strings.CompilerUtil.STRING_DESCRIPTOR;
@@ -54,7 +55,7 @@ public class DFAClassBuilderTest {
     }
 
     private Class<?> compileFromBuilder(DFAClassBuilder builder, String name) throws IOException {
-        var compiler = new DFAClassCompiler(builder, true);
+        var compiler = new DFAClassCompiler(builder);
         byte[] classBytes = compiler.generateClassAsBytes();
         return MyClassLoader.getInstance().loadClass(name, classBytes);
     }
@@ -104,7 +105,9 @@ public class DFAClassBuilderTest {
             block.readThis();
             block.push(0);
             block.push(0);
-            block.addOperation(Operation.mkCallState(returnBlock));
+            var callState = Operation.mkCallState(returnBlock);
+            callState.addAttribute(DFAClassBuilder.OFFSETS_ATTRIBUTE, new HashMap<>());
+            block.addOperation(callState);
             returnBlock.push(0);
             returnBlock.addReturn(Opcodes.IRETURN);
 

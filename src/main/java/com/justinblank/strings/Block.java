@@ -55,6 +55,11 @@ class Block {
         return this;
     }
 
+    Block setField(String field, String className, String descriptor) {
+        addOperation(Operation.mkSetField(field, className, descriptor));
+        return this;
+    }
+
     Block push(int i) {
         addOperation(Operation.pushValue(i));
         return this;

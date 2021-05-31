@@ -1,10 +1,12 @@
 package com.justinblank.strings;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -41,27 +43,39 @@ public class DFAClassCompiler extends ClassCompiler {
                         transformed.add(Operation.mkJump(op.target, IF_ICMPGE));
                         break;
                     case CHECK_CHARS:
+                        CheckCharsOperation ccOp = (CheckCharsOperation) op;
                         var newBlocks = new ArrayList<Block>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
 
                         vars = method.getMatchingVars().get();
                         // TODO: less sophisticated than previous impl
-                        if (op.transitions.size() == 1 && op.transitions.get(0).getLeft().isSingleCharRange()) {
-                            var transition = op.transitions.get(0);
+                        if (ccOp.transitions.size() == 1 && ccOp.transitions.get(0).getLeft().isSingleCharRange()) {
+                            var transition = ccOp.transitions.get(0);
                             transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                             transformed.add(Operation.pushValue(transition.getLeft().getStart()));
-                            transformed.add(Operation.mkJump(op.target, Opcodes.IF_ICMPNE));
-                            transformed.add(Operation.pushValue(transition.getRight()));
-                            transformed.add(Operation.mkReturn(IRETURN));
+                            transformed.add(Operation.mkJump(ccOp.target, Opcodes.IF_ICMPNE));
+                            if (ccOp.getSuccessTarget() == null) {
+                                transformed.add(Operation.pushValue(transition.getRight()));
+                                transformed.add(Operation.mkReturn(IRETURN));
+                            }
+                            else {
+                                transformed.add(Operation.pushValue(transition.getRight()));
+                                transformed.add(Operation.mkJump(ccOp.getSuccessTarget(), GOTO));
+                            }
                         }
                         else {
-                            for (int i = 0; i < op.transitions.size(); i++) {
-                                var transition = op.transitions.get(i);
+                            for (int i = 0; i < ccOp.transitions.size(); i++) {
+                                var transition = ccOp.transitions.get(i);
 
                                 var transitionBlock = new Block(-1, new ArrayList<>());
                                 newBlocks.add(transitionBlock);
                                 transitionBlock.push(transition.getRight());
-                                transitionBlock.addReturn(IRETURN);
+                                if (ccOp.getSuccessTarget() == null) {
+                                    transitionBlock.addReturn(IRETURN);
+                                }
+                                else {
+                                    transitionBlock.operate(POP).jump(ccOp.getSuccessTarget(), GOTO);
+                                }
 
                                 transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                                 transformed.add(Operation.pushValue(transition.getLeft().getStart()));
@@ -71,7 +85,7 @@ public class DFAClassCompiler extends ClassCompiler {
                                 transformed.add(Operation.mkJump(transitionBlock, Opcodes.IF_ICMPLE));
                             }
                         }
-                        transformed.add(Operation.mkJump(op.target, GOTO));
+                        transformed.add(Operation.mkJump(ccOp.target, GOTO));
                         break;
                     case READ_CHAR:
                         vars = method.getMatchingVars().get();
@@ -85,12 +99,18 @@ public class DFAClassCompiler extends ClassCompiler {
                         transformed.add(Operation.call("charAt", "java/lang/String", "(I)C"));
                         break;
                     case CALL_STATE:
+                        var offsets = (Map<Integer, Offset>) op.getAttribute(DFAClassBuilder.OFFSETS_ATTRIBUTE);
                         vars = method.getMatchingVars().get();
                         List<Block> stateBlocks = new ArrayList<>();
                         newBlocks = new ArrayList<Block>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
                         for (var m : (vars.forwards ? stateMethods : backwardsStateMethods)) {
                             var b = new Block(0, new ArrayList<>());
+                            if (vars.forwards && isOffsetMethod(offsets, m)) {
+                                b.readThis().
+                                        readVar(vars, MatchingVars.INDEX, "I").
+                                        setField(MatchingVars.INDEX, getClassName(), "I");
+                            }
                             b.call(m.methodName,getClassName(),m.descriptor());
                             b.jump(op.target,GOTO);
                             newBlocks.add(b);
@@ -117,5 +137,14 @@ public class DFAClassCompiler extends ClassCompiler {
                 }
             }
         }
+    }
+
+    private boolean isOffsetMethod(Map<Integer, Offset> offsets, Method m) {
+        // TODO: UGH
+        var s = m.methodName.substring("state".length());
+        var isNumber = NumberUtils.isDigits(s);
+
+        return isNumber && offsets.containsKey(Integer.valueOf(s))
+                && DFAClassBuilder.isUsefulOffset(offsets.get(Integer.valueOf(s)));
     }
 }

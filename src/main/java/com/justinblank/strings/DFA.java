@@ -210,6 +210,8 @@ class DFA {
         var count = -1;
         CharRange charRange = null;
         var next = this;
+        // TODO: handle case where offset is resolved to . or similarly permissive character range: checking that is
+        //  not useful
         while (true) {
             if (passedStates.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0 ||
                     next.isAccepting()) {

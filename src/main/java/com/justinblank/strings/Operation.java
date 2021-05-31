@@ -2,7 +2,9 @@ package com.justinblank.strings;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 class Operation {
@@ -14,6 +16,7 @@ class Operation {
     List<Block> blockTargets;
     RefSpec spec;
     List<Integer> ints;
+    Map<String, Object> attributes = new HashMap<>();
 
     public static Operation mkReadChar() {
         return new Operation(Inst.READ_CHAR, -1, null, null, null, null);
@@ -60,14 +63,6 @@ class Operation {
 
     public static Operation mkCallState(Block targetBlock) {
         return new Operation(Inst.CALL_STATE, 0, null, targetBlock, null, null);
-    }
-
-    static Operation checkChars(DFA dfa, Block failBlock) {
-        var transitions = dfa.getTransitions().
-                stream().
-                map(t -> Pair.of(t.getLeft(), t.getRight().getStateNumber())).
-                collect(Collectors.toList());
-        return new Operation(Inst.CHECK_CHARS, -1, transitions, failBlock,  null, null);
     }
 
     public static Operation call(String methodName, String className, String descriptor) {
@@ -172,6 +167,14 @@ class Operation {
 
     static Operation mkLookupSwitch(List<Block> blocks, Block failTarget) {
         return new Operation(Inst.LOOKUPSWITCH, blocks, failTarget, 0);
+    }
+
+    void addAttribute(String key, Object attr) {
+        this.attributes.put(key, attr);
+    }
+
+    Object getAttribute(String key) {
+        return this.attributes.get(key);
     }
 
     public enum Inst {
