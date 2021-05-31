@@ -42,7 +42,7 @@ public class DFAClassBuilderTest {
             var method = builder.mkMethod("readChar", List.of(STRING_DESCRIPTOR), "V", vars);
             var block = method.addBlock();
             block.push(0);
-            block.setVar(vars,MatchingVars.INDEX,"I");
+            block.setVar(vars, MatchingVars.INDEX, "I");
             block.addOperation(Operation.mkReadChar());
             block.operate(Opcodes.POP);
             block.addReturn(Opcodes.RETURN);
@@ -64,7 +64,7 @@ public class DFAClassBuilderTest {
     public void testMatchesPrefaceBlock() {
         try {
             var builder = new DFAClassBuilder("matchesPreface", "java/lang/Object", new String[]{}, null, null, Factorization.empty());
-            var vars = new MatchingVars( -1, -1, -1, -1, 1);
+            var vars = new MatchingVars(-1, -1, -1, -1, 1);
 
             builder.addField(new Field(Opcodes.ACC_PRIVATE, DFAClassCompiler.STRING_FIELD, STRING_DESCRIPTOR, null, null));
             var constructorBlock = builder.constructorSkeleton(List.of(STRING_DESCRIPTOR), vars);
@@ -90,6 +90,22 @@ public class DFAClassBuilderTest {
     }
 
     @Test
+    public void testIndexForwards() {
+        try {
+            var dfa = DFA.createDFA("abc");
+            var node = RegexParser.parse("abc");
+            var builder = new DFAClassBuilder("indexForwards", "java/lang/Object", new String[]{}, dfa, dfa, node.bestFactors());
+            builder.initMethods();
+            Class<?> c = compileFromBuilder(builder, "indexForwards");
+            Object o = c.getDeclaredConstructors()[0].newInstance("abca");
+            assertEquals(3, o.getClass().getDeclaredMethod("indexForwards", int.class).invoke(o, 0));
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }
+    }
+
+    @Test
     public void testCallState() {
         try {
             var builder = new DFAClassBuilder("testCallState", "java/lang/Object", new String[]{}, null, null, null);
@@ -98,7 +114,7 @@ public class DFAClassBuilderTest {
             addTrivialStateMethod(builder, "state0");
 
             var vars = new MatchingVars(-1, -1, -1, -1, -1);
-            var method = builder.mkMethod("callState", new ArrayList<>(), "I", vars );
+            var method = builder.mkMethod("callState", new ArrayList<>(), "I", vars);
             var block = method.addBlock();
             var returnBlock = method.addBlock();
 
@@ -128,7 +144,7 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void testStateMethod() throws Exception {
+    public void testStateMethodIsCompilable() throws Exception {
         var dfa = DFA.createDFA("a");
         var builder = new DFAClassBuilder("testStateMethod", "java/lang/Object", null, dfa, dfa, null);
         builder.addStateMethods(dfa);

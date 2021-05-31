@@ -81,18 +81,18 @@ public class DFAClassBuilder extends ClassBuilder {
         var failureBlock = addFailureBlock(method, -1);
 
         addReadStringLength(vars, setupBlock);
+        if (dfa.isAccepting()) {
+            setupBlock.push(0).setVar(vars, MatchingVars.LAST_MATCH, "I");
+        }
+        else {
+            setupBlock.push(-1).setVar(vars, MatchingVars.LAST_MATCH, "I");
+        }
+
         if (vars.forwards) {
             addLengthCheck(vars, setupBlock, failureBlock, false);
         }
 
-        addContainedInPrefaceBlock(vars, seekBlock, failureBlock);
-        if (dfa.isAccepting()) {
-            seekBlock.push(0);
-            seekBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
-        } else {
-            seekBlock.push(-1);
-            seekBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
-        }
+        addContainedInPrefaceBlock(vars, seekBlock, returnBlock);
         if (vars.forwards && factorization.getSharedPrefix().isPresent()) {
             // If we consumed a prefix, then we need to save the last match
             var lastMatchBlock = method.addBlockAfter(seekBlock);
@@ -134,9 +134,6 @@ public class DFAClassBuilder extends ClassBuilder {
         block.cmp(failureBlock, IF_ICMPEQ);
         block.readThis();
         block.readVar(1, "I");
-        // these should be unnecessary
-//        block.addOperation(Operation.pushValue(-1));
-//        block.addOperation(Operation.mkOperation(Operation.Inst.ADD));
         block.call(INDEX_BACKWARDS, getClassName(), "(I)I");
         block.setVar(2, "I");
         block.readVar(2, "I");
@@ -409,6 +406,7 @@ public class DFAClassBuilder extends ClassBuilder {
             head.addOperation(Operation.checkBounds(returnBlock));
         } else {
             head.readVar(vars, MatchingVars.INDEX, "I");
+            // TODO: isn't this wrong? Could be nonzero if we're searching backwards in a substring
             head.push(0);
             head.jump(returnBlock, IF_ICMPEQ);
         }
@@ -430,7 +428,8 @@ public class DFAClassBuilder extends ClassBuilder {
         head.addOperation(stateOp);
 
         // If we're doing a containedIn style match, we have to reconsider the initial state whenever we hit a failure
-        // mode
+        // mode--if we're doing a containedIn backwards for finding the length of a match, we know we'll never hit the
+        // failure state until we're done
         if (!isMatch && vars.forwards) {
             var stateResetBlock = tail;
             tail = method.addBlockAfter(tail);
@@ -449,7 +448,15 @@ public class DFAClassBuilder extends ClassBuilder {
             stateResetBlock.call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
             stateResetBlock.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
-        } else {
+            if (factorization.getSharedPrefix().isPresent()) {
+                var reseekBlock = tail;
+                tail = method.addBlockAfter(tail);
+                reseekBlock.push(-1)
+                    .readVar(vars, MatchingVars.STATE, "I")
+                    .jump(failTarget, IF_ICMPEQ);
+            }
+        }
+        else {
             tail.setVar(vars.stateVar, "I");
         }
 
@@ -478,7 +485,7 @@ public class DFAClassBuilder extends ClassBuilder {
             } else {
                 tail.readThis();
                 tail.readVar(vars, MatchingVars.STATE, "I");
-                tail.call(WAS_ACCEPTED_METHOD, getClassName(), "(I)Z");
+                tail.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
                 tail.jump(loopPreface, IFEQ);
             }
         }
@@ -515,7 +522,6 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     protected void addContainedInPrefaceBlock(MatchingVars vars, Block initialBlock, Block failureBlock) {
-        // TODO: this is just a simplification ignoring the backwards case
         if (vars.forwards && factorization.getSharedPrefix().isPresent()) {
             var prefix = factorization.getSharedPrefix().get();
             initialBlock.readThis();

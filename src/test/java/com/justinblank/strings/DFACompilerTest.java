@@ -59,7 +59,7 @@ public class DFACompilerTest {
 
     @Test
     public void testThreeCharLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex");
+        Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex", true);
         match(pattern, "abc");
 
         fail(pattern, "d");
@@ -248,7 +248,7 @@ public class DFACompilerTest {
     @Test
     public void testCountedRepetitionTwoChar() {
         String regexString = "(AB){1,2}";
-        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegexTwoCharRegex");
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegexTwoCharRegex", true);
         match(pattern, "AB");
         match(pattern, "ABAB");
         fail(pattern, "");
