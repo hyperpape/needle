@@ -226,14 +226,36 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetition() {
+    public void testCountedRepetitionSingleChar() {
+        String regexString = "A{1,2}";
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionSingleCharRegex");
+        match(pattern, "A");
+        match(pattern, "AA");
+        fail(pattern, "");
+        fail(pattern, "B");
+        fail(pattern, "BB");
+
+        find(pattern, "BAB");
+
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern, "A", prefix, suffix);
+            find(pattern, "AA", prefix, suffix);
+            return true;
+        });
+
+    }
+
+    @Test
+    public void testCountedRepetitionTwoChar() {
         String regexString = "(AB){1,2}";
-        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegex");
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegexTwoCharRegex");
         match(pattern, "AB");
         match(pattern, "ABAB");
         fail(pattern, "");
         fail(pattern, "BB");
         fail(pattern, "AA");
+
+        find(pattern, "AAB");
         assertFalse(pattern.matcher("ABABAB").matches());
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
