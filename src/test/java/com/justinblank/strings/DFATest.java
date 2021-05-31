@@ -60,6 +60,20 @@ public class DFATest {
         check(optOffset, 1, 'b', 'b');
     }
 
+    @Test
+    public void testOffsetForCountedRepetitionWithNoOffset() {
+        var dfa = DFA.createDFA("A{0,4}");
+        var optOffset = dfa.calculateOffset();
+        assertThat(optOffset).isEmpty();
+    }
+
+    @Test
+    public void testOffsetForCountedRepetitionWithNonZeroOffset() {
+        var dfa = DFA.createDFA("A{3,4}");
+        var optOffset = dfa.calculateOffset();
+        check(optOffset, 2, 'A', 'A');
+    }
+
     private void check(Optional<Offset> optOffset, int i, char start, char end) {
         assertTrue(optOffset.map(o -> {
             assertEquals(i, o.length);

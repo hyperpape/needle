@@ -46,8 +46,7 @@ class DFA {
         try {
             NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
             return NFAToDFACompiler.compile(nfa);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to create dfa from string '" + regex + "'", e);
         }
     }
@@ -107,8 +106,7 @@ class DFA {
         for (int i = 0; i < s.length(); i++) {
             if (i == 0) {
                 newStateStarts = initSearchStateArray();
-            }
-            else {
+            } else {
                 clearSearchStateArray(newStateStarts);
             }
             char c = s.charAt(i);
@@ -128,8 +126,7 @@ class DFA {
                                 newStateStarts[foundStateNumber] > stateStarts[foundStateNumber]) {
                             if (i == 0) {
                                 stateStart = 0;
-                            }
-                            else if (dfa.stateNumber == 0) {
+                            } else if (dfa.stateNumber == 0) {
                                 stateStart = i;
                             }
                             newStateStarts[foundStateNumber] = stateStart;
@@ -155,8 +152,7 @@ class DFA {
         }
         if (matchStart == Integer.MAX_VALUE) {
             return MatchResult.FAILURE;
-        }
-        else {
+        } else {
             return new MatchResult(true, matchStart, matchEnd);
         }
     }
@@ -215,7 +211,8 @@ class DFA {
         CharRange charRange = null;
         var next = this;
         while (true) {
-            if (passedStates.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0) {
+            if (passedStates.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0 ||
+                    next.isAccepting()) {
                 break;
             }
             if (next.transitions.size() != 1) {
@@ -233,8 +230,7 @@ class DFA {
 
         if (count > 0) {
             return Optional.of(new Offset(count, passedStates, charRange));
-        }
-        else {
+        } else {
             return Optional.empty();
         }
     }
@@ -280,7 +276,7 @@ class DFA {
      *     <li>All states should have distinct stateNumbers</li>
      *     <li>All states should refer to the same root</li>
      * </ul>
-     *
+     * <p>
      * Only applicable to the root node.
      *
      * @throws IllegalStateException if the invariants are broken
