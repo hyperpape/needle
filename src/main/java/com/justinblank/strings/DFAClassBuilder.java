@@ -436,7 +436,6 @@ public class DFAClassBuilder extends ClassBuilder {
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
             stateResetBlock.push(-1).readVar(vars, MatchingVars.STATE, "I").jump(tail, IF_ICMPNE);
             stateResetBlock.push(0).setVar(vars, MatchingVars.STATE, "I");
-            stateResetBlock.addOperation(Operation.mkOperation(Operation.Inst.DECREMENT_INDEX));
             // We have to have index set as a field to handle an offset state
             if (forwardOffsets.containsKey(0) && isUsefulOffset(forwardOffsets.get(0))) {
                 stateResetBlock
@@ -444,10 +443,9 @@ public class DFAClassBuilder extends ClassBuilder {
                         .readVar(vars, MatchingVars.INDEX, "I")
                         .setField(MatchingVars.INDEX, getClassName(), "I");
             }
-            stateResetBlock.readThis().addOperation(Operation.mkReadChar());
+            stateResetBlock.readThis().readVar(vars, MatchingVars.CHAR, "C");
             stateResetBlock.call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
-            stateResetBlock.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
             if (factorization.getSharedPrefix().isPresent()) {
                 var reseekBlock = tail;
                 tail = method.addBlockAfter(tail);

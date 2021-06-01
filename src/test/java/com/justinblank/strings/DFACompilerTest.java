@@ -105,6 +105,9 @@ public class DFACompilerTest {
         fail(pattern, "abcd");
         fail(pattern, "abcdefgh");
 
+        // Match initial state, pass by offset, but then hit zero state
+        find(pattern, "a0cdefghi" + "abcdefghi");
+
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
             find(pattern, "abcdefghi", prefix, suffix);
             return true;
