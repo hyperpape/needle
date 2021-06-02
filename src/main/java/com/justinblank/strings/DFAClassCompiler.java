@@ -55,11 +55,11 @@ public class DFAClassCompiler extends ClassCompiler {
                             transformed.add(Operation.pushValue(transition.getLeft().getStart()));
                             transformed.add(Operation.mkJump(ccOp.target, Opcodes.IF_ICMPNE));
                             if (ccOp.getSuccessTarget() == null) {
-                                transformed.add(Operation.pushValue(transition.getRight()));
+                                transformed.add(Operation.pushValue(transition.getRight().getStateNumber()));
                                 transformed.add(Operation.mkReturn(IRETURN));
                             }
                             else {
-                                transformed.add(Operation.pushValue(transition.getRight()));
+                                transformed.add(Operation.pushValue(transition.getRight().getStateNumber()));
                                 transformed.add(Operation.mkJump(ccOp.getSuccessTarget(), GOTO));
                             }
                         }
@@ -69,7 +69,7 @@ public class DFAClassCompiler extends ClassCompiler {
 
                                 var transitionBlock = new Block(-1, new ArrayList<>());
                                 newBlocks.add(transitionBlock);
-                                transitionBlock.push(transition.getRight());
+                                transitionBlock.push(transition.getRight().getStateNumber());
                                 if (ccOp.getSuccessTarget() == null) {
                                     transitionBlock.addReturn(IRETURN);
                                 }

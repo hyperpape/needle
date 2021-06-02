@@ -60,14 +60,15 @@ class ClassPrinter {
 
     void printOperation(Operation op) {
         if (op.inst == Operation.Inst.CHECK_CHARS) {
-            for (var p : op.transitions) {
+            // TODO: Cleanup, c.f. comment at top of ClassCompiler.
+            for (var p : ((CheckCharsOperation) op).transitions) {
                 print(op.inst);
                 print("(");
                 print(p.getLeft().getStart());
                 print("-");
                 print(p.getLeft().getEnd());
                 print(") ->");
-                print(p.getRight());
+                print(p.getRight().getStateNumber());
                 print(" ELSE JUMP TO " + op.target.toString().toUpperCase());
                 println("");
             }

@@ -8,13 +8,18 @@ import java.util.stream.Collectors;
 public class CheckCharsOperation extends Operation {
 
     private Block successTarget;
+    List<Pair<CharRange, DFA>> transitions;
 
     CheckCharsOperation(Inst inst, int count, List<Pair<CharRange, Integer>> transitions, Block blockTarget, RefSpec spec, List<Integer> ints) {
-        super(inst, count, transitions, blockTarget, spec, ints);
+        super(inst, count, blockTarget, spec, ints);
     }
 
     void setSuccessTarget(Block successTarget) {
         this.successTarget = successTarget;
+    }
+
+    void setTransitions(List<Pair<CharRange, DFA>> transitions) {
+        this.transitions = transitions;
     }
 
     Block getSuccessTarget() {
@@ -28,6 +33,7 @@ public class CheckCharsOperation extends Operation {
                 collect(Collectors.toList());
         var checkChars = new CheckCharsOperation(Inst.CHECK_CHARS, -1, transitions, failBlock,  null, null);
         checkChars.setSuccessTarget(successTarget);
+        checkChars.setTransitions(dfa.getTransitions());
         return checkChars;
     }
 
