@@ -188,6 +188,50 @@ class DFA {
         return false;
     }
 
+    /**
+     * Get a chain of states that must be passed through, starting with a given state
+     *
+     * @return a non-null, possibly empty list of states that must be passed through in order--does not contain the
+     * starting state
+     */
+    List<DFA> chain() {
+        var chain = new LinkedHashSet<DFA>();
+        var next = this;
+        while (true) {
+
+            if (next.isAccepting()) {
+                break;
+            }
+            else if (next.transitions.size() == 1) {
+                 var newNext = next.transitions.get(0).getRight();
+                 if (chain.contains(newNext)) {
+                     break;
+                 }
+                 else {
+                     if (next != this) {
+                         chain.add(newNext);
+                     }
+                     next = newNext;
+                 }
+            }
+            else {
+                Set<DFA> followers = new HashSet<>();
+                for (var transition : transitions) {
+                    followers.add(transition.getRight());
+                }
+                if (followers.size() != 1) {
+                    break;
+                }
+                var newNext = followers.iterator().next();
+                if (next != this) {
+                    chain.add(newNext);
+                }
+                next = newNext;
+            }
+        }
+        return new ArrayList<>(chain);
+    }
+
     Map<Integer, Offset> calculateOffsets() {
         var map = new HashMap<Integer, Offset>();
         var seen = new HashSet<>();

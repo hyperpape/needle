@@ -74,6 +74,41 @@ public class DFATest {
         check(optOffset, 2, 'A', 'A');
     }
 
+    @Test
+    public void testChainForCountedRepetition() {
+        var dfa = DFA.createDFA("A{3,4}");
+        var chain = dfa.chain();
+        assertEquals(2, chain.size());
+    }
+
+    @Test
+    public void testChainForAlternation() {
+        var dfa = DFA.createDFA("(A|B)");
+        var chain = dfa.chain();
+        assertEquals(0, chain.size());
+    }
+
+    @Test
+    public void testChainLiteralFollowedByAlternation() {
+        var dfa = DFA.createDFA("AB(A|B)");
+        var chain = dfa.chain();
+        assertEquals(2, chain.size());
+    }
+
+    @Test
+    public void testChainLiteralFollowedByRepetition() {
+        var dfa = DFA.createDFA("ABa*");
+        var chain = dfa.chain();
+        assertEquals(1, chain.size());
+    }
+
+    @Test
+    public void testChainLiteralFollowedByRepetitionOfAlternation() {
+        var dfa = DFA.createDFA("AB(a|c)*");
+        var chain = dfa.chain();
+        assertEquals(1, chain.size());
+    }
+
     private void check(Optional<Offset> optOffset, int i, char start, char end) {
         assertTrue(optOffset.map(o -> {
             assertEquals(i, o.length);
