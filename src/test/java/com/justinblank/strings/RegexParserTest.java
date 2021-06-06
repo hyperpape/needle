@@ -375,6 +375,11 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testEscapedBracket() {
+        check("\\[", "\\[");
+    }
+
+    @Test
     public void testEscapedBracketInCharRange() {
         check("[A-\\[]", "[A-\\[]");
     }

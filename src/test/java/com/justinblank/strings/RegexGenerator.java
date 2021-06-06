@@ -5,6 +5,9 @@ import com.justinblank.strings.RegexAST.*;
 import java.util.Optional;
 import java.util.Random;
 
+/**
+ * Generates random {@link Node}s, and generates strings matching a given Node.
+ */
 class RegexGenerator {
 
     private final Random random;
