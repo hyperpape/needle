@@ -25,7 +25,7 @@ class Block {
         return this;
     }
 
-    Block readVar(MatchingVars vars, String varName, String descriptor) {
+    Block readVar(Vars vars, String varName, String descriptor) {
         addOperation(Operation.mkReadVar(vars, varName, descriptor));
         return this;
     }
@@ -45,7 +45,7 @@ class Block {
         return this;
     }
 
-    Block setVar(MatchingVars vars, String varName, String descriptor) {
+    Block setVar(Vars vars, String varName, String descriptor) {
         addOperation(Operation.mkSetVar(vars, varName, descriptor));
         return this;
     }

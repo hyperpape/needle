@@ -130,20 +130,20 @@ public class ClassCompiler {
         }
     }
 
-    private void visitBlock(MethodVisitor mv, Optional<MatchingVars> vars, Block block) {
+    private void visitBlock(MethodVisitor mv, Optional<Vars> vars, Block block) {
         mv.visitLabel(block.getLabel());
         for (var op : block.operations) {
             writeOperation(mv, vars, op);
         }
     }
 
-    private void writeOperation(MethodVisitor mv, Optional<MatchingVars> vars, Operation op) {
+    private void writeOperation(MethodVisitor mv, Optional<Vars> vars, Operation op) {
         switch (op.inst) {
             case INCREMENT_INDEX:
-                mv.visitIincInsn(vars.get().counterVar, 1);
+                mv.visitIincInsn(vars.get().indexByName(MatchingVars.INDEX), 1);
                 return;
             case DECREMENT_INDEX:
-                mv.visitIincInsn(vars.get().counterVar, -1);
+                mv.visitIincInsn(vars.get().indexByName(MatchingVars.INDEX), -1);
                 return;
             case RETURN:
             case PASSTHROUGH:
@@ -216,7 +216,7 @@ public class ClassCompiler {
                 return;
             case STORE_MATCH:
                 // TODO: check
-                mv.visitVarInsn(ISTORE, vars.get().stateVar);
+                mv.visitVarInsn(ISTORE, vars.get().indexByName(MatchingVars.STATE));
                 return;
             case JUMP:
                 mv.visitJumpInsn(op.count, op.target.getLabel());
@@ -243,7 +243,7 @@ public class ClassCompiler {
             }
         }
 
-    private void handleReadVar(MethodVisitor mv, Operation op, Optional<MatchingVars> vars) {
+    private void handleReadVar(MethodVisitor mv, Operation op, Optional<Vars> vars) {
         switch (op.spec.descriptor) {
             case "C":
             case "I":

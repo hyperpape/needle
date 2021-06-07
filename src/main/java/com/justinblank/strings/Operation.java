@@ -90,7 +90,7 @@ class Operation {
         return new Operation(Inst.READ_VAR, 0, null, spec, null);
     }
 
-    public static Operation mkReadVar(MatchingVars vars, String name, String descriptor) {
+    public static Operation mkReadVar(Vars vars, String name, String descriptor) {
         int index = vars.indexByName(name);
         var spec = new RefSpec(name, null, descriptor);
         return new Operation(Inst.READ_VAR, index, null, spec, null);
@@ -131,7 +131,7 @@ class Operation {
         return new Operation(Inst.SET_VAR, stateVar, null, spec, null);
     }
 
-    public static Operation mkSetVar(MatchingVars vars, String varName, String descriptor) {
+    public static Operation mkSetVar(Vars vars, String varName, String descriptor) {
         var index = vars.indexByName(varName);
         var spec = new RefSpec(varName, null, descriptor);
         return new Operation(Inst.SET_VAR, index, null, spec, null);

@@ -1,6 +1,6 @@
 package com.justinblank.strings;
 
-class MatchingVars {
+class MatchingVars implements Vars {
     static final String STATE = ClassBuilder.STATE_FIELD;
     static final String INDEX = ClassBuilder.INDEX_FIELD;
     static final String STRING = ClassBuilder.STRING_FIELD;

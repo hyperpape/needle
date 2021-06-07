@@ -12,9 +12,9 @@ class Method {
     final List<String> arguments;
     final List<Block> blocks;
     final String returnType;
-    private final MatchingVars matchingVars;
+    private final Vars matchingVars;
 
-    Method(String methodName, List<String> arguments, String returnType, MatchingVars matchingVars) {
+    Method(String methodName, List<String> arguments, String returnType, Vars matchingVars) {
         this.methodName = methodName;
         this.arguments = arguments;
         this.blocks = new ArrayList<>();
@@ -52,7 +52,7 @@ class Method {
         return "(" + StringUtils.join(arguments, "") + ")" + returnType;
     }
 
-    public Optional<MatchingVars> getMatchingVars() {
+    public Optional<Vars> getMatchingVars() {
         return Optional.ofNullable(matchingVars);
     }
 

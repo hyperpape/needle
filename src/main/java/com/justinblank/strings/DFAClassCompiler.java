@@ -37,7 +37,7 @@ public class DFAClassCompiler extends ClassCompiler {
             for (var op : block.operations) {
                 switch (op.inst) {
                     case CHECK_BOUNDS:
-                        var vars = method.getMatchingVars().get();
+                        var vars = (MatchingVars) method.getMatchingVars().get();
                         transformed.add(Operation.mkReadVar(vars, MatchingVars.INDEX, "I"));
                         transformed.add(Operation.mkReadVar(vars, MatchingVars.LENGTH, "I"));
                         transformed.add(Operation.mkJump(op.target, IF_ICMPGE));
@@ -47,7 +47,7 @@ public class DFAClassCompiler extends ClassCompiler {
                         var newBlocks = new ArrayList<Block>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
 
-                        vars = method.getMatchingVars().get();
+                        vars = (MatchingVars) method.getMatchingVars().get();
                         // TODO: less sophisticated than previous impl
                         if (ccOp.transitions.size() == 1 && ccOp.transitions.get(0).getLeft().isSingleCharRange()) {
                             var transition = ccOp.transitions.get(0);
@@ -88,7 +88,7 @@ public class DFAClassCompiler extends ClassCompiler {
                         transformed.add(Operation.mkJump(ccOp.target, GOTO));
                         break;
                     case READ_CHAR:
-                        vars = method.getMatchingVars().get();
+                        vars = (MatchingVars) method.getMatchingVars().get();
                         if (vars.stringVar < 0) {
                             transformed.add(Operation.mkReadThis());
                             transformed.add(Operation.mkReadField(STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR));
@@ -100,9 +100,9 @@ public class DFAClassCompiler extends ClassCompiler {
                         break;
                     case CALL_STATE:
                         var offsets = (Map<Integer, Offset>) op.getAttribute(DFAClassBuilder.OFFSETS_ATTRIBUTE);
-                        vars = method.getMatchingVars().get();
+                        vars = (MatchingVars) method.getMatchingVars().get();
                         List<Block> stateBlocks = new ArrayList<>();
-                        newBlocks = new ArrayList<Block>();
+                        newBlocks = new ArrayList<>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
                         for (var m : (vars.forwards ? stateMethods : backwardsStateMethods)) {
                             var b = new Block(0, new ArrayList<>());

@@ -52,10 +52,10 @@ public class ClassBuilder {
      * @param methodName the name
      * @param arguments  as descriptors
      * @param returnType as descriptor
-     * @param vars
+     * @param vars a set of vars for this method
      * @return the newly created method
      */
-    protected Method mkMethod(String methodName, List<String> arguments, String returnType, MatchingVars vars) {
+    protected Method mkMethod(String methodName, List<String> arguments, String returnType, Vars vars) {
         var method = new Method(methodName, arguments, returnType, vars);
         addMethod(method);
         return method;
