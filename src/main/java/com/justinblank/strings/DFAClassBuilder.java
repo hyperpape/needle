@@ -16,6 +16,7 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String LENGTH_FIELD = "length";
     protected static final String STRING_FIELD = "string";
     protected static final String INDEX_FIELD = "index";
+    protected static final String NEXT_START_FIELD = "nextStart";
 
     protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
@@ -111,37 +112,46 @@ public class DFAClassBuilder extends ClassBuilder {
     private Method createFindMethod() {
         var method = mkMethod("find", List.of(), "Lcom/justinblank/strings/MatchResult;");
         var body = method.addBlock();
-        body.readThis().push(0);
+        body.readThis();
+        body.readThis().readField(NEXT_START_FIELD, true, "I");
         body.readThis().readField(LENGTH_FIELD, true, "I");
         body.call("find", getClassName(), "(II)Lcom/justinblank/strings/MatchResult;").addReturn(ARETURN);
         return method;
     }
 
     private Method createFindMethodInternal() {
-        var vars = new MatchingVars(-1, 1, -1, -1, -1);
+        var vars = new MapVars();
+        vars.addVar(MatchingVars.INDEX, 1);
+        vars.addVar("indexBackwards", 2);
         var method = mkMethod("find", List.of("I", "I"), "Lcom/justinblank/strings/MatchResult;", vars);
         var block = method.addBlock();
         var failureBlock = method.addBlock();
         failureBlock.callStatic("failure", "com/justinblank/strings/MatchResult", "()Lcom/justinblank/strings/MatchResult;");
+        failureBlock.readThis()
+                .readThis()
+                .readField(LENGTH_FIELD, true, "I")
+                .setField(NEXT_START_FIELD, getClassName(), "I");
         failureBlock.addReturn(ARETURN);
 
         block.readThis();
-        block.push(0);
+        block.readThis().readVar(vars, MatchingVars.INDEX, "I");
         block.call(INDEX_FORWARDS, getClassName(), "(I)I");
-        block.setVar(1, "I");
-        block.readVar(1, "I");
+        block.setVar(vars, MatchingVars.INDEX, "I");
+        block.readVar(vars, MatchingVars.INDEX, "I");
         block.push(-1);
         block.cmp(failureBlock, IF_ICMPEQ);
         block.readThis();
-        block.readVar(1, "I");
+        block.readVar(vars, MatchingVars.INDEX, "I");
         block.call(INDEX_BACKWARDS, getClassName(), "(I)I");
-        block.setVar(2, "I");
-        block.readVar(2, "I");
+        block.setVar(vars, "indexBackwards", "I");
+        block.readVar(vars, "indexBackwards", "I");
         block.push(-1);
         block.cmp(failureBlock, IF_ICMPEQ);
 
-        block.readVar(2, "I");
-        block.readVar(1, "I");
+        block.readThis().readVar(vars, MatchingVars.INDEX, "I").setField(NEXT_START_FIELD, getClassName(), "I");
+
+        block.readVar(vars, "indexBackwards", "I");
+        block.readVar(vars, MatchingVars.INDEX, "I");
         block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;");
         block.addReturn(ARETURN);
 
@@ -173,6 +183,7 @@ public class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_PRIVATE, STRING_FIELD, CompilerUtil.STRING_DESCRIPTOR, null, null));
         addField(new Field(ACC_PRIVATE, LENGTH_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, STATE_FIELD, "I", null, 0));
+        addField(new Field(ACC_PRIVATE, NEXT_START_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2));
     }
 

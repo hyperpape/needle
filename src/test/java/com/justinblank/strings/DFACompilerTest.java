@@ -1,10 +1,8 @@
 package com.justinblank.strings;
 
-import com.justinblank.strings.RegexAST.Node;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
-import org.quicktheories.generators.StringsDSL;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static org.junit.Assert.*;
@@ -17,7 +15,7 @@ public class DFACompilerTest {
     // handling prefixes, so we'll explicitly test sizes 1-4
     @Test
     public void testSingleCharLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("a", "SingleCharRegex", true);
+        Pattern pattern = DFACompiler.compile("a", "SingleCharRegex");
         match(pattern, "a");
         fail(pattern, "b");
 
@@ -36,6 +34,19 @@ public class DFACompilerTest {
             return true;
         });
     }
+
+    @Test
+    public void testMultipleFindSingleCharLiteralRegex() {
+        Pattern pattern = DFACompiler.compile("a", "SingleCharRegexMultipleFind");
+        var matcher = pattern.matcher("aba");
+        find(pattern, "ab");
+        assertEquals(MatchResult.success(0, 1), pattern.matcher("ab").find());
+        find(pattern, "aba");
+        assertEquals(MatchResult.success(0, 1), matcher.find());
+        assertEquals(MatchResult.success(2, 3), matcher.find());
+        assertFalse(matcher.find().matched);
+    }
+
 
     @Test
     public void testTwoCharLiteralRegex() {
@@ -59,7 +70,7 @@ public class DFACompilerTest {
 
     @Test
     public void testThreeCharLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex", true);
+        Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex");
         match(pattern, "abc");
 
         fail(pattern, "d");
@@ -224,6 +235,7 @@ public class DFACompilerTest {
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
             find(pattern, "456", prefix, suffix);
             find(pattern, "456456", prefix, suffix);
+            find(pattern, "123", prefix, suffix);
             return true;
         });
     }
@@ -251,7 +263,7 @@ public class DFACompilerTest {
     @Test
     public void testCountedRepetitionTwoChar() {
         String regexString = "(AB){1,2}";
-        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegexTwoCharRegex", true);
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegexTwoCharRegex");
         match(pattern, "AB");
         match(pattern, "ABAB");
         fail(pattern, "");
