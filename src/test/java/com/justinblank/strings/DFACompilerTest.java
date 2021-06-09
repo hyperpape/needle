@@ -17,7 +17,7 @@ public class DFACompilerTest {
     // handling prefixes, so we'll explicitly test sizes 1-4
     @Test
     public void testSingleCharLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("a", "SingleCharRegex");
+        Pattern pattern = DFACompiler.compile("a", "SingleCharRegex", true);
         match(pattern, "a");
 
         fail(pattern, "b");

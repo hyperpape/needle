@@ -18,6 +18,7 @@ import java.util.List;
 import static com.justinblank.strings.CompilerUtil.STRING_DESCRIPTOR;
 import static org.junit.Assert.*;
 
+// Tests belong here if they're coupled to the internal structure of the classes that the DFAClassBuilder produces
 public class DFAClassBuilderTest {
 
     @Test
@@ -99,6 +100,38 @@ public class DFAClassBuilderTest {
             Class<?> c = compileFromBuilder(builder, "indexForwards");
             Object o = c.getDeclaredConstructors()[0].newInstance("abca");
             assertEquals(3, o.getClass().getDeclaredMethod("indexForwards", int.class).invoke(o, 0));
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }
+    }
+
+    @Test
+    public void testIndexForwardsSingleChar() {
+        try {
+            var dfa = DFA.createDFA("a");
+            var node = RegexParser.parse("a");
+            var builder = new DFAClassBuilder("indexForwardsSingleChar", "java/lang/Object", new String[]{}, dfa, dfa, node.bestFactors());
+            builder.initMethods();
+            Class<?> c = compileFromBuilder(builder, "indexForwardsSingleChar");
+            Object o = c.getDeclaredConstructors()[0].newInstance("aba");
+            assertEquals(1, o.getClass().getDeclaredMethod("indexForwards", int.class).invoke(o, 0));
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw new RuntimeException(t);
+        }
+    }
+
+    @Test
+    public void testSeekContainedIn2() {
+        try {
+            var dfa = DFA.createDFA("a");
+            var node = RegexParser.parse("a");
+            var builder = new DFAClassBuilder("seekContainedIn2", "java/lang/Object", new String[]{}, dfa, dfa, node.bestFactors());
+            builder.initMethods();
+            Class<?> c = compileFromBuilder(builder, "seekContainedIn2");
+            Object o = c.getDeclaredConstructors()[0].newInstance("aba");
+            assertEquals(1, o.getClass().getDeclaredMethod("seekContainedIn", int.class).invoke(o, 0));
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException(t);

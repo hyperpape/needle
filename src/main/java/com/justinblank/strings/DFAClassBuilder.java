@@ -434,9 +434,32 @@ public class DFAClassBuilder extends ClassBuilder {
         // mode--if we're doing a containedIn backwards for finding the length of a match, we know we'll never hit the
         // failure state until we're done
         if (!isMatch && vars.forwards) {
+            var checkForMatchInDeadState = postCallStateBlock;
+
+            if (isGreedy) {
+                postCallStateBlock = method.addBlockAfter(postCallStateBlock);
+            }
+
             var stateResetBlock = postCallStateBlock;
             postCallStateBlock = method.addBlockAfter(postCallStateBlock);
-            stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
+
+            if (isGreedy) {
+                checkForMatchInDeadState.setVar(vars, MatchingVars.STATE, "I");
+
+                checkForMatchInDeadState.
+                        push(-1)
+                        .readVar(vars, MatchingVars.LAST_MATCH, "I")
+                        .jump(stateResetBlock, IF_ICMPEQ);
+            checkForMatchInDeadState
+                    .push(-1)
+                    .readVar(vars, MatchingVars.STATE, "I")
+                    .jump(stateResetBlock, IF_ICMPNE)
+                    .jump(returnBlock, GOTO);
+            }
+
+            if (!isGreedy) {
+                stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
+            }
             stateResetBlock.push(-1).readVar(vars, MatchingVars.STATE, "I").jump(postCallStateBlock, IF_ICMPNE);
             stateResetBlock.push(0).setVar(vars, MatchingVars.STATE, "I");
             // We have to have index set as a field to handle an offset state
@@ -450,6 +473,7 @@ public class DFAClassBuilder extends ClassBuilder {
             stateResetBlock.call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
             if (factorization.getSharedPrefix().isPresent()) {
+                // TODO: this block is confusing--is it even correct?
                 var reseekBlock = postCallStateBlock;
                 postCallStateBlock = method.addBlockAfter(postCallStateBlock);
                 reseekBlock.push(-1)
