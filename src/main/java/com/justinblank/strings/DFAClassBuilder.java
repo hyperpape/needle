@@ -381,9 +381,9 @@ public class DFAClassBuilder extends ClassBuilder {
         return "seek" + (isMatch ? "Match" : "ContainedIn");
     }
 
-    void fillMatchLoopBlock(MatchingVars vars, Method method, Block head, Block returnBlock, Block failTarget,
-                            boolean isMatch, boolean isGreedy) {
-        var tail = method.addBlockAfter(head);
+    void fillMatchLoopBlock(final MatchingVars vars, final Method method, Block head, final Block returnBlock,
+                            final Block failTarget, final boolean isMatch, final boolean isGreedy) {
+        var postCallStateBlock = method.addBlockAfter(head);
         var loopPreface = head;
         if (isMatch) {
             head.readVar(vars, MatchingVars.STATE, "I");
@@ -402,6 +402,7 @@ public class DFAClassBuilder extends ClassBuilder {
             loopPreface.jump(returnBlock, GOTO);
         }
 
+        // Check boundaries
         if (vars.forwards) {
             head.addOperation(Operation.checkBounds(returnBlock));
         } else {
@@ -411,19 +412,21 @@ public class DFAClassBuilder extends ClassBuilder {
             head.jump(returnBlock, IF_ICMPEQ);
         }
 
+        // Increment/decrement and read character
         if (!vars.forwards) {
             head.addOperation(Operation.mkOperation(Operation.Inst.DECREMENT_INDEX));
         }
         head.addOperation(Operation.mkReadChar());
         head.setVar(vars, MatchingVars.CHAR, "C");
-
         if (vars.forwards) {
             head.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
         }
+
+        // Call state
         head.readThis();
         head.readVar(vars.charVar, "I");
         head.readVar(vars, STATE_FIELD, "I");
-        var stateOp = Operation.mkCallState(tail);
+        var stateOp = Operation.mkCallState(postCallStateBlock);
         stateOp.addAttribute(OFFSETS_ATTRIBUTE, forwardOffsets);
         head.addOperation(stateOp);
 
@@ -431,10 +434,10 @@ public class DFAClassBuilder extends ClassBuilder {
         // mode--if we're doing a containedIn backwards for finding the length of a match, we know we'll never hit the
         // failure state until we're done
         if (!isMatch && vars.forwards) {
-            var stateResetBlock = tail;
-            tail = method.addBlockAfter(tail);
+            var stateResetBlock = postCallStateBlock;
+            postCallStateBlock = method.addBlockAfter(postCallStateBlock);
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
-            stateResetBlock.push(-1).readVar(vars, MatchingVars.STATE, "I").jump(tail, IF_ICMPNE);
+            stateResetBlock.push(-1).readVar(vars, MatchingVars.STATE, "I").jump(postCallStateBlock, IF_ICMPNE);
             stateResetBlock.push(0).setVar(vars, MatchingVars.STATE, "I");
             // We have to have index set as a field to handle an offset state
             if (forwardOffsets.containsKey(0) && isUsefulOffset(forwardOffsets.get(0))) {
@@ -447,44 +450,44 @@ public class DFAClassBuilder extends ClassBuilder {
             stateResetBlock.call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
             if (factorization.getSharedPrefix().isPresent()) {
-                var reseekBlock = tail;
-                tail = method.addBlockAfter(tail);
+                var reseekBlock = postCallStateBlock;
+                postCallStateBlock = method.addBlockAfter(postCallStateBlock);
                 reseekBlock.push(-1)
                     .readVar(vars, MatchingVars.STATE, "I")
                     .jump(failTarget, IF_ICMPEQ);
             }
         }
         else {
-            tail.setVar(vars.stateVar, "I");
+            postCallStateBlock.setVar(vars.stateVar, "I");
         }
 
         if (isMatch) {
             if (isGreedy) {
-                tail.readVar(vars.stateVar, "I");
-                tail.push(-1);
-                tail.cmp(failTarget, IF_ICMPEQ);
-                tail.jump(head, GOTO);
+                postCallStateBlock.readVar(vars.stateVar, "I");
+                postCallStateBlock.push(-1);
+                postCallStateBlock.cmp(failTarget, IF_ICMPEQ);
+                postCallStateBlock.jump(head, GOTO);
             }
         } else {
             if (isGreedy) {
-                tail.readThis();
-                tail.readVar(vars, MatchingVars.STATE, "I");
-                tail.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
-                tail.setVar(vars, MatchingVars.WAS_ACCEPTED, "I");
-                tail.readVar(vars, MatchingVars.WAS_ACCEPTED, "I");
+                postCallStateBlock.readThis();
+                postCallStateBlock.readVar(vars, MatchingVars.STATE, "I");
+                postCallStateBlock.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
+                postCallStateBlock.setVar(vars, MatchingVars.WAS_ACCEPTED, "I");
+                postCallStateBlock.readVar(vars, MatchingVars.WAS_ACCEPTED, "I");
 
                 var setMatchBlock = method.addBlock();
                 setMatchBlock.readVar(vars, MatchingVars.INDEX, "I");
                 setMatchBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
                 setMatchBlock.jump(head, GOTO);
 
-                tail.jump(setMatchBlock, Opcodes.IFNE);
-                tail.jump(loopPreface, GOTO);
+                postCallStateBlock.jump(setMatchBlock, Opcodes.IFNE);
+                postCallStateBlock.jump(loopPreface, GOTO);
             } else {
-                tail.readThis();
-                tail.readVar(vars, MatchingVars.STATE, "I");
-                tail.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
-                tail.jump(loopPreface, IFEQ);
+                postCallStateBlock.readThis();
+                postCallStateBlock.readVar(vars, MatchingVars.STATE, "I");
+                postCallStateBlock.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
+                postCallStateBlock.jump(loopPreface, IFEQ);
             }
         }
     }
