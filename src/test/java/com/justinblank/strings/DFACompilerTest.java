@@ -19,15 +19,15 @@ public class DFACompilerTest {
     public void testSingleCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("a", "SingleCharRegex", true);
         match(pattern, "a");
-
         fail(pattern, "b");
 
         assertFalse(pattern.matcher("ab").matches());
-        assertTrue(pattern.matcher("ab").containedIn());
+        find(pattern, "ab");
+        find(pattern, "aba");
 
         assertFalse(pattern.matcher("ba").matches());
-        assertTrue(pattern.matcher("ba").containedIn());
-        assertTrue(pattern.matcher("bad").containedIn());
+        find(pattern, "ba");
+        find(pattern, "bad");
 
         fail(pattern, "AB{");
 

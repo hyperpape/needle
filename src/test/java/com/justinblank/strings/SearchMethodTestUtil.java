@@ -26,6 +26,12 @@ public class SearchMethodTestUtil {
         assertTrue(result.matched);
         assertTrue("Failed to find in string=\"" + s + "\", start=" + start + ",end=" + end, method.matcher(s).find(start, end).matched);
         assertTrue("Failed to match substring of string=\"" + s + "\", start=" + start + ",end=" + end, method.matcher(s.substring(result.start, result.end)).matches());
+
+        var prefix = s.substring(start, result.start);
+        // Can't check an empty prefix: consider a* matching 'aaa'
+        if (!prefix.isEmpty()) {
+            assertFalse(method.matcher(prefix).find().matched);
+        }
     }
 
     public static void find(Pattern method, String s, String prefix, String suffix) {

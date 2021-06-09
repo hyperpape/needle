@@ -32,6 +32,9 @@ class ASCIIAhoCorasick implements SearchMethod {
         ASCIITrie current = trie;
         int lastEnd = -1;
         int lastStart = -1;
+        if (current.accepting) {
+            lastStart = 0;
+        }
         for (int i = start; i < end; i++) {
             if (i > start && current == trie) {
                 if (lastEnd > -1) {
