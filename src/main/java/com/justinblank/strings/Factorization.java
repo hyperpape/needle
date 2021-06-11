@@ -274,6 +274,9 @@ public class Factorization {
         if (prefixes == null || prefixes.isEmpty()) {
             return Optional.empty();
         }
+        if (prefixes.equals(Set.of(""))) {
+            return Optional.empty();
+        }
         String sharedPrefix = null;
         for (String prefix : prefixes) {
             if (sharedPrefix == null) {

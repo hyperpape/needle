@@ -133,6 +133,21 @@ public class FactorizationTest {
         assertEquals(expectedFactors, factorization.getPrefixes());
         assertEquals(expectedFactors, factorization.getSuffixes());
         assertEquals(expectedFactors, factorization.getAll());
+
+        assertEquals(Optional.empty(), factorization.getSharedPrefix());
+    }
+
+    @Test
+    public void testPotentiallyEmptyCountedRepetitionOfRange() {
+        var node = RegexParser.parse("[B-i]{0,2}");
+        var factorization = node.bestFactors();
+        var expectedFactors = Set.of("");
+        assertEquals(expectedFactors, factorization.getFactors());
+        assertEquals(expectedFactors, factorization.getPrefixes());
+        assertEquals(expectedFactors, factorization.getSuffixes());
+        assertNull(factorization.getAll());
+
+        assertEquals(Optional.empty(), factorization.getSharedPrefix());
     }
 
     @Test
