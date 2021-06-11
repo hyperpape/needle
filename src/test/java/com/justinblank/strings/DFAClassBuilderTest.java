@@ -2,24 +2,26 @@ package com.justinblank.strings;
 
 import com.justinblank.classloader.MyClassLoader;
 import com.justinblank.strings.RegexAST.Node;
+import com.justinblank.strings.RegexAST.NodePrinter;
 import org.junit.Test;
-import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.util.CheckClassAdapter;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.CompilerUtil.STRING_DESCRIPTOR;
+import static com.justinblank.strings.SearchMethodTestUtil.find;
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
 // Tests belong here if they're coupled to the internal structure of the classes that the DFAClassBuilder produces
 public class DFAClassBuilderTest {
+
+    private static final AtomicInteger CLASS_COUNTER = new AtomicInteger(0);
 
     @Test
     public void testContainedIn() {
@@ -168,6 +170,12 @@ public class DFAClassBuilderTest {
         }
     }
 
+    @Test
+    public void testBuildThingy() {
+        // This triggers handling of an empty string prefix
+        compile("[B-i]{0,2}");
+    }
+
     private void addTrivialStateMethod(DFAClassBuilder builder, String name) {
         var stateMethod = builder.mkMethod(name, List.of("I"), "I");
         builder.stateMethods.add(stateMethod);
@@ -182,5 +190,27 @@ public class DFAClassBuilderTest {
         var builder = new DFAClassBuilder("testStateMethod", "java/lang/Object", null, dfa, dfa, null);
         builder.addStateMethods(dfa);
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
+    }
+
+    @Test
+    public void generativeDFAMatchingTest() {
+        Random random = new Random();
+        for (int maxSize = 1; maxSize < 6; maxSize++) {
+            for (int i = 0; i < 20; i++) {
+                RegexGenerator regexGenerator = new RegexGenerator(random, maxSize);
+                Node node = regexGenerator.generate();
+                String regex = NodePrinter.print(node);
+                try {
+                    compile(regex);
+                } catch (Throwable t) {
+                    System.out.println("failed to compile regex=" + regex);
+                    throw t;
+                }
+            }
+        }
+    }
+
+    static Pattern compile(String regex) {
+        return DFACompiler.compile(regex, "DFAClassBuilderTest" + CLASS_COUNTER.incrementAndGet());
     }
 }

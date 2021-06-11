@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
+import org.apache.commons.lang3.StringUtils;
 import org.objectweb.asm.Opcodes;
 
 import java.util.*;
@@ -49,10 +50,14 @@ public class DFAClassBuilder extends ClassBuilder {
 
     void initMethods() {
         addStateMethods(dfa);
-        factorization.getSharedPrefix().ifPresent(prefix -> {
-            findMethods.add(createSeekMatchMethod(prefix));
-            findMethods.add(createSeekContainedInMethod(prefix));
-        });
+        if (shouldSeek()) {
+            factorization.getSharedPrefix().ifPresent(prefix -> {
+                if (shouldSeek()) {
+                    findMethods.add(createSeekMatchMethod(prefix));
+                    findMethods.add(createSeekContainedInMethod(prefix));
+                }
+            });
+        }
 
         findMethods.add(createMatchesMethod());
         findMethods.add(createContainedInMethod());
@@ -94,7 +99,7 @@ public class DFAClassBuilder extends ClassBuilder {
         }
 
         addContainedInPrefaceBlock(vars, seekBlock, returnBlock);
-        if (vars.forwards && factorization.getSharedPrefix().isPresent()) {
+        if (vars.forwards && shouldSeek()) {
             // If we consumed a prefix, then we need to save the last match
             var lastMatchBlock = method.addBlockAfter(seekBlock);
             lastMatchBlock.readThis();
@@ -316,6 +321,10 @@ public class DFAClassBuilder extends ClassBuilder {
 
     }
 
+    private boolean shouldSeek() {
+        return factorization.getSharedPrefix().map(StringUtils::isNotEmpty).orElse(false);
+    }
+
     // TODO: measure breakeven point for offsets
     static boolean isUsefulOffset(Offset offset) {
         return offset != null && offset.length > 1;
@@ -483,7 +492,7 @@ public class DFAClassBuilder extends ClassBuilder {
             stateResetBlock.readThis().readVar(vars, MatchingVars.CHAR, "C");
             stateResetBlock.call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
-            if (factorization.getSharedPrefix().isPresent()) {
+            if (shouldSeek()) {
                 // TODO: this block is confusing--is it even correct?
                 var reseekBlock = postCallStateBlock;
                 postCallStateBlock = method.addBlockAfter(postCallStateBlock);
@@ -535,7 +544,7 @@ public class DFAClassBuilder extends ClassBuilder {
         // Initialize variables
         initialBlock.push(0);
         initialBlock.setVar(vars, MatchingVars.INDEX, "I");
-        if (factorization.getSharedPrefix().isPresent()) {
+        if (shouldSeek()) {
             var prefix = factorization.getSharedPrefix().get();
             initialBlock.readThis();
             initialBlock.readVar(vars, MatchingVars.INDEX, "I");
@@ -558,7 +567,7 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     protected void addContainedInPrefaceBlock(MatchingVars vars, Block initialBlock, Block failureBlock) {
-        if (vars.forwards && factorization.getSharedPrefix().isPresent()) {
+        if (vars.forwards && shouldSeek()) {
             var prefix = factorization.getSharedPrefix().get();
             initialBlock.readThis();
             initialBlock.readVar(vars, MatchingVars.INDEX, "I");
