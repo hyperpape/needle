@@ -74,7 +74,7 @@ public class DFAClassCompiler extends ClassCompiler {
                                     transitionBlock.addReturn(IRETURN);
                                 }
                                 else {
-                                    transitionBlock.operate(POP).jump(ccOp.getSuccessTarget(), GOTO);
+                                    transitionBlock.jump(ccOp.getSuccessTarget(), GOTO);
                                 }
 
                                 transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));

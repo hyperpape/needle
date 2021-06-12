@@ -171,9 +171,14 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void testBuildThingy() {
+    public void testBuildPossiblyEmptyRange() {
         // This triggers handling of an empty string prefix
-        compile("[B-i]{0,2}");
+        testCompilable("[B-i]{0,2}");
+    }
+
+    @Test
+    public void testRangeWithOffset() {
+        testCompilable("[X-k]{3,6}}");
     }
 
     private void addTrivialStateMethod(DFAClassBuilder builder, String name) {
@@ -196,12 +201,13 @@ public class DFAClassBuilderTest {
     public void generativeDFAMatchingTest() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 6; maxSize++) {
-            for (int i = 0; i < 20; i++) {
+            int count = 20 * (int) Math.pow(2, 6 - maxSize);
+            for (int i = 0; i < count; i++) {
                 RegexGenerator regexGenerator = new RegexGenerator(random, maxSize);
                 Node node = regexGenerator.generate();
                 String regex = NodePrinter.print(node);
                 try {
-                    compile(regex);
+                    testCompilable(regex);
                 } catch (Throwable t) {
                     System.out.println("failed to compile regex=" + regex);
                     throw t;
@@ -210,7 +216,9 @@ public class DFAClassBuilderTest {
         }
     }
 
-    static Pattern compile(String regex) {
-        return DFACompiler.compile(regex, "DFAClassBuilderTest" + CLASS_COUNTER.incrementAndGet());
+    private void testCompilable(String regex) {
+        var p= DFACompiler.compile(regex, "DFAClassBuilderTest" + CLASS_COUNTER.incrementAndGet());
+        // This ensures we load the matcher class, and thereby validate it
+        assertNotNull(p.matcher(""));
     }
 }
