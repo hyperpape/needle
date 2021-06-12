@@ -3,6 +3,7 @@ package com.justinblank.strings;
 import org.objectweb.asm.Opcodes;
 
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +12,10 @@ class ClassPrinter {
     static final Map<Integer, String> REPRESENTATIONS = new HashMap<Integer, String>();
 
     static {
+        // TODO: fix gaps
+        REPRESENTATIONS.put(Opcodes.POP, "POP");
+        REPRESENTATIONS.put(Opcodes.SWAP, "SWAP");
+        REPRESENTATIONS.put(Opcodes.IADD, "IADD");
         REPRESENTATIONS.put(Opcodes.IFEQ, "IFEQ");
         REPRESENTATIONS.put(Opcodes.IFNE, "IFNE");
         REPRESENTATIONS.put(Opcodes.IFLT, "IFLT");
@@ -77,6 +82,15 @@ class ClassPrinter {
         print(op.inst);
         print(' ');
         switch (op.inst) {
+            case PASSTHROUGH:
+                var rep = REPRESENTATIONS.get(op.count);
+                if (rep != null) {
+                    println(rep);
+                }
+                else {
+                    println(op.count);
+                }
+                break;
             case VALUE:
                 println(op.count);
                 return;
@@ -94,22 +108,19 @@ class ClassPrinter {
             case READ_FIELD:
                 if (op.spec != null) {
                     if (op.spec.isSelf) {
-                        println("this");
-                    } else {
-                        println(op.spec.name);
+                        print("this.");
                     }
+                    println(op.spec.name);
                 }
                 return;
             case READ_VAR:
             case SET_VAR:
                 if (op.spec != null) {
                     if (op.spec.isSelf) {
-                        print("this");
+                        println("this");
                     } else {
-                        print(op.spec.name);
+                        println(op.spec.name);
                     }
-                    print(' ');
-                    println(op.count);
                 } else {
                     println(op.count);
                 }
@@ -143,5 +154,19 @@ class ClassPrinter {
             printMethod(method);
             indentation--;
         }
+    }
+
+    static String asString(ClassBuilder builder) {
+        var stringWriter = new StringWriter();
+        var printer = new ClassPrinter(new PrintWriter(stringWriter));
+        printer.printClass(builder);
+        return stringWriter.toString();
+    }
+
+    static String asString(Method method) {
+        var stringWriter = new StringWriter();
+        var printer = new ClassPrinter(new PrintWriter(stringWriter));
+        printer.printMethod(method);
+        return stringWriter.toString();
     }
 }
