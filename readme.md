@@ -1,6 +1,6 @@
 # Needle 
 
-![Badge](https://travis-ci.com/hyperpape/needle.svg?branch=master)
+![Badge](https://travis-ci.com/hyperpape/needle.svg?branch=main)
 ![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
 String searching/matching algorithms in Java, including multi-string
