@@ -9,6 +9,8 @@ import static org.junit.Assert.*;
 
 public class DFACompilerTest {
 
+    static final String CORE_LARGE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,";
+
     static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE);
 
     // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
@@ -458,5 +460,19 @@ public class DFACompilerTest {
 //        String manyStateRegexString = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,1000}";
 //        DFACompiler.compile(manyStateRegexString, "tooBig");
 //    }
+
+    @Test
+    public void testLargeRegex() {
+        String largeRegex = CORE_LARGE_REGEX_STRING + "4}";
+        var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4");
+        var hayStack = "1232343450987";
+        assertTrue(pattern.matcher(hayStack).matches());
+
+        pattern = DFACompiler.compile(CORE_LARGE_REGEX_STRING + "16}", "testLargeRegex16");
+        hayStack = hayStack + hayStack + hayStack + hayStack;
+        assertTrue(pattern.matcher(hayStack).matches());
+        assertTrue(pattern.matcher(hayStack).matches());
+
+    }
 
 }
