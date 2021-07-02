@@ -23,4 +23,14 @@ class RefSpec {
         this.isSelf = isSelf;
         this.descriptor = descriptor;
     }
+
+    @Override
+    public String toString() {
+        return "RefSpec{" +
+                "name='" + name + '\'' +
+                ", className='" + className + '\'' +
+                ", descriptor='" + descriptor + '\'' +
+                ", isSelf=" + isSelf +
+                '}';
+    }
 }

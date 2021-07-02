@@ -249,19 +249,27 @@ public class ClassCompiler {
             case "I":
             case "B":
             case "Z":
-                checkVarIndex(op.count);
+                if (op.count < 0) {
+                    throw new IllegalArgumentException("Illegal variable: index=" + op.count + ", Spec=" + op.spec);
+                }
                 mv.visitVarInsn(ILOAD, op.count);
                 return;
             case "L":
-                checkVarIndex(op.count);
+                if (op.count < 0) {
+                    throw new IllegalArgumentException("Illegal variable: index=" + op.count + ", Spec=" + op.spec);
+                }
                 mv.visitVarInsn(LLOAD, op.count);
                 return;
             case "F":
-                checkVarIndex(op.count);
+                if (op.count < 0) {
+                    throw new IllegalArgumentException("Illegal variable: index=" + op.count + ", Spec=" + op.spec);
+                }
                 mv.visitVarInsn(FLOAD, op.count);
                 return;
             case "D":
-                checkVarIndex(op.count);
+                if (op.count < 0) {
+                    throw new IllegalArgumentException("Illegal variable: index=" + op.count + ", Spec=" + op.spec);
+                }
                 mv.visitVarInsn(DLOAD, op.count);
                 return;
             default:
@@ -271,16 +279,13 @@ public class ClassCompiler {
                         count.set(v.indexByName(op.spec.name));
                     }
                 });
-                checkVarIndex(count.get());
+                if (op.count < 0) {
+                    throw new IllegalArgumentException("Illegal variable: index=" + op.count + ", Spec=" + op.spec);
+                }
                 mv.visitVarInsn(ALOAD, count.get());
                 return;
         }
-    }
 
-    private void checkVarIndex(int count) {
-        if (count < 0) {
-            throw new IllegalArgumentException("Illegal variable index=" + count);
-        }
     }
 
     protected int newLine() {
