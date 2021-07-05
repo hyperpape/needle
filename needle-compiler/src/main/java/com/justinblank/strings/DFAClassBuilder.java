@@ -24,6 +24,8 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String INDEX_FORWARDS = "indexForwards";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
+    static final int LARGE_STATE_COUNT = 64;
+
     private final DFA dfa;
     private final DFA reversed;
     private final Factorization factorization;
@@ -249,11 +251,61 @@ public class DFAClassBuilder extends ClassBuilder {
         for (DFA dfaState : reversed.allStates()) {
             addStateMethod(dfaState, false);
         }
+        var statesCount = dfa.statesCount();
+        if (statesCount > LARGE_STATE_COUNT) {
+            for (var i = 0; i < statesCount; i += LARGE_STATE_COUNT) {
+                addStateGroupMethod(i, Math.min(i + LARGE_STATE_COUNT, statesCount), true);
+            }
+        }
+        var reversedStateCount = reversed.statesCount();
+        if (reversedStateCount > LARGE_STATE_COUNT) {
+            for (var i = 0; i < reversedStateCount; i += LARGE_STATE_COUNT) {
+                addStateGroupMethod(i, Math.min(i + LARGE_STATE_COUNT, reversedStateCount), false);
+            }
+        }
+    }
 
+    private void addStateGroupMethod(int start, int end, boolean forwards) {
+        String name = stateGroupName(start, forwards);
+        var method = mkMethod(name, List.of("C", "I"),"I");
+        var mainBlock = method.addBlock();
+        mainBlock.readThis().readVar(1, "C").readVar(2, "I");
+        var switchBlocks = new ArrayList<Block>();
+        for (var i = start; i < end; i++) {
+            var block = method.addBlock();
+            switchBlocks.add(block);
+            var descriptor = "(C)I";
+            block.call(stateMethodName(i, forwards), getClassName(), descriptor);
+        }
+        var returnBlock = method.addBlock();
+        returnBlock.addReturn(IRETURN);
+
+        for (var b : switchBlocks) {
+            b.jump(returnBlock, GOTO);
+        }
+
+        mainBlock.addOperation(Operation.mkTableSwitch(switchBlocks, switchBlocks.get(0), start, start + switchBlocks.size() - 1));
+    }
+
+    static String stateGroupName(int start, boolean forwards) {
+        var name = "stateGroup";
+        if (!forwards) {
+            name += "Backwards";
+        }
+        name += (start / LARGE_STATE_COUNT);
+        return name;
+    }
+
+    static String stateMethodName(int state, boolean forwards) {
+        return "state" + (forwards ? "" : "Backwards") + state;
+    }
+
+    boolean usesOffsetCalculation(int stateNumber) {
+        return forwardOffsets.containsKey(stateNumber) && isUsefulOffset(forwardOffsets.get(stateNumber));
     }
 
     private void addStateMethod(DFA dfaState, boolean forwards) {
-        String name = "state" + (forwards ? "" : "Backwards") + dfaState.getStateNumber();
+        String name = stateMethodName(dfaState.getStateNumber(), forwards);
         List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
         MatchingVars vars = new MatchingVars(1, -1, -1, -1, -1);
         var method = mkMethod(name, arguments, "I", vars);

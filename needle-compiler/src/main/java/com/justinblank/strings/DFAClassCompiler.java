@@ -104,21 +104,41 @@ public class DFAClassCompiler extends ClassCompiler {
                         List<Block> stateBlocks = new ArrayList<>();
                         newBlocks = new ArrayList<>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
-                        for (var m : (vars.forwards ? stateMethods : backwardsStateMethods)) {
-                            var b = new Block(0, new ArrayList<>());
-                            if (vars.forwards && isOffsetMethod(offsets, m)) {
-                                b.readThis().
-                                        readVar(vars, MatchingVars.INDEX, "I").
-                                        setField(MatchingVars.INDEX, getClassName(), "I");
-                            }
-                            b.call(m.methodName,getClassName(),m.descriptor());
-                            b.jump(op.target,GOTO);
-                            newBlocks.add(b);
-                            stateBlocks.add(b);
-                        }
 
-                        // stateBlocks.get(0) here is meaningless, we always cover all cases...
-                        transformed.add(Operation.mkTableSwitch(stateBlocks, stateBlocks.get(0), 0, stateBlocks.size() - 1));
+                        var methodCount = vars.forwards ? stateMethods.size() : backwardsStateMethods.size();
+                        if (methodCount > DFAClassBuilder.LARGE_STATE_COUNT) {
+                            for (var i = 0; i < methodCount; i += DFAClassBuilder.LARGE_STATE_COUNT) {
+                                var b = new Block(0, new ArrayList<>());
+                                b.readThis()
+                                        .readVar(vars, MatchingVars.INDEX, "I")
+                                        .setField(MatchingVars.INDEX, getClassName(), "I")
+                                        .readVar(vars, MatchingVars.STATE, "I")
+                                        .call(DFAClassBuilder.stateGroupName(i, vars.forwards), getClassName(), "(CI)I");
+                                b.jump(op.target, GOTO);
+                                newBlocks.add(b);
+                                stateBlocks.add(b);
+                            }
+                            transformed.add(Operation.pushValue(DFAClassBuilder.LARGE_STATE_COUNT));
+                            transformed.add(Operation.mkOperation(IDIV));
+                            transformed.add(Operation.mkTableSwitch(stateBlocks, stateBlocks.get(0), 0, stateBlocks.size() - 1));
+                        }
+                        else {
+                            for (var m : (vars.forwards ? stateMethods : backwardsStateMethods)) {
+                                var b = new Block(0, new ArrayList<>());
+                                if (vars.forwards && isOffsetMethod(offsets, m)) {
+                                    b.readThis().
+                                            readVar(vars, MatchingVars.INDEX, "I").
+                                            setField(MatchingVars.INDEX, getClassName(), "I");
+                                }
+                                b.call(m.methodName, getClassName(), m.descriptor());
+                                b.jump(op.target, GOTO);
+                                newBlocks.add(b);
+                                stateBlocks.add(b);
+                            }
+
+                            // stateBlocks.get(0) here is meaningless, we always cover all cases...
+                            transformed.add(Operation.mkTableSwitch(stateBlocks, stateBlocks.get(0), 0, stateBlocks.size() - 1));
+                        }
                         break;
                     default:
                         transformed.add(op);

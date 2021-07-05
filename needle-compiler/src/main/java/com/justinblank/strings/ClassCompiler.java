@@ -227,7 +227,7 @@ public class ClassCompiler {
             case TABLESWITCH:
                 var blocks = op.blockTargets;
                 var labels = blocks.stream().map(Block::getLabel).collect(Collectors.toList());
-                mv.visitTableSwitchInsn(op.count, blocks.size() - 1, op.target.getLabel(), labels.toArray(new Label[0]));
+                mv.visitTableSwitchInsn(op.count, op.count + blocks.size() - 1, op.target.getLabel(), labels.toArray(new Label[0]));
                 return;
             case LOOKUPSWITCH:
                 blocks = op.blockTargets;

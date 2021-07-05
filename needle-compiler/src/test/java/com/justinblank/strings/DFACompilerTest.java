@@ -464,7 +464,7 @@ public class DFACompilerTest {
     @Test
     public void testLargeRegex() {
         String largeRegex = CORE_LARGE_REGEX_STRING + "4}";
-        var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4");
+        var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4", true);
         var hayStack = "1232343450987";
         assertTrue(pattern.matcher(hayStack).matches());
 
