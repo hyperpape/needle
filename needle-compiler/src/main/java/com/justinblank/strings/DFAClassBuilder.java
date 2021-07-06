@@ -147,20 +147,33 @@ public class DFAClassBuilder extends ClassBuilder {
         block.readVar(vars, MatchingVars.INDEX, "I");
         block.push(-1);
         block.cmp(failureBlock, IF_ICMPEQ);
-        block.readThis();
-        block.readVar(vars, MatchingVars.INDEX, "I");
-        block.call(INDEX_BACKWARDS, getClassName(), "(I)I");
-        block.setVar(vars, "indexBackwards", "I");
-        block.readVar(vars, "indexBackwards", "I");
-        block.push(-1);
-        block.cmp(failureBlock, IF_ICMPEQ);
+        // If the string can only have one length, no need to search backwards, we can just compute the starting point
+        if (factorization.getMinLength() == factorization.getMaxLength().orElse(Integer.MAX_VALUE)) {
+            // Store last match
+            block.readThis()
+                    .readVar(vars, MatchingVars.INDEX, "I")
+                    .setField(NEXT_START_FIELD, getClassName(), "I");
+            block.readThis()
+                    .readVar(vars, MatchingVars.INDEX, "I")
+                    .push(factorization.getMinLength())
+                    .operate(ISUB)
+                    .readVar(vars, MatchingVars.INDEX, "I")
+                    .callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;")
+                    .addReturn(ARETURN);
+        }
+        else {
+            block.readThis();
+            block.readVar(vars, MatchingVars.INDEX, "I");
+            block.call(INDEX_BACKWARDS, getClassName(), "(I)I");
+            block.setVar(vars, "indexBackwards", "I");
 
-        block.readThis().readVar(vars, MatchingVars.INDEX, "I").setField(NEXT_START_FIELD, getClassName(), "I");
+            block.readThis().readVar(vars, MatchingVars.INDEX, "I").setField(NEXT_START_FIELD, getClassName(), "I");
 
-        block.readVar(vars, "indexBackwards", "I");
-        block.readVar(vars, MatchingVars.INDEX, "I");
-        block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;");
-        block.addReturn(ARETURN);
+            block.readVar(vars, "indexBackwards", "I");
+            block.readVar(vars, MatchingVars.INDEX, "I");
+            block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;");
+            block.addReturn(ARETURN);
+        }
 
         return method;
     }
