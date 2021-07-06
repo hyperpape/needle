@@ -178,7 +178,6 @@ class Operation {
         DECREMENT_INDEX,
         CHECK_BOUNDS,
         CHECK_CHARS,
-        STORE_MATCH,
         SET_VAR,
         SET_FIELD,
         READ_STATIC,

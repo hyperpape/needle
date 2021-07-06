@@ -214,10 +214,6 @@ public class ClassCompiler {
                 name = spec.isSelf ? this.className : spec.className;
                 mv.visitFieldInsn(PUTSTATIC, name, op.spec.name, op.spec.descriptor);
                 return;
-            case STORE_MATCH:
-                // TODO: check
-                mv.visitVarInsn(ISTORE, vars.get().indexByName(MatchingVars.STATE));
-                return;
             case JUMP:
                 mv.visitJumpInsn(op.count, op.target.getLabel());
                 return;
