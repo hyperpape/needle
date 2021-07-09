@@ -103,7 +103,7 @@ public class ClassCompiler {
     }
 
     private void defineClass(ClassBuilder builder) {
-        classVisitor.visit(Opcodes.V9, ACC_PUBLIC, builder.getClassName(), null, classBuilder.superClass, classBuilder.interfaces);
+        classVisitor.visit(Opcodes.V1_8, ACC_PUBLIC, builder.getClassName(), null, classBuilder.superClass, classBuilder.interfaces);
     }
 
     protected final void addFields() {
