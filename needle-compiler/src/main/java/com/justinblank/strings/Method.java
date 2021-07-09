@@ -2,9 +2,7 @@ package com.justinblank.strings;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 class Method {
 
@@ -13,6 +11,7 @@ class Method {
     final List<Block> blocks;
     final String returnType;
     private final Vars matchingVars;
+    private Map<String, Object> attributes = new HashMap<>();
 
     Method(String methodName, List<String> arguments, String returnType, Vars matchingVars) {
         this.methodName = methodName;
@@ -46,6 +45,14 @@ class Method {
             this.blocks.get(i).number++;
         }
         return inserted;
+    }
+
+    public Object getAttribute(String s) {
+        return attributes.get(s);
+    }
+
+    public void setAttribute(String key, Object value) {
+        attributes.put(key, value);
     }
 
     public String descriptor() {

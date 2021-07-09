@@ -12,7 +12,7 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class DFAClassCompiler extends ClassCompiler {
 
-    protected static final String STRING_FIELD = "string";
+    protected static final String STRING_FIELD = DFAClassBuilder.STRING_FIELD;
 
     private final List<Method> stateMethods;
     private final List<Method> backwardsStateMethods;
