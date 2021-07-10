@@ -40,7 +40,7 @@ public class ClassCompilerTest {
 
         ret.readVar(accumulator,"I");
         ret.addReturn(Opcodes.IRETURN);
-        Class<?> c = new ClassCompiler(builder, true).generateClass();
+        Class<?> c = new ClassCompiler(builder).generateClass();
         Object o = c.getConstructors()[0].newInstance();
     }
 
@@ -58,7 +58,7 @@ public class ClassCompilerTest {
         body.call("length","java/lang/String","()I");
         body.addReturn(Opcodes.IRETURN);
 
-        Class<?> c = new ClassCompiler(builder, true).generateClass();
+        Class<?> c = new ClassCompiler(builder).generateClass();
         Object o = c.getConstructors()[0].newInstance();
     }
 
