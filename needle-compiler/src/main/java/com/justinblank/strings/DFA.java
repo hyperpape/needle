@@ -281,13 +281,110 @@ class DFA {
         }
     }
 
-    private boolean allTransitionsLeadToSameState() {
+    boolean allTransitionsLeadToSameState() {
         for (int i = 0; i < transitions.size() - 1; i++) {
             if (transitions.get(i).getRight() != transitions.get(i + 1).getRight()) {
                 return false;
             }
         }
         return true;
+    }
+
+    protected boolean isAllAscii() {
+        for (var dfa : states) {
+            for (var transition : dfa.transitions) {
+                if ((int) transition.getLeft().getStart() > 127 || (int) transition.getLeft().getEnd() > 127) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    char maxChar() {
+        char maxChar = 0;
+        for (var dfa : states) {
+            for (var transition : dfa.transitions) {
+                var charRange = transition.getLeft();
+                if (charRange.getStart() > maxChar) {
+                    maxChar = charRange.getStart();
+                }
+                if (charRange.getEnd() > maxChar) {
+                    maxChar = charRange.getEnd();
+                }
+            }
+        }
+        return maxChar;
+    }
+
+    /**
+     * Calculate a set of byteClasses that are sufficient to distinguish characters in all transitions of this
+     * DFA. Assumes that this DFA consists only of ascii characters.
+     * @return byteClasses
+     */
+    protected byte[] byteClasses() {
+        var charRangeBoundaries = computeCharRangeBoundaries();
+
+        byte byteClass = 0;
+        var ranges = new byte[129];
+        boolean inRange = false;
+        for (var i = 0; i < charRangeBoundaries.length; i++) {
+            var changes = charRangeBoundaries[i];
+            if (null == changes) {
+                if (inRange) {
+                    ranges[i] = byteClass;
+                }
+                else {
+                    ranges[i] = 0;
+                }
+            }
+            else {
+                if (changes.getLeft()) {
+                    byteClass++;
+                    ranges[i] = byteClass;
+                    inRange = true;
+                }
+                if (changes.getRight()) {
+                    ranges[i] = byteClass;
+                    inRange = false;
+                }
+            }
+        }
+        return ranges;
+    }
+
+    private Pair<Boolean, Boolean>[] computeCharRangeBoundaries() {
+        Pair<Boolean, Boolean>[] pairs = new Pair[129];
+        for (var state : states) {
+            for (var transition : state.transitions) {
+                var charRange = transition.getLeft();
+                if (charRange.getStart() > 128) {
+                    throw new IllegalStateException("Illegal character as start of character range:" + charRange.getStart());
+                } else if (charRange.getEnd() > 128) {
+                    throw new IllegalStateException("Illegal character as end of character range:" + charRange.getEnd());
+                }
+
+                var currentPair = pairs[charRange.getStart()];
+                if (null == currentPair) {
+                    pairs[charRange.getStart()] = Pair.of(true, false);
+                }
+                else {
+                    pairs[charRange.getStart()] = Pair.of(true, currentPair.getRight());
+                }
+                currentPair = pairs[charRange.getEnd()];
+                if (null == currentPair) {
+                    pairs[charRange.getEnd()] = Pair.of(false, true);
+                }
+                else {
+                    pairs[charRange.getEnd()] = Pair.of(currentPair.getLeft(), true);
+                }
+//                if (charRange.getStart() != 0) {
+//                    ints.add((int) charRange.getStart());
+//                }
+//                ints.add((int) charRange.getEnd() + 1);
+            }
+        }
+        return pairs;
     }
 
     protected int charCount() {

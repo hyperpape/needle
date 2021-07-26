@@ -138,4 +138,38 @@ public class DFATest {
         var offsets = dfa.calculateOffsets();
         assertEquals(2, offsets.size());
     }
+
+    @Test
+    public void testByteClassesLiteral() {
+        var dfa = DFA.createDFA("abc");
+        var byteClasses = dfa.byteClasses();
+        for (var i = 0; i < 'a'; i++) {
+            assertEquals(0, byteClasses[i]);
+        }
+        assertEquals(1, byteClasses['a']);
+        assertEquals(2, byteClasses['b']);
+        assertEquals(3, byteClasses['c']);
+        for (var c = 'd'; c <= 128; c++) {
+            assertEquals(0, byteClasses[c]);
+        }
+    }
+
+    @Test
+    public void testByteClassesTwoDisconnectedRangesFollowedByLiteral() {
+        var dfa = DFA.createDFA("[A-Za-z]+ab");
+        var byteClasses = dfa.byteClasses();
+        for (var i = 0; i < 'A'; i++) {
+            assertEquals(0, byteClasses[i]);
+        }
+        assertEquals(1, byteClasses['A']);
+        assertEquals(1, byteClasses['Z']);
+        assertEquals(2, byteClasses['a']);
+        assertEquals(3, byteClasses['b']);
+        for (var c = 'c'; c <= 'z'; c++) {
+            assertEquals(4, byteClasses[c]);
+        }
+        for (var c = 'z' + 1; c < 128; c++) {
+            assertEquals(0, byteClasses[c]);
+        }
+    }
 }

@@ -11,7 +11,9 @@ public class DFACompilerTest {
 
     static final String CORE_LARGE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,";
 
-    static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE);
+    // TODO: This is suboptimal, as it doesn't mix unicode and A-Z.
+    static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE)
+            .mix(SMALL_BMP.ofLengthBetween(0, SMALL_DATA_SIZE));
 
     // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
     // handling prefixes, so we'll explicitly test sizes 1-4
@@ -169,7 +171,6 @@ public class DFACompilerTest {
     @Test
     public void testDFACompiledSimpleRegex() {
         Pattern pattern = DFACompiler.compile("[0-9A-Za-z]*", "TestName");
-        Matcher instance = pattern.matcher("AB09");
         match(pattern, "AB09");
 
         match(pattern, "ABC09az");
@@ -184,7 +185,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testGroupedDFAUnion() throws Exception {
+    public void testGroupedDFAUnion() {
         Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAUnion");
         match(pattern, "AB");
         match(pattern, "BA");
@@ -285,7 +286,7 @@ public class DFACompilerTest {
     @Test
     public void testCountedRepetitionOfUnion() {
         String regexString = "((AB)|(BA)){1,2}";
-        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion");
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion", true);
         fail(pattern, "");
         match(pattern, "BA");
         match(pattern, "ABBA");
@@ -301,9 +302,12 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetitionWithLiteralSuffix() {
+    public void testCountedRepetitionWithLiteralSuffix() throws Exception {
         String regexString = "((AB)|(CD)){1,2}" + "AB";
-        Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
+        Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix", true);
+        var m = pattern.matcher("ABAB");
+        var state0 = m.getClass().getDeclaredMethod("state0", char.class);
+        var s = state0.invoke(m, 'A');
         match(pattern, "ABAB");
         match(pattern, "ABCDAB");
         match(pattern, "CDAB");
@@ -376,7 +380,7 @@ public class DFACompilerTest {
 
     @Test
     public void testDFACompiledUnionOfLiterals() throws Exception {
-        Pattern pattern = DFACompiler.compile("A|BCD|E", "union1");
+        Pattern pattern = DFACompiler.compile("A|BCD|E", "union1", true);
         match(pattern, "A");
         match(pattern, "BCD");
         match(pattern, "E");
@@ -392,15 +396,56 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testTwoLargeRangesPrefixSuffixLiteral() {
+    public void testFoo() throws Exception {
+        Pattern pattern = DFACompiler.compile("[A-Za-z]+ab", "foo", true);
+        match(pattern, "Aab");
+        match(pattern, "aab");
+
+        match(pattern, "AZDab");
+        match(pattern, "AZDab");
+        match(pattern, "ZDaab");
+
+        var m = pattern.matcher("AaDab");
+        var state1 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'A');
+        var state2 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
+        var state3 = m.getClass().getDeclaredMethod("state2", char.class).invoke(m, 'D');
+        var state4 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'D');
+        var state5 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
+        var state6 = m.getClass().getDeclaredMethod("state2", char.class).invoke(m, 'b');
+
+        match(pattern, "AaDab");
+
+        //        match(pattern, "AaZDaabcdef");
+
+//        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+//            find(pattern,"Aab", prefix, suffix);
+//            find(pattern, "aab", prefix, suffix);
+//            find(pattern, "AZDab", prefix, suffix);
+//            find(pattern, "AZDab", prefix, suffix);
+//            find(pattern, "aZDaab", prefix, suffix);
+//            return true;
+//        });
+    }
+
+    @Test
+    public void testTwoLargeRangesPrefixSuffixLiteral() throws Exception {
         Pattern pattern = DFACompiler.compile("[A-Za-z]+abcdef", "TwoLargeRangesPrefixWithSuffixLiteral");
         match(pattern, "Aabcdef");
         match(pattern, "aabcdef");
 
         match(pattern, "AZDabcdef");
         match(pattern, "AZDabcdef");
+        match(pattern, "ZDaabcdef");
 
-        match(pattern, "aZDaabcdef");
+//        var m = pattern.matcher("AaZDaabcdef");
+//        var state1 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'A');
+//        var state2 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
+//        var state3 = m.getClass().getDeclaredMethod("state2", char.class).invoke(m, 'Z');
+//        var state4 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'Z');
+//        var state5 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'D');
+//        var state6 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
+//
+//        match(pattern, "AaZDaabcdef");
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
             find(pattern,"Aabcdef", prefix, suffix);
@@ -464,15 +509,14 @@ public class DFACompilerTest {
     @Test
     public void testLargeRegex() {
         String largeRegex = CORE_LARGE_REGEX_STRING + "4}";
-        var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4", true);
+        var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4");
         var hayStack = "1232343450987";
         assertTrue(pattern.matcher(hayStack).matches());
 
-        pattern = DFACompiler.compile(CORE_LARGE_REGEX_STRING + "16}", "testLargeRegex16");
-        hayStack = hayStack + hayStack + hayStack + hayStack;
+        pattern = DFACompiler.compile(CORE_LARGE_REGEX_STRING + "8}", "testLargeRegex8", true);
+        hayStack = hayStack + hayStack; // + hayStack + hayStack;
         assertTrue(pattern.matcher(hayStack).matches());
         assertTrue(pattern.matcher(hayStack).matches());
-
     }
 
 }

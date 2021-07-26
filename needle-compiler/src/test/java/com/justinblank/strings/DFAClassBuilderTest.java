@@ -150,6 +150,7 @@ public class DFAClassBuilderTest {
 
             var vars = new MatchingVars(-1, -1, -1, -1, -1);
             var method = builder.mkMethod("callState", new ArrayList<>(), "I", vars);
+            method.setAttribute(DFAClassBuilder.COMPILATION_POLICY, new CompilationPolicy());
             var block = method.addBlock();
             var returnBlock = method.addBlock();
 

@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.LiteralNode;
 import com.justinblank.strings.RegexAST.Node;
 import org.apache.commons.lang3.StringUtils;
 import org.objectweb.asm.Opcodes;
@@ -10,7 +11,10 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class DFAClassBuilder extends ClassBuilder {
 
-    public static final String OFFSETS_ATTRIBUTE = "offsets";
+    static final String OFFSETS_ATTRIBUTE = "offsets";
+    static final String USED_BYTECLASSES = "usedByteClasses";
+    static final String STATE_NUMBER = "stateNumber";
+    static final String FORWARDS = "forwards";
 
     protected static final String STATE_FIELD = "state";
     protected static final String CHAR_FIELD = "c";
@@ -18,25 +22,31 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String STRING_FIELD = "string";
     protected static final String INDEX_FIELD = "index";
     protected static final String NEXT_START_FIELD = "nextStart";
+    protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
+    protected static final String STATES_CONSTANT = "STATES";
+    protected static final String STATES_BACKWARDS_CONSTANT = "STATES_BACKWARDS";
 
     protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
     protected static final String INDEX_FORWARDS = "indexForwards";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
+    protected static final String COMPILATION_POLICY = "COMPILATION_POLICY";
 
     static final int LARGE_STATE_COUNT = 64;
 
     private final DFA dfa;
     private final DFA reversed;
     private final Factorization factorization;
+    private final CompilationPolicy compilationPolicy;
     private final Map<Integer, Offset> forwardOffsets;
+    private final byte[] byteClasses;
 
     final List<Method> stateMethods = new ArrayList<>();
     final List<Method> backwardsStateMethods = new ArrayList<>();
     final List<Method> findMethods = new ArrayList<>();
 
     /**
-     * @param className
+     * @param className the simple class name of the class to be created
      * @param superClass the superclass's descriptor
      * @param interfaces a possibly empty array of interfaces implemented
      */
@@ -46,12 +56,28 @@ public class DFAClassBuilder extends ClassBuilder {
         this.dfa = dfa;
         this.reversed = reversed;
         this.factorization = factorization;
+        this.compilationPolicy = new CompilationPolicy();
         // YOLO
         this.forwardOffsets = dfa != null ? dfa.calculateOffsets() : null;
+        if (dfa != null && dfa.isAllAscii()) {
+            byteClasses = dfa.byteClasses();
+            if (factorization != null && factorization.getSharedPrefix().isEmpty() && dfa.statesCount() < 129) {
+                compilationPolicy.useByteClassesForAllStates = true;
+            }
+        }
+        else {
+            byteClasses = null;
+        }
     }
 
     void initMethods() {
         addStateMethods(dfa);
+        if (compilationPolicy.usedByteClasses) {
+            addByteClasses();
+            if (compilationPolicy.useByteClassesForAllStates) {
+                populateByteClassArrays();
+            }
+        }
         if (shouldSeek()) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 if (shouldSeek()) {
@@ -71,6 +97,72 @@ public class DFAClassBuilder extends ClassBuilder {
         addWasAcceptedMethod(false);
         addConstructor();
         addFields();
+    }
+
+    /**
+     * Create the array of byteClasses that maps a character <= 128 to a byteClass--this allows us to make our state
+     * transition arrays smaller
+     */
+    private void addByteClasses() {
+        addField(new Field(ACC_STATIC |ACC_PRIVATE | ACC_FINAL, BYTE_CLASSES_CONSTANT, "[B", null, null));
+        var staticBlock = addStaticBlock();
+
+        staticBlock.push(128)
+                .newArray(T_BYTE)
+                .putStatic(BYTE_CLASSES_CONSTANT, true, "[B")
+                .readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
+                .push(0)
+                .callStatic("fill", "java/util/Arrays", "([BB)V");
+        int start = 0;
+        int end = 0;
+        int byteClass = -2;
+        while (end < 129) {
+            if (byteClass == -2) {
+                byteClass = byteClasses[start];
+            }
+            if (byteClasses[end] != byteClass) {
+                staticBlock.readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
+                        .push(byteClass)
+                        .push(start)
+                        .push(end - 1)
+                        .callStatic("fillBytes", "com/justinblank/strings/ByteClassUtil", "([BBII)V");
+                start = end;
+                byteClass = byteClasses[end];
+            }
+            end++;
+        }
+    }
+
+    /**
+     * Create array of arrays of state transitions
+     */
+    private void populateByteClassArrays() {
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_CONSTANT, "[[B", null, null));
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_BACKWARDS_CONSTANT, "[[B", null, null));
+        var staticBlock = addStaticBlock();
+
+        staticBlock.push(dfa.statesCount())
+                .newArray("[B")
+                .putStatic(STATES_CONSTANT, true, "[[B");
+
+        for (var i = 0; i < dfa.statesCount(); i++) {
+            staticBlock.readStatic(STATES_CONSTANT, true, "[[B")
+                    .push(i)
+                    .readStatic(stateArrayName(i, true), true, "[B")
+                    .operate(AASTORE);
+        }
+
+        staticBlock.push(reversed.statesCount())
+                .newArray("[B")
+                .putStatic(STATES_BACKWARDS_CONSTANT, true, "[[B");
+
+        for (var i = 0; i < reversed.statesCount(); i++) {
+            staticBlock.readStatic(STATES_BACKWARDS_CONSTANT, true, "[[B")
+                    .push(i)
+                    .readStatic(stateArrayName(i, false), true, "[B")
+                    .operate(AASTORE);
+        }
+
     }
 
     private Method createIndexMethod(boolean forwards) {
@@ -322,10 +414,15 @@ public class DFAClassBuilder extends ClassBuilder {
         List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
         MatchingVars vars = new MatchingVars(1, -1, -1, -1, -1);
         var method = mkMethod(name, arguments, "I", vars);
+        method.setAttribute(FORWARDS, forwards);
         if (forwards) {
             stateMethods.set(dfaState.getStateNumber(), method);
         } else {
             backwardsStateMethods.set(dfaState.getStateNumber(), method);
+        }
+
+        if (willUseByteClasses(dfaState)) {
+            prepareMethodToUseByteClasses(dfaState, forwards, method);
         }
 
         Block charBlock = method.addBlock();
@@ -386,13 +483,62 @@ public class DFAClassBuilder extends ClassBuilder {
 
     }
 
+    private void prepareMethodToUseByteClasses(DFA dfaState, boolean forwards, Method method) {
+        compilationPolicy.usedByteClasses = true;
+        method.setAttribute(USED_BYTECLASSES, true);
+        method.setAttribute(STATE_NUMBER, dfaState.getStateNumber());
+        method.setAttribute(FORWARDS, forwards);
+        var arrayName = stateArrayName(dfaState.getStateNumber(), forwards);
+        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, "[B", null, null));
+        var staticBlock = addStaticBlock();
+
+        staticBlock.push(getByteClassesMax() + 1)
+                .newArray(T_BYTE)
+                .putStatic(arrayName, true, "[B");
+
+        staticBlock.readStatic(arrayName, true, "[B")
+                .push(-1)
+                .callStatic("fill", "java/util/Arrays", "([BB)V");
+
+        for (var transition : dfaState.getTransitions()) {
+            byte byteClass = byteClasses[transition.getLeft().getStart()];
+            var state = transition.getRight().getStateNumber();
+            staticBlock.readStatic(arrayName, true, "[B")
+                    .push(byteClass)
+                    .push(state)
+                    .operate(BASTORE);
+        }
+    }
+
+    private int getByteClassesMax() {
+        var byteClassesMax = 0;
+        for (var b : byteClasses) {
+            if (b > byteClassesMax) {
+                byteClassesMax = b;
+            }
+        }
+        return byteClassesMax;
+    }
+
+    static String stateArrayName(int stateNumber, boolean forwards) {
+        return "stateTransitions" + (forwards ? "" : "Backwards") + stateNumber;
+    }
+
+    private boolean willUseByteClasses(DFA dfaState) {
+        if (byteClasses == null) {
+            return false;
+        }
+        return true; // dfaState.getTransitions().size() > 3 || !dfa.allTransitionsLeadToSameState();
+    }
+
     private boolean shouldSeek() {
         return factorization.getSharedPrefix().map(StringUtils::isNotEmpty).orElse(false);
     }
 
     // TODO: measure breakeven point for offsets
     static boolean isUsefulOffset(Offset offset) {
-        return offset != null && offset.length > 1;
+        // TODO: temporary choice
+        return false; // offset != null && offset.length > 1;
     }
 
     private Method createMatchesMethod() {
@@ -501,21 +647,35 @@ public class DFAClassBuilder extends ClassBuilder {
         if (!vars.forwards) {
             head.addOperation(Operation.mkOperation(Operation.Inst.DECREMENT_INDEX));
         }
-        head.addOperation(Operation.mkReadChar());
-        head.setVar(vars, MatchingVars.CHAR, "C");
+        head.addOperation(Operation.mkReadChar())
+                .setVar(vars, MatchingVars.CHAR, "C");
         if (vars.forwards) {
             head.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
         }
+        var dfaMaxChar = dfa.maxChar();
+        if (compilationPolicy.usedByteClasses) {
+            var nonAsciiNegativeOneStateBlock = postCallStateBlock;
+            postCallStateBlock = method.addBlockAfter(nonAsciiNegativeOneStateBlock);
+
+            nonAsciiNegativeOneStateBlock.push(-1).jump(postCallStateBlock, GOTO);
+
+            head.readVar(vars, MatchingVars.CHAR, "C")
+                    .push(dfaMaxChar)
+                    .jump(nonAsciiNegativeOneStateBlock, IF_ICMPGT);
+        }
 
         // Call state
-        head.readThis();
-        head.readVar(vars.charVar, "I");
-        head.readVar(vars, STATE_FIELD, "I");
+        if (!compilationPolicy.useByteClassesForAllStates) {
+            head.readThis();
+            head.readVar(vars.charVar, "I");
+            head.readVar(vars, STATE_FIELD, "I");
+        }
         var stateOp = Operation.mkCallState(postCallStateBlock);
+        method.setAttribute(COMPILATION_POLICY, compilationPolicy);
         stateOp.addAttribute(OFFSETS_ATTRIBUTE, forwardOffsets);
         head.addOperation(stateOp);
 
-        // If we're doing a containedIn style match, we have to reconsider the initial state whenever we hit a failure
+        // If we're doing a non-anchored match, we have to reconsider the initial state whenever we hit a failure
         // mode--if we're doing a containedIn backwards for finding the length of a match, we know we'll never hit the
         // failure state until we're done
         if (!isMatch && vars.forwards) {
@@ -535,7 +695,7 @@ public class DFAClassBuilder extends ClassBuilder {
                         push(-1)
                         .readVar(vars, MatchingVars.LAST_MATCH, "I")
                         .jump(stateResetBlock, IF_ICMPEQ);
-            checkForMatchInDeadState
+                checkForMatchInDeadState
                     .push(-1)
                     .readVar(vars, MatchingVars.STATE, "I")
                     .jump(stateResetBlock, IF_ICMPNE)
@@ -554,9 +714,23 @@ public class DFAClassBuilder extends ClassBuilder {
                         .readVar(vars, MatchingVars.INDEX, "I")
                         .setField(MatchingVars.INDEX, getClassName(), "I");
             }
-            stateResetBlock.readThis().readVar(vars, MatchingVars.CHAR, "C");
-            stateResetBlock.call("state0", getClassName(), "(C)I");
+            // Avoid overflow when reading from byteClass in state method
+            stateResetBlock
+                    .readVar(vars, MatchingVars.CHAR, "C")
+                    .push(dfaMaxChar)
+                    .jump(postCallStateBlock, IF_ICMPGT);
+            stateResetBlock
+                    .readThis()
+                    .readVar(vars, MatchingVars.CHAR, "C")
+                    .call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
+            // Avoid accidentally returning to the top of the loop with a -1 state
+            stateResetBlock.push(-1)
+                    .readVar(vars, MatchingVars.STATE, "I")
+                    .jump(postCallStateBlock, IF_ICMPNE)
+                    .push(0)
+                    .setVar(vars, MatchingVars.STATE, "I")
+                    .jump(postCallStateBlock, GOTO);
             if (shouldSeek()) {
                 // TODO: this block is confusing--is it even correct?
                 var reseekBlock = postCallStateBlock;
@@ -573,6 +747,9 @@ public class DFAClassBuilder extends ClassBuilder {
         if (isMatch) {
             if (isGreedy) {
                 postCallStateBlock.readVar(vars.stateVar, "I");
+//                postCallStateBlock.readStatic("out", "java/lang/System", "Ljava/io/PrintStream;")
+//                        .readVar(vars.stateVar, "I")
+//                        .call("println", "java/io/PrintStream", "(I)V");
                 postCallStateBlock.push(-1);
                 postCallStateBlock.cmp(failTarget, IF_ICMPEQ);
                 postCallStateBlock.jump(head, GOTO);
@@ -725,7 +902,6 @@ public class DFAClassBuilder extends ClassBuilder {
         var factorization = node.bestFactors();
         factorization.setMinLength(node.minLength());
         node.maxLength().ifPresent(factorization::setMaxLength);
-
         DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
 
         var builder = new DFAClassBuilder(name, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"}, dfa, dfaReversed, factorization);

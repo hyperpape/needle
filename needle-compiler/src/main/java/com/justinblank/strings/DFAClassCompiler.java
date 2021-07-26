@@ -43,13 +43,24 @@ public class DFAClassCompiler extends ClassCompiler {
                         transformed.add(Operation.mkJump(op.target, IF_ICMPGE));
                         break;
                     case CHECK_CHARS:
+
                         CheckCharsOperation ccOp = (CheckCharsOperation) op;
                         var newBlocks = new ArrayList<Block>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
 
                         vars = (MatchingVars) method.getMatchingVars().get();
                         // TODO: less sophisticated than previous impl
-                        if (ccOp.transitions.size() == 1 && ccOp.transitions.get(0).getLeft().isSingleCharRange()) {
+                        if (Boolean.TRUE.equals(method.getAttribute(DFAClassBuilder.USED_BYTECLASSES))) {
+                            var stateNumber = (int) method.getAttribute(DFAClassBuilder.STATE_NUMBER);
+                            var arrayName = DFAClassBuilder.stateArrayName(stateNumber, (Boolean) method.getAttribute(DFAClassBuilder.FORWARDS));
+                            transformed.add(Operation.mkReadStatic(arrayName, true, "[B"));
+                            transformed.add(Operation.mkReadStatic(DFAClassBuilder.BYTE_CLASSES_CONSTANT, true, "[B"));
+                            transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
+                            transformed.add(Operation.mkOperation(BALOAD));
+                            transformed.add(Operation.mkOperation(BALOAD));
+                            transformed.add(Operation.mkReturn(IRETURN));
+                        }
+                        else if (ccOp.transitions.size() == 1 && ccOp.transitions.get(0).getLeft().isSingleCharRange()) {
                             var transition = ccOp.transitions.get(0);
                             transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                             transformed.add(Operation.pushValue(transition.getLeft().getStart()));
@@ -99,8 +110,21 @@ public class DFAClassCompiler extends ClassCompiler {
                         transformed.add(Operation.call("charAt", "java/lang/String", "(I)C"));
                         break;
                     case CALL_STATE:
-                        var offsets = (Map<Integer, Offset>) op.getAttribute(DFAClassBuilder.OFFSETS_ATTRIBUTE);
                         vars = (MatchingVars) method.getMatchingVars().get();
+                        if (((CompilationPolicy) method.getAttribute(DFAClassBuilder.COMPILATION_POLICY)).useByteClassesForAllStates) {
+                            var stateArrayName = vars.forwards ? DFAClassBuilder.STATES_CONSTANT : DFAClassBuilder.STATES_BACKWARDS_CONSTANT;
+
+                            transformed.add(Operation.mkReadStatic(stateArrayName, true, "[[B"));
+                            transformed.add(Operation.mkReadVar(vars, MatchingVars.STATE, "I"));
+                            transformed.add(Operation.mkOperation(AALOAD));
+                            transformed.add(Operation.mkReadStatic(DFAClassBuilder.BYTE_CLASSES_CONSTANT, true, "[B"));
+                            transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "I"));
+                            transformed.add(Operation.mkOperation(BALOAD));
+                            transformed.add(Operation.mkOperation(BALOAD));
+                            transformed.add(Operation.mkJump(op.target, GOTO));
+                            continue;
+                        }
+                        var offsets = (Map<Integer, Offset>) op.getAttribute(DFAClassBuilder.OFFSETS_ATTRIBUTE);
                         List<Block> stateBlocks = new ArrayList<>();
                         newBlocks = new ArrayList<>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
