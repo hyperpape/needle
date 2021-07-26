@@ -190,6 +190,7 @@ class Operation {
         TABLESWITCH,
         CALL,
         NEW,
+        NEWARRAY,
         INVOKEINTERFACE,
         INVOKESTATIC,
         INVOKESPECIAL,

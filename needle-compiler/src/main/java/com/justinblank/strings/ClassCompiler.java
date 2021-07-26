@@ -220,6 +220,14 @@ public class ClassCompiler {
             case NEW:
                 mv.visitTypeInsn(NEW, op.spec.descriptor);
                 return;
+            case NEWARRAY:
+                if (op.spec == null) {
+                    mv.visitIntInsn(NEWARRAY, op.count);
+                }
+                else {
+                    mv.visitTypeInsn(ANEWARRAY, op.spec.descriptor);
+                }
+                return;
             case TABLESWITCH:
                 var blocks = op.blockTargets;
                 var labels = blocks.stream().map(Block::getLabel).collect(Collectors.toList());

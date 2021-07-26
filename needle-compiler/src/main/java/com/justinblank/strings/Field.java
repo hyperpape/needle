@@ -10,6 +10,17 @@ public class Field {
     final String signature;
     final Object value;
 
+    @Override
+    public String toString() {
+        return "Field{" +
+                "modifier=" + modifier +
+                ", name='" + name + '\'' +
+                ", descriptor='" + descriptor + '\'' +
+                ", signature='" + signature + '\'' +
+                ", value=" + value +
+                '}';
+    }
+
     public Field(int modifier, String name, String descriptor, String signature, Object value) {
         Objects.requireNonNull(name, descriptor);
         this.modifier = modifier;

@@ -110,13 +110,25 @@ class Block {
         return this;
     }
 
+    Block newArray(int arrayType) {
+        addOperation(new Operation(Operation.Inst.NEWARRAY, arrayType, null, null, null));
+        return this;
+    }
+
+    Block newArray(String arrayType) {
+        var spec = new RefSpec(null, null, arrayType);
+        addOperation(new Operation(Operation.Inst.NEWARRAY, -1, null, spec, null));
+        return this;
+    }
+
     @Override
     public String toString() {
         return "Block" + number;
     }
 
-    void addOperation(Operation op) {
+    Block addOperation(Operation op) {
         this.operations.add(op);
+        return this;
     }
 
     public Label getLabel() {
