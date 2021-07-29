@@ -15,11 +15,14 @@ performance. Those compile-time efforts currently take a few forms:
   individual regex that specializes the code to simulate an automaton,
   reducing interpretation overhead.
 
-  2. Regular expressions with a literal prefix (e.g. `http://.*`) have specialized matching that seeks for a possible
-     prefix using an explicit for loop (skipping the automaton code).
+  2. Regular expressions with a literal prefix (e.g. `http://.*`) have
+     specialized matching that seeks for a possible prefix using an
+     explicit for loop (skipping the automaton code).
 
-  3. The automaton can look ahead for necessary characters later in the stream. Upon seeing `h` in`http://.*`, the
-     automaton will check whether `/` is found 6 characters ahead, before moving to the next state.
+  3. The automaton can look ahead for necessary characters later in
+     the stream. Upon seeing `h` in`http://.*`, the automaton will
+     check whether `/` is found 6 characters ahead, before moving to
+     the next state.
 
 ### Status
 
@@ -27,9 +30,18 @@ This project has no users as of yet.
 
 ### Usage
 
-When including the `needle-compiler` library, you can compile regexes
-before first use. Each call to `DFACompiler.compile` will create a new
-class.
+The library generates a pair of classes for each regex:a `Pattern`
+(`com.justinblank.strings.Pattern`, not `java.util.regex.Pattern`),
+and a `Matcher` (`com.justinblank.strings.Matcher`, not
+`java.util.regex.Matcher`).
+
+These classes can either be created at runtime, when including the
+`needle-compiler` jar, or saved into a classfile which can be included
+in an application's classpath with the `needle-types` library.
+
+#### Runtime Creation
+
+Each call to `DFACompiler.compile` will create a new class.
 
 ```java
 static final Pattern URL_PATTERN = DFACompiler.compile("http://.+", "OverSimplifiedURLMatcher");
@@ -43,10 +55,21 @@ assertEquals(0, matchResult.start);
 assertEquals(21, matchResult.end);
 ```
 
-There is also basic support for generating a class and saving as a
-classfile using the `precompile` class. Applications can then include
-the `needle-types` library and use Pattern instances without depending
-on the compiler.
+#### Precompilation
+
+At build time:
+
+```java
+Precompile.precompile("https?", "PrecompiledRegex", somedirectory.getAbsolutePath());
+```
+
+At run-time:
+
+```java
+Pattern pattern = new PrecompiledRegex();
+Matcher matcher = pattern.matcher("http");
+assertTrue(matcher.matches());
+```
 
 See `Pattern` for the supported operations.
 
