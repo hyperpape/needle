@@ -35,6 +35,11 @@ class Block {
         return this;
     }
 
+    Block readStatic(String field, String className, String descriptor) {
+        addOperation(Operation.mkReadStatic(field, className, descriptor));
+        return this;
+    }
+
     Block putStatic(String field, boolean isSelf, String descriptor) {
         addOperation(Operation.mkPutStatic(field, isSelf, descriptor));
         return this;

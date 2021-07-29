@@ -106,6 +106,11 @@ class Operation {
         return new Operation(Inst.READ_STATIC, -1, null, spec, null);
     }
 
+    public static Operation mkReadStatic(String field, String className, String descriptor) {
+        var spec = new RefSpec(field, className, descriptor, false);
+        return new Operation(Inst.READ_STATIC, -1, null, spec, null);
+    }
+
     public static Operation mkPutStatic(String field, boolean isSelf, String descriptor) {
         var spec = new RefSpec(field, null, descriptor, isSelf);
         return new Operation(Inst.PUT_STATIC, -1, null, spec, null);
