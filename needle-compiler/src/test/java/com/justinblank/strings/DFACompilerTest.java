@@ -286,7 +286,7 @@ public class DFACompilerTest {
     @Test
     public void testCountedRepetitionOfUnion() {
         String regexString = "((AB)|(BA)){1,2}";
-        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion", true);
+        Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion");
         fail(pattern, "");
         match(pattern, "BA");
         match(pattern, "ABBA");
@@ -304,7 +304,7 @@ public class DFACompilerTest {
     @Test
     public void testCountedRepetitionWithLiteralSuffix() throws Exception {
         String regexString = "((AB)|(CD)){1,2}" + "AB";
-        Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix", true);
+        Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
         var m = pattern.matcher("ABAB");
         var state0 = m.getClass().getDeclaredMethod("state0", char.class);
         var s = state0.invoke(m, 'A');
@@ -380,7 +380,7 @@ public class DFACompilerTest {
 
     @Test
     public void testDFACompiledUnionOfLiterals() throws Exception {
-        Pattern pattern = DFACompiler.compile("A|BCD|E", "union1", true);
+        Pattern pattern = DFACompiler.compile("A|BCD|E", "union1");
         match(pattern, "A");
         match(pattern, "BCD");
         match(pattern, "E");
@@ -397,7 +397,7 @@ public class DFACompilerTest {
 
     @Test
     public void testFoo() throws Exception {
-        Pattern pattern = DFACompiler.compile("[A-Za-z]+ab", "foo", true);
+        Pattern pattern = DFACompiler.compile("[A-Za-z]+ab", "foo");
         match(pattern, "Aab");
         match(pattern, "aab");
 
@@ -513,7 +513,7 @@ public class DFACompilerTest {
         var hayStack = "1232343450987";
         assertTrue(pattern.matcher(hayStack).matches());
 
-        pattern = DFACompiler.compile(CORE_LARGE_REGEX_STRING + "8}", "testLargeRegex8", true);
+        pattern = DFACompiler.compile(CORE_LARGE_REGEX_STRING + "8}", "testLargeRegex8");
         hayStack = hayStack + hayStack; // + hayStack + hayStack;
         assertTrue(pattern.matcher(hayStack).matches());
         assertTrue(pattern.matcher(hayStack).matches());
