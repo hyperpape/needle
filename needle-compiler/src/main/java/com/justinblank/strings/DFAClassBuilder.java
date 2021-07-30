@@ -639,6 +639,8 @@ public class DFAClassBuilder extends ClassBuilder {
         } else {
             head.readVar(vars, MatchingVars.INDEX, "I");
             // TODO: isn't this wrong? Could be nonzero if we're searching backwards in a substring
+            // Answer: it's fine for now, we're only ever searching backwards when we've seen a match going forwards,
+            // but perhaps it's a bit brittle
             head.push(0);
             head.jump(returnBlock, IF_ICMPEQ);
         }
