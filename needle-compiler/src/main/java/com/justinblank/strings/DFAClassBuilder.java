@@ -1,6 +1,5 @@
 package com.justinblank.strings;
 
-import com.justinblank.strings.RegexAST.LiteralNode;
 import com.justinblank.strings.RegexAST.Node;
 import org.apache.commons.lang3.StringUtils;
 import org.objectweb.asm.Opcodes;
@@ -59,9 +58,12 @@ public class DFAClassBuilder extends ClassBuilder {
         this.compilationPolicy = new CompilationPolicy();
         // YOLO
         this.forwardOffsets = dfa != null ? dfa.calculateOffsets() : null;
+        if (dfa != null) {
+            compilationPolicy.stateArraysUseShorts = dfa.statesCount() > 128;
+        }
         if (dfa != null && dfa.isAllAscii()) {
             byteClasses = dfa.byteClasses();
-            if (factorization != null && factorization.getSharedPrefix().isEmpty() && dfa.statesCount() < 129) {
+            if (factorization != null && factorization.getSharedPrefix().isEmpty()) {
                 compilationPolicy.useByteClassesForAllStates = true;
             }
         }
@@ -137,29 +139,30 @@ public class DFAClassBuilder extends ClassBuilder {
      * Create array of arrays of state transitions
      */
     private void populateByteClassArrays() {
-        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_CONSTANT, "[[B", null, null));
-        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_BACKWARDS_CONSTANT, "[[B", null, null));
+        var stateArrayType = compilationPolicy.getStateArrayType();
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_CONSTANT, "[" + compilationPolicy.getStateArrayType(), null, null));
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_BACKWARDS_CONSTANT, "[" + compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
 
         staticBlock.push(dfa.statesCount())
-                .newArray("[B")
-                .putStatic(STATES_CONSTANT, true, "[[B");
+                .newArray(compilationPolicy.getStateArrayType())
+                .putStatic(STATES_CONSTANT, true, "[" + compilationPolicy.getStateArrayType());
 
         for (var i = 0; i < dfa.statesCount(); i++) {
-            staticBlock.readStatic(STATES_CONSTANT, true, "[[B")
+            staticBlock.readStatic(STATES_CONSTANT, true, "[" + compilationPolicy.getStateArrayType())
                     .push(i)
-                    .readStatic(stateArrayName(i, true), true, "[B")
+                    .readStatic(stateArrayName(i, true), true, compilationPolicy.getStateArrayType())
                     .operate(AASTORE);
         }
 
         staticBlock.push(reversed.statesCount())
-                .newArray("[B")
-                .putStatic(STATES_BACKWARDS_CONSTANT, true, "[[B");
+                .newArray(compilationPolicy.getStateArrayType())
+                .putStatic(STATES_BACKWARDS_CONSTANT, true, "[" + compilationPolicy.getStateArrayType());
 
         for (var i = 0; i < reversed.statesCount(); i++) {
-            staticBlock.readStatic(STATES_BACKWARDS_CONSTANT, true, "[[B")
+            staticBlock.readStatic(STATES_BACKWARDS_CONSTANT, true, "[" + compilationPolicy.getStateArrayType())
                     .push(i)
-                    .readStatic(stateArrayName(i, false), true, "[B")
+                    .readStatic(stateArrayName(i, false), true, compilationPolicy.getStateArrayType())
                     .operate(AASTORE);
         }
 
@@ -415,6 +418,7 @@ public class DFAClassBuilder extends ClassBuilder {
         MatchingVars vars = new MatchingVars(1, -1, -1, -1, -1);
         var method = mkMethod(name, arguments, "I", vars);
         method.setAttribute(FORWARDS, forwards);
+        method.setAttribute(COMPILATION_POLICY, compilationPolicy);
         if (forwards) {
             stateMethods.set(dfaState.getStateNumber(), method);
         } else {
@@ -480,7 +484,6 @@ public class DFAClassBuilder extends ClassBuilder {
             failBlock.addReturn(IRETURN);
             charBlock.operations.add(CheckCharsOperation.checkChars(dfaState, failBlock, null));
         }
-
     }
 
     private void prepareMethodToUseByteClasses(DFA dfaState, boolean forwards, Method method) {
@@ -489,24 +492,39 @@ public class DFAClassBuilder extends ClassBuilder {
         method.setAttribute(STATE_NUMBER, dfaState.getStateNumber());
         method.setAttribute(FORWARDS, forwards);
         var arrayName = stateArrayName(dfaState.getStateNumber(), forwards);
-        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, "[B", null, null));
+        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
 
-        staticBlock.push(getByteClassesMax() + 1)
-                .newArray(T_BYTE)
-                .putStatic(arrayName, true, "[B");
+        staticBlock.push(getByteClassesMax() + 1);
+        if (compilationPolicy.stateArraysUseShorts) {
+            staticBlock.newArray(T_SHORT);
+        }
+        else {
+            staticBlock.newArray(T_BYTE);
+        }
+        staticBlock.putStatic(arrayName, true, compilationPolicy.getStateArrayType());
 
-        staticBlock.readStatic(arrayName, true, "[B")
-                .push(-1)
-                .callStatic("fill", "java/util/Arrays", "([BB)V");
+        staticBlock.readStatic(arrayName, true, compilationPolicy.getStateArrayType())
+                .push(-1);
+        if (compilationPolicy.stateArraysUseShorts) {
+            staticBlock.callStatic("fill", "java/util/Arrays", "([SS)V");
+        }
+        else {
+            staticBlock.callStatic("fill", "java/util/Arrays", "([BB)V");
+        }
 
         for (var transition : dfaState.getTransitions()) {
             byte byteClass = byteClasses[transition.getLeft().getStart()];
             var state = transition.getRight().getStateNumber();
-            staticBlock.readStatic(arrayName, true, "[B")
+            staticBlock.readStatic(arrayName, true, compilationPolicy.getStateArrayType())
                     .push(byteClass)
-                    .push(state)
-                    .operate(BASTORE);
+                    .push(state);
+            if (compilationPolicy.stateArraysUseShorts) {
+                staticBlock.operate(SASTORE);
+            }
+            else {
+                staticBlock.operate(BASTORE);
+            }
         }
     }
 

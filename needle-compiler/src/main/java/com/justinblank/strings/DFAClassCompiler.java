@@ -48,16 +48,21 @@ public class DFAClassCompiler extends ClassCompiler {
                         var newBlocks = new ArrayList<Block>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
 
+                        var policy = (CompilationPolicy) method.getAttribute(DFAClassBuilder.COMPILATION_POLICY);
                         vars = (MatchingVars) method.getMatchingVars().get();
-                        // TODO: less sophisticated than previous impl
                         if (Boolean.TRUE.equals(method.getAttribute(DFAClassBuilder.USED_BYTECLASSES))) {
                             var stateNumber = (int) method.getAttribute(DFAClassBuilder.STATE_NUMBER);
                             var arrayName = DFAClassBuilder.stateArrayName(stateNumber, (Boolean) method.getAttribute(DFAClassBuilder.FORWARDS));
-                            transformed.add(Operation.mkReadStatic(arrayName, true, "[B"));
+                            transformed.add(Operation.mkReadStatic(arrayName, true, policy.getStateArrayType()));
                             transformed.add(Operation.mkReadStatic(DFAClassBuilder.BYTE_CLASSES_CONSTANT, true, "[B"));
                             transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "C"));
                             transformed.add(Operation.mkOperation(BALOAD));
-                            transformed.add(Operation.mkOperation(BALOAD));
+                            if (policy.stateArraysUseShorts) {
+                                transformed.add(Operation.mkOperation(SALOAD));
+                            }
+                            else {
+                                transformed.add(Operation.mkOperation(BALOAD));
+                            }
                             transformed.add(Operation.mkReturn(IRETURN));
                         }
                         else if (ccOp.transitions.size() == 1 && ccOp.transitions.get(0).getLeft().isSingleCharRange()) {
@@ -111,16 +116,23 @@ public class DFAClassCompiler extends ClassCompiler {
                         break;
                     case CALL_STATE:
                         vars = (MatchingVars) method.getMatchingVars().get();
-                        if (((CompilationPolicy) method.getAttribute(DFAClassBuilder.COMPILATION_POLICY)).useByteClassesForAllStates) {
+                        var methodCount = vars.forwards ? stateMethods.size() : backwardsStateMethods.size();
+                        policy = (CompilationPolicy) method.getAttribute(DFAClassBuilder.COMPILATION_POLICY);
+                        if (policy.useByteClassesForAllStates) {
                             var stateArrayName = vars.forwards ? DFAClassBuilder.STATES_CONSTANT : DFAClassBuilder.STATES_BACKWARDS_CONSTANT;
 
-                            transformed.add(Operation.mkReadStatic(stateArrayName, true, "[[B"));
+                            transformed.add(Operation.mkReadStatic(stateArrayName, true, "[" + policy.getStateArrayType()));
                             transformed.add(Operation.mkReadVar(vars, MatchingVars.STATE, "I"));
                             transformed.add(Operation.mkOperation(AALOAD));
                             transformed.add(Operation.mkReadStatic(DFAClassBuilder.BYTE_CLASSES_CONSTANT, true, "[B"));
                             transformed.add(Operation.mkReadVar(vars, MatchingVars.CHAR, "I"));
                             transformed.add(Operation.mkOperation(BALOAD));
-                            transformed.add(Operation.mkOperation(BALOAD));
+                            if (policy.stateArraysUseShorts) {
+                                transformed.add(Operation.mkOperation(SALOAD));
+                            }
+                            else {
+                                transformed.add(Operation.mkOperation(BALOAD));
+                            }
                             transformed.add(Operation.mkJump(op.target, GOTO));
                             continue;
                         }
@@ -129,7 +141,6 @@ public class DFAClassCompiler extends ClassCompiler {
                         newBlocks = new ArrayList<>();
                         blocksToAdd.add(Pair.of(block, newBlocks));
 
-                        var methodCount = vars.forwards ? stateMethods.size() : backwardsStateMethods.size();
                         if (methodCount > DFAClassBuilder.LARGE_STATE_COUNT) {
                             for (var i = 0; i < methodCount; i += DFAClassBuilder.LARGE_STATE_COUNT) {
                                 var b = new Block(0, new ArrayList<>());

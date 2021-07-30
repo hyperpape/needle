@@ -228,7 +228,7 @@ public class DFACompilerTest {
     @Test
     public void testDFACompiledManyStateRegex() throws Exception {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING;
-        Pattern pattern = DFACompiler.compile(regexString, "testDFACompiledManyStateRegex");
+        Pattern pattern = DFACompiler.compile(regexString, "testDFACompiledManyStateRegex", true);
         match(pattern, "456");
         match(pattern, "456456");
 
