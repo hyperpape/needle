@@ -744,13 +744,6 @@ public class DFAClassBuilder extends ClassBuilder {
                     .readVar(vars, MatchingVars.CHAR, "C")
                     .call("state0", getClassName(), "(C)I");
             stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
-            // Avoid accidentally returning to the top of the loop with a -1 state
-            stateResetBlock.push(-1)
-                    .readVar(vars, MatchingVars.STATE, "I")
-                    .jump(postCallStateBlock, IF_ICMPNE)
-                    .push(0)
-                    .setVar(vars, MatchingVars.STATE, "I")
-                    .jump(postCallStateBlock, GOTO);
             if (shouldSeek()) {
                 // TODO: this block is confusing--is it even correct?
                 var reseekBlock = postCallStateBlock;
@@ -758,6 +751,15 @@ public class DFAClassBuilder extends ClassBuilder {
                 reseekBlock.push(-1)
                     .readVar(vars, MatchingVars.STATE, "I")
                     .jump(failTarget, IF_ICMPEQ);
+            }
+            else {
+                // Avoid accidentally returning to the top of the loop with a -1 state
+                stateResetBlock.push(-1)
+                        .readVar(vars, MatchingVars.STATE, "I")
+                        .jump(postCallStateBlock, IF_ICMPNE)
+                        .push(0)
+                        .setVar(vars, MatchingVars.STATE, "I")
+                        .jump(postCallStateBlock, GOTO);
             }
         }
         else {
