@@ -13,6 +13,13 @@ public class MatchResult implements Comparable<MatchResult> {
     MatchResult(boolean matched, int start, int end) {
         this.matched = matched;
         if (matched) {
+            if (start < 0) {
+                throw new IllegalArgumentException("Index=" + start + "is illegal for the start of a match");
+            }
+            else if (end < start) {
+                throw new IllegalArgumentException("End cannot be less than start, Start=" + start + ", End=" + end);
+            }
+
             this.start = start;
             this.end = end;
         } else {
