@@ -5,7 +5,8 @@ import org.objectweb.asm.Opcodes;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.objectweb.asm.Opcodes.DUP;
+import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
 
 public class ClassBuilder {
 
@@ -104,6 +105,12 @@ public class ClassBuilder {
     }
 
     protected void addField(Field field) {
+        fields.add(field);
+    }
+
+    protected void addConstant(String name, String descriptor, Object value) {
+        Objects.requireNonNull(value);
+        var field = new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, name, descriptor, null, value);
         fields.add(field);
     }
 
