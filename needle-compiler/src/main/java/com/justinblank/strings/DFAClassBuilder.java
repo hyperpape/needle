@@ -24,6 +24,7 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String STATES_CONSTANT = "STATES";
     protected static final String STATES_BACKWARDS_CONSTANT = "STATES_BACKWARDS";
+    protected static final String PREFIX_CONSTANT = "PREFIX";
 
     protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
@@ -82,10 +83,9 @@ public class DFAClassBuilder extends ClassBuilder {
         }
         if (shouldSeek()) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
-                if (shouldSeek()) {
-                    findMethods.add(createSeekMatchMethod(prefix));
-                    findMethods.add(createSeekContainedInMethod(prefix));
-                }
+                addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
+                findMethods.add(createSeekMatchMethod(prefix));
+                findMethods.add(createSeekContainedInMethod(prefix));
             });
         }
 
@@ -106,7 +106,7 @@ public class DFAClassBuilder extends ClassBuilder {
      * transition arrays smaller
      */
     private void addByteClasses() {
-        addField(new Field(ACC_STATIC |ACC_PRIVATE | ACC_FINAL, BYTE_CLASSES_CONSTANT, "[B", null, null));
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, BYTE_CLASSES_CONSTANT, "[B", null, null));
         var staticBlock = addStaticBlock();
 
         staticBlock.push(128)
@@ -809,7 +809,7 @@ public class DFAClassBuilder extends ClassBuilder {
         initialBlock.push(0);
         initialBlock.setVar(vars, MatchingVars.INDEX, "I");
         if (shouldSeek()) {
-            var prefix = factorization.getSharedPrefix().get();
+            var prefix = factorization.getSharedPrefix().orElseThrow();
             initialBlock.readThis();
             initialBlock.readVar(vars, MatchingVars.INDEX, "I");
             initialBlock.call(seekMethodName(true), getClassName(), "(I)I");
@@ -817,9 +817,10 @@ public class DFAClassBuilder extends ClassBuilder {
             initialBlock.readVar(vars, MatchingVars.INDEX, "I");
             initialBlock.push(-1);
             initialBlock.cmp(failureBlock, IF_ICMPEQ);
-            int state = dfa.after(getEffectivePrefix(prefix, true)).get().getStateNumber();
+            int state = dfa.after(getEffectivePrefix(prefix, true)).orElseThrow().getStateNumber();
             initialBlock.push(state);
             initialBlock.setVar(vars, MatchingVars.STATE, "I");
+
         } else {
             initialBlock.push(0);
             initialBlock.setVar(vars, MatchingVars.STATE, "I");
@@ -831,26 +832,44 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     protected void addContainedInPrefaceBlock(MatchingVars vars, Block initialBlock, Block failureBlock) {
+        initialBlock.readThis()
+                .readField(DFAClassCompiler.STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR)
+                .setVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
+
         if (vars.forwards && shouldSeek()) {
-            var prefix = factorization.getSharedPrefix().get();
-            initialBlock.readThis();
-            initialBlock.readVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.call(seekMethodName(false), getClassName(), "(I)I");
-            initialBlock.setVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.readVar(vars, MatchingVars.INDEX, "I");
+            var prefix = factorization.getSharedPrefix().orElseThrow();
+            initialBlock.readVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR)
+                    .readStatic(PREFIX_CONSTANT, true, CompilerUtil.STRING_DESCRIPTOR)
+                    .readVar(vars, MatchingVars.INDEX, "I")
+                    .call("indexOf", "java/lang/String", "(Ljava/lang/String;I)I")
+                    .setVar(vars, MatchingVars.INDEX, "I")
+                    .readVar(vars, MatchingVars.INDEX, "I");
+
             initialBlock.push(-1);
             initialBlock.cmp(failureBlock, IF_ICMPEQ);
-            int state = dfa.after(getEffectivePrefix(prefix, false)).get().getStateNumber();
-            initialBlock.push(state);
+            var state = dfa.after(prefix).orElseThrow();
+            initialBlock.push(state.getStateNumber());
             initialBlock.setVar(vars, MatchingVars.STATE, "I");
+            initialBlock.readVar(vars, MatchingVars.INDEX, "I")
+                    .push(prefix.length())
+                    .operate(IADD)
+                    .setVar(vars, MatchingVars.INDEX, "I");
+            if (state.isAccepting()) {
+                // if this is -1, we're doing a seek for a containedIn, otherwise, a find method.
+                // kinda hacky
+                if (vars.lastMatchVar > -1) {
+                    initialBlock.readVar(vars, MatchingVars.INDEX, "I")
+                            .setVar(vars, MatchingVars.LAST_MATCH, "I");
+                }
+                else {
+                    initialBlock.push(1).addReturn(IRETURN);
+                }
+            }
         } else {
             initialBlock.push(0);
             initialBlock.setVar(vars, MatchingVars.STATE, "I");
         }
 
-        initialBlock.readThis();
-        initialBlock.readField(DFAClassCompiler.STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR);
-        initialBlock.setVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
     }
 
     private void addLengthCheck(MatchingVars vars, Block initialBlock, Block failureBlock, boolean isMatch) {
@@ -904,7 +923,8 @@ public class DFAClassBuilder extends ClassBuilder {
 
         addContainedInPrefaceBlock(vars, seekBlock, failureBlock);
         var prefix = factorization.getSharedPrefix().orElse("");
-        if (dfa.after(prefix.substring(0, Math.min(1, prefix.length()))).get().isAccepting()) {
+        // TODO: revisit this, generated code looked wonky
+        if (dfa.after(prefix.substring(0, Math.min(1, prefix.length()))).orElseThrow().isAccepting()) {
             var wasAcceptedPostPrefixBlock = method.addBlockAfter(seekBlock);
             wasAcceptedPostPrefixBlock.readThis();
             wasAcceptedPostPrefixBlock.readVar(vars, MatchingVars.STATE, "I");
