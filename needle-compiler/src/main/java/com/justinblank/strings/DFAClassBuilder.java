@@ -224,7 +224,7 @@ public class DFAClassBuilder extends ClassBuilder {
     private Method createFindMethodInternal() {
         var vars = new MapVars();
         vars.addVar(MatchingVars.INDEX, 1);
-        vars.addVar("indexBackwards", 2);
+        vars.addVar(INDEX_BACKWARDS, 2);
         var method = mkMethod("find", List.of("I", "I"), "Lcom/justinblank/strings/MatchResult;", vars);
         var block = method.addBlock();
         var failureBlock = method.addBlock();
@@ -260,11 +260,11 @@ public class DFAClassBuilder extends ClassBuilder {
             block.readThis();
             block.readVar(vars, MatchingVars.INDEX, "I");
             block.call(INDEX_BACKWARDS, getClassName(), "(I)I");
-            block.setVar(vars, "indexBackwards", "I");
+            block.setVar(vars, INDEX_BACKWARDS, "I");
 
             block.readThis().readVar(vars, MatchingVars.INDEX, "I").setField(NEXT_START_FIELD, getClassName(), "I");
 
-            block.readVar(vars, "indexBackwards", "I");
+            block.readVar(vars, INDEX_BACKWARDS, "I");
             block.readVar(vars, MatchingVars.INDEX, "I");
             block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;");
             block.addReturn(ARETURN);

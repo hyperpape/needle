@@ -10,12 +10,6 @@ import static org.objectweb.asm.Opcodes.ACC_FINAL;
 
 public class ClassBuilder {
 
-    protected static final String STATE_FIELD = "state";
-    protected static final String CHAR_FIELD = "c";
-    protected static final String LENGTH_FIELD = "length";
-    protected static final String STRING_FIELD = "string";
-    protected static final String INDEX_FIELD = "index";
-
     final Map<String, List<Method>> methods = new HashMap<>();
     final List<Field> fields = new ArrayList<>();
     final String superClass;

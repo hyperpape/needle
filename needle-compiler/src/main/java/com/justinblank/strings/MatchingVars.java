@@ -1,11 +1,11 @@
 package com.justinblank.strings;
 
 class MatchingVars implements Vars {
-    static final String STATE = ClassBuilder.STATE_FIELD;
-    static final String INDEX = ClassBuilder.INDEX_FIELD;
-    static final String STRING = ClassBuilder.STRING_FIELD;
-    static final String CHAR = ClassBuilder.CHAR_FIELD;
-    static final String LENGTH = ClassBuilder.LENGTH_FIELD;
+    static final String STATE = DFAClassBuilder.STATE_FIELD;
+    static final String INDEX = DFAClassBuilder.INDEX_FIELD;
+    static final String STRING = DFAClassBuilder.STRING_FIELD;
+    static final String CHAR = DFAClassBuilder.CHAR_FIELD;
+    static final String LENGTH = DFAClassBuilder.LENGTH_FIELD;
     static final String LAST_MATCH = "lastMatch";
     static final String WAS_ACCEPTED = "wasAccepted";
 
