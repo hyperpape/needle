@@ -1,6 +1,9 @@
 package com.justinblank.strings;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Class containing data for the computation of the factors of a regular expression, roughly based on the scheme
@@ -271,6 +274,10 @@ public class Factorization {
     }
 
     public Optional<String> getSharedPrefix() {
+        return getSharedPrefix(prefixes);
+    }
+
+    protected Optional<String> getSharedPrefix(Set<String> prefixes) {
         if (prefixes == null || prefixes.isEmpty()) {
             return Optional.empty();
         }
@@ -298,6 +305,11 @@ public class Factorization {
             }
         }
         return Optional.of(sharedPrefix);
+    }
+
+    public Optional<String> getSharedSuffix() {
+        var reversedSuffixes = getSuffixes().stream().map(StringUtils::reverse).collect(Collectors.toSet());
+        return getSharedPrefix(reversedSuffixes).map(StringUtils::reverse);
     }
 
     public int getMinLength() {
