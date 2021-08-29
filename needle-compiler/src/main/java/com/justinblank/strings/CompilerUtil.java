@@ -1,9 +1,6 @@
 package com.justinblank.strings;
 
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-
-import java.util.Collection;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Opcodes.SIPUSH;
@@ -19,7 +16,7 @@ class CompilerUtil {
      * @param mv       method visitor
      * @param constant the constant
      */
-    static void pushInt(MethodVisitor mv, int constant) {
+    public static void pushInt(MethodVisitor mv, int constant) {
         if (constant < 6 && constant >= -1) {
             switch (constant) {
                 case -1: {
@@ -59,4 +56,12 @@ class CompilerUtil {
         }
     }
 
+    public static String descriptor(Class<?> cls) {
+        return descriptor(cls.getCanonicalName());
+    }
+
+    public static String descriptor(String className) {
+        className = className.replaceAll("\\.", "/");
+        return "L" + className + ";";
+    }
 }

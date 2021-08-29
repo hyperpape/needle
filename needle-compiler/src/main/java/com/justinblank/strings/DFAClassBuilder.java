@@ -6,6 +6,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
+import static com.justinblank.strings.CompilerUtil.descriptor;
 import static org.objectweb.asm.Opcodes.*;
 
 public class DFAClassBuilder extends ClassBuilder {
@@ -212,12 +213,12 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createFindMethod() {
-        var method = mkMethod("find", List.of(), "Lcom/justinblank/strings/MatchResult;");
+        var method = mkMethod("find", List.of(), descriptor(MatchResult.class));
         var body = method.addBlock();
         body.readThis();
         body.readThis().readField(NEXT_START_FIELD, true, "I");
         body.readThis().readField(LENGTH_FIELD, true, "I");
-        body.call("find", getClassName(), "(II)Lcom/justinblank/strings/MatchResult;").addReturn(ARETURN);
+        body.call("find", getClassName(), "(II)" + descriptor(MatchResult.class)).addReturn(ARETURN);
         return method;
     }
 
@@ -225,10 +226,10 @@ public class DFAClassBuilder extends ClassBuilder {
         var vars = new MapVars();
         vars.addVar(MatchingVars.INDEX, 1);
         vars.addVar(INDEX_BACKWARDS, 2);
-        var method = mkMethod("find", List.of("I", "I"), "Lcom/justinblank/strings/MatchResult;", vars);
+        var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
         var block = method.addBlock();
         var failureBlock = method.addBlock();
-        failureBlock.callStatic("failure", "com/justinblank/strings/MatchResult", "()Lcom/justinblank/strings/MatchResult;");
+        failureBlock.callStatic("failure", "com/justinblank/strings/MatchResult", "()" + descriptor(MatchResult.class));
         failureBlock.readThis()
                 .readThis()
                 .readField(LENGTH_FIELD, true, "I")
@@ -253,7 +254,7 @@ public class DFAClassBuilder extends ClassBuilder {
                     .push(factorization.getMinLength())
                     .operate(ISUB)
                     .readVar(vars, MatchingVars.INDEX, "I")
-                    .callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;")
+                    .callStatic("success", "com/justinblank/strings/MatchResult", "(II)" + descriptor(MatchResult.class))
                     .addReturn(ARETURN);
         }
         else {
@@ -266,7 +267,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
             block.readVar(vars, INDEX_BACKWARDS, "I");
             block.readVar(vars, MatchingVars.INDEX, "I");
-            block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)Lcom/justinblank/strings/MatchResult;");
+            block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)" + descriptor(MatchResult.class));
             block.addReturn(ARETURN);
         }
 
