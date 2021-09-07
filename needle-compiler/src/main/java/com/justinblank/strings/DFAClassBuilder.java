@@ -578,7 +578,7 @@ public class DFAClassBuilder extends ClassBuilder {
     // TODO: seekMatch is kinda a silly name for this
     protected Method createSeekMatchMethod(String prefix) {
         var vars = new MatchingVars(-1, 1, -1, -1, -1);
-        var method = mkMethod("seekMatch", List.of("I"), "I", vars);
+        var method = mkMethod(SEEK_MATCH, List.of("I"), "I", vars);
         var body = method.addBlock();
         var failure = method.addBlock();
         prefix = getEffectivePrefix(prefix, true);
@@ -777,22 +777,22 @@ public class DFAClassBuilder extends ClassBuilder {
         addLengthCheck(vars, initialBlock, failureBlock, true);
 
         // Initialize variables
-        initialBlock.push(0);
-        initialBlock.setVar(vars, MatchingVars.INDEX, "I");
         if (shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
-            initialBlock.readThis();
-            initialBlock.readVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.call(SEEK_MATCH, getClassName(), "(I)I");
-            initialBlock.setVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.readVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.push(-1);
-            initialBlock.cmp(failureBlock, IF_ICMPEQ);
-            int state = dfa.after(getEffectivePrefix(prefix, true)).orElseThrow().getStateNumber();
+            initialBlock.readThis()
+                    .readField(MatchingVars.STRING, true, CompilerUtil.STRING_DESCRIPTOR)
+                    .readStatic(PREFIX_CONSTANT, true, CompilerUtil.STRING_DESCRIPTOR)
+                    .call("startsWith", "java/lang/String", "(Ljava/lang/String;)Z");
+            initialBlock.jump(failureBlock, IFEQ);
+            int state = dfa.after(prefix).orElseThrow().getStateNumber();
             initialBlock.push(state);
             initialBlock.setVar(vars, MatchingVars.STATE, "I");
+            initialBlock.push(prefix.length())
+                    .setVar(vars, MatchingVars.INDEX, "I");
 
         } else {
+            initialBlock.push(0);
+            initialBlock.setVar(vars, MatchingVars.INDEX, "I");
             initialBlock.push(0);
             initialBlock.setVar(vars, MatchingVars.STATE, "I");
         }
