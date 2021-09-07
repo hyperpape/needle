@@ -31,6 +31,7 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
     protected static final String INDEX_FORWARDS = "indexForwards";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
+    protected static final String SEEK_MATCH = "seekMatch";
     protected static final String COMPILATION_POLICY = "COMPILATION_POLICY";
 
     static final int LARGE_STATE_COUNT = 64;
@@ -86,7 +87,6 @@ public class DFAClassBuilder extends ClassBuilder {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
                 findMethods.add(createSeekMatchMethod(prefix));
-                findMethods.add(createSeekContainedInMethod(prefix));
             });
         }
 
@@ -578,7 +578,7 @@ public class DFAClassBuilder extends ClassBuilder {
     // TODO: seekMatch is kinda a silly name for this
     protected Method createSeekMatchMethod(String prefix) {
         var vars = new MatchingVars(-1, 1, -1, -1, -1);
-        var method = mkMethod(seekMethodName(true), List.of("I"), "I", vars);
+        var method = mkMethod("seekMatch", List.of("I"), "I", vars);
         var body = method.addBlock();
         var failure = method.addBlock();
         prefix = getEffectivePrefix(prefix, true);
@@ -596,39 +596,9 @@ public class DFAClassBuilder extends ClassBuilder {
         return method;
     }
 
-    protected Method createSeekContainedInMethod(String prefix) {
-        var vars = new MatchingVars(-1, 1, -1, 2, -1);
-        var method = mkMethod(seekMethodName(false), List.of("I"), "I", vars);
-        var head = method.addBlock();
-        var body = method.addBlock();
-        var failure = method.addBlock();
-
-        head.readThis();
-        head.readField(LENGTH_FIELD, true, "I");
-        head.setVar(vars, MatchingVars.LENGTH, "I");
-
-        prefix = getEffectivePrefix(prefix, false);
-        char needle = prefix.charAt(0);
-        body.addOperation(Operation.checkBounds(failure));
-        body.push(needle);
-        body.addOperation(Operation.mkReadChar());
-        body.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
-        body.cmp(body, IF_ICMPNE);
-
-        body.readVar(vars, MatchingVars.INDEX, "I");
-        body.addReturn(IRETURN);
-        failure.push(-1);
-        failure.addReturn(IRETURN);
-        return method;
-    }
-
     private String getEffectivePrefix(String prefix, boolean isMatch) {
         var i = isMatch ? Math.min(prefix.length(), 8) : Math.min(prefix.length(), 1);
         return prefix.substring(0, i);
-    }
-
-    private String seekMethodName(boolean isMatch) {
-        return "seek" + (isMatch ? "Match" : "ContainedIn");
     }
 
     void fillMatchLoopBlock(final MatchingVars vars, final Method method, Block head, final Block returnBlock,
@@ -813,7 +783,7 @@ public class DFAClassBuilder extends ClassBuilder {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             initialBlock.readThis();
             initialBlock.readVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.call(seekMethodName(true), getClassName(), "(I)I");
+            initialBlock.call(SEEK_MATCH, getClassName(), "(I)I");
             initialBlock.setVar(vars, MatchingVars.INDEX, "I");
             initialBlock.readVar(vars, MatchingVars.INDEX, "I");
             initialBlock.push(-1);

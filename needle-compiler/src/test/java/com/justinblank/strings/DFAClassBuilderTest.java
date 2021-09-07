@@ -125,22 +125,6 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void testSeekContainedIn2() {
-        try {
-            var dfa = DFA.createDFA("a");
-            var node = RegexParser.parse("a");
-            var builder = new DFAClassBuilder("seekContainedIn2", "java/lang/Object", new String[]{}, dfa, dfa, node.bestFactors());
-            builder.initMethods();
-            Class<?> c = compileFromBuilder(builder, "seekContainedIn2");
-            Object o = c.getDeclaredConstructors()[0].newInstance("aba");
-            assertEquals(1, o.getClass().getDeclaredMethod("seekContainedIn", int.class).invoke(o, 0));
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw new RuntimeException(t);
-        }
-    }
-
-    @Test
     public void testCallState() {
         try {
             var builder = new DFAClassBuilder("testCallState", "java/lang/Object", new String[]{}, null, null, null);
