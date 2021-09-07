@@ -86,7 +86,6 @@ public class DFAClassBuilder extends ClassBuilder {
         if (shouldSeek()) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
-                findMethods.add(createSeekMatchMethod(prefix));
             });
         }
 
@@ -572,27 +571,6 @@ public class DFAClassBuilder extends ClassBuilder {
         addMatchesPrefaceBlock(vars, setupAndSeekBlock, failBlock);
         fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, failBlock, true, true);
 
-        return method;
-    }
-
-    // TODO: seekMatch is kinda a silly name for this
-    protected Method createSeekMatchMethod(String prefix) {
-        var vars = new MatchingVars(-1, 1, -1, -1, -1);
-        var method = mkMethod(SEEK_MATCH, List.of("I"), "I", vars);
-        var body = method.addBlock();
-        var failure = method.addBlock();
-        prefix = getEffectivePrefix(prefix, true);
-        for (int i = 0; i < prefix.length(); i++) {
-            char c = prefix.charAt(i);
-            body.push(c);
-            body.addOperation(Operation.mkReadChar());
-            body.cmp(failure, IF_ICMPNE);
-            body.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
-        }
-        body.readVar(vars, MatchingVars.INDEX, "I");
-        body.addReturn(IRETURN);
-        failure.push(-1);
-        failure.addReturn(IRETURN);
         return method;
     }
 
