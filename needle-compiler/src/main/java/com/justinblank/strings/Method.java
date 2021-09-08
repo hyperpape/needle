@@ -11,9 +11,12 @@ class Method {
     final List<Block> blocks;
     final String returnType;
     private final Vars matchingVars;
-    private Map<String, Object> attributes = new HashMap<>();
+    private final Map<String, Object> attributes = new HashMap<>();
 
     Method(String methodName, List<String> arguments, String returnType, Vars matchingVars) {
+        Objects.requireNonNull(methodName);
+        Objects.requireNonNull(arguments);
+        Objects.requireNonNull(returnType);
         this.methodName = methodName;
         this.arguments = arguments;
         this.blocks = new ArrayList<>();
