@@ -293,7 +293,7 @@ public class DFACompilerTest {
         match(pattern, "BAAB");
         match(pattern, "BABA");
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,"BA", prefix, suffix);
+            find(pattern, "BA", prefix, suffix);
             find(pattern, "ABBA", prefix, suffix);
             find(pattern, "BAAB", prefix, suffix);
             find(pattern, "BABA", prefix, suffix);
@@ -306,8 +306,6 @@ public class DFACompilerTest {
         String regexString = "((AB)|(CD)){1,2}" + "AB";
         Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
         var m = pattern.matcher("ABAB");
-        var state0 = m.getClass().getDeclaredMethod("state0", char.class);
-        var s = state0.invoke(m, 'A');
         match(pattern, "ABAB");
         match(pattern, "ABCDAB");
         match(pattern, "CDAB");
@@ -348,8 +346,8 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("0{").containedIn());
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,  "1{", prefix, suffix);
-            find(pattern,"0{", prefix, suffix);
+            find(pattern, "1{", prefix, suffix);
+            find(pattern, "0{", prefix, suffix);
             return true;
         });
     }
@@ -365,8 +363,8 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("059{").containedIn());
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,  "12{", prefix, suffix);
-            find(pattern,"059{", prefix, suffix);
+            find(pattern, "12{", prefix, suffix);
+            find(pattern, "059{", prefix, suffix);
             return true;
         });
     }
@@ -388,7 +386,7 @@ public class DFACompilerTest {
         assertFalse(pattern.matcher("F").containedIn());
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,"A", prefix, suffix);
+            find(pattern, "A", prefix, suffix);
             find(pattern, "BCD", prefix, suffix);
             find(pattern, "E", prefix, suffix);
             return true;
@@ -396,8 +394,8 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFoo() throws Exception {
-        Pattern pattern = DFACompiler.compile("[A-Za-z]+ab", "foo");
+    public void testRepeatedRangeOverlappingWithSuffix() throws Exception {
+        Pattern pattern = DFACompiler.compile("[A-Za-z]+ab", "repeatedRangeOverlappingWithSuffix");
         match(pattern, "Aab");
         match(pattern, "aab");
 
@@ -406,25 +404,25 @@ public class DFACompilerTest {
         match(pattern, "ZDaab");
 
         var m = pattern.matcher("AaDab");
-        var state1 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'A');
-        var state2 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
-        var state3 = m.getClass().getDeclaredMethod("state2", char.class).invoke(m, 'D');
-        var state4 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'D');
-        var state5 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
-        var state6 = m.getClass().getDeclaredMethod("state2", char.class).invoke(m, 'b');
-
         match(pattern, "AaDab");
 
-        //        match(pattern, "AaZDaabcdef");
+        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
+            find(pattern,"Aab", prefix, suffix);
+            find(pattern, "aab", prefix, suffix);
+            find(pattern, "AZDab", prefix, suffix);
+            find(pattern, "AZDab", prefix, suffix);
+            find(pattern, "aZDaab", prefix, suffix);
+            return true;
+        });
+    }
 
-//        QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-//            find(pattern,"Aab", prefix, suffix);
-//            find(pattern, "aab", prefix, suffix);
-//            find(pattern, "AZDab", prefix, suffix);
-//            find(pattern, "AZDab", prefix, suffix);
-//            find(pattern, "aZDaab", prefix, suffix);
-//            return true;
-//        });
+    @Test
+    public void testRepeatedRangeWithIngSuffix() throws Exception {
+        Pattern pattern = DFACompiler.compile("[A-Za-z]+ing", "repeatedRangeWithIngSuffix");
+        match(pattern, "bing");
+        match(pattern, "Bing");
+        match(pattern, "zing");
+        match(pattern, "Zing");
     }
 
     @Test
@@ -437,18 +435,8 @@ public class DFACompilerTest {
         match(pattern, "AZDabcdef");
         match(pattern, "ZDaabcdef");
 
-//        var m = pattern.matcher("AaZDaabcdef");
-//        var state1 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'A');
-//        var state2 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
-//        var state3 = m.getClass().getDeclaredMethod("state2", char.class).invoke(m, 'Z');
-//        var state4 = m.getClass().getDeclaredMethod("state0", char.class).invoke(m, 'Z');
-//        var state5 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'D');
-//        var state6 = m.getClass().getDeclaredMethod("state1", char.class).invoke(m, 'a');
-//
-//        match(pattern, "AaZDaabcdef");
-
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,"Aabcdef", prefix, suffix);
+            find(pattern, "Aabcdef", prefix, suffix);
             find(pattern, "aabcdef", prefix, suffix);
             find(pattern, "AZDabcdef", prefix, suffix);
             find(pattern, "AZDabcdef", prefix, suffix);
@@ -464,7 +452,7 @@ public class DFACompilerTest {
         match(pattern, "AZDabcdef");
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,"Aabcdef", prefix, suffix);
+            find(pattern, "Aabcdef", prefix, suffix);
             find(pattern, "AZDabcdef", prefix, suffix);
             return true;
         });
@@ -477,7 +465,7 @@ public class DFACompilerTest {
         match(pattern, "AZDabcdefDZA");
 
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
-            find(pattern,"AabcdefZ", prefix, suffix);
+            find(pattern, "AabcdefZ", prefix, suffix);
             find(pattern, "AZDabcdefDZA", prefix, suffix);
             return true;
         });
@@ -487,8 +475,8 @@ public class DFACompilerTest {
     public void testOverSimplifiedURLMatcher() {
         final Pattern pattern = DFACompiler.compile("http://.+", "OverSimplifiedURLMatcher");
         Matcher matcher = pattern.matcher("http://www.google.com");
-        matcher.matches(); // true;
-        matcher.containedIn(); // true;
+        matcher.matches();
+        matcher.containedIn();
         MatchResult matchResult = matcher.find();
         assertTrue(matchResult.matched);
         assertEquals(0, matchResult.start);
@@ -524,6 +512,19 @@ public class DFACompilerTest {
         hayStack = hayStack + hayStack; // + hayStack + hayStack;
         assertTrue(pattern.matcher(hayStack).matches());
         assertTrue(pattern.matcher(hayStack).matches());
+    }
+
+    @Test
+    public void testFindingIngWords() {
+        String regexString = "[a-zA-Z]+ing";
+        String hayStack = "the most perfect reasoning and observing machine that the world has seen";
+        var pattern = DFACompiler.compile(regexString, "ingregex");
+        var count = 0;
+        var m = pattern.matcher(hayStack);
+        while (m.find().matched) {
+            count++;
+        }
+        assertEquals(2, count);
     }
 
 }

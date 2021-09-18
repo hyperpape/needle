@@ -514,16 +514,21 @@ public class DFAClassBuilder extends ClassBuilder {
         }
 
         for (var transition : dfaState.getTransitions()) {
-            byte byteClass = byteClasses[transition.getLeft().getStart()];
-            var state = transition.getRight().getStateNumber();
-            staticBlock.readStatic(arrayName, true, compilationPolicy.getStateArrayType())
-                    .push(byteClass)
-                    .push(state);
-            if (compilationPolicy.stateArraysUseShorts) {
-                staticBlock.operate(SASTORE);
-            }
-            else {
-                staticBlock.operate(BASTORE);
+            var largestSeenByteClass = 0;
+            for (var i = transition.getLeft().getStart(); i <= transition.getLeft().getEnd(); i++) {
+                var byteClass = byteClasses[i];
+                if (byteClass > largestSeenByteClass) {
+                    var state = transition.getRight().getStateNumber();
+                    staticBlock.readStatic(arrayName, true, compilationPolicy.getStateArrayType())
+                            .push(byteClass)
+                            .push(state);
+                    if (compilationPolicy.stateArraysUseShorts) {
+                        staticBlock.operate(SASTORE);
+                    } else {
+                        staticBlock.operate(BASTORE);
+                    }
+                    largestSeenByteClass = byteClass;
+                }
             }
         }
     }

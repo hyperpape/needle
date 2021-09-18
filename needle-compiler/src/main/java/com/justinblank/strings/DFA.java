@@ -318,8 +318,10 @@ class DFA {
     }
 
     /**
-     * Calculate a set of byteClasses that are sufficient to distinguish characters in all transitions of this
+     * Calculate a byte[129] of byteClasses that are sufficient to distinguish characters in all transitions of this
      * DFA. Assumes that this DFA consists only of ascii characters.
+     *
+     * 0 is used to represent that the byte is not in any byteClass.
      * @return byteClasses
      */
     protected byte[] byteClasses() {
