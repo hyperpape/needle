@@ -8,7 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -68,7 +68,7 @@ public class ClassCompiler {
         addFields();
 
         writeStaticBlocks();
-        for (var method : classBuilder.allMethods()) {
+        for (var method : methodsToWrite(classBuilder.allMethods())) {
             writeMethod(method);
         }
         byte[] classBytes = classWriter.toByteArray();
@@ -81,6 +81,41 @@ public class ClassCompiler {
             }
         }
         return classBytes;
+    }
+
+    /**
+     * Get the set of methods we actually wish to include in the generated class, ignoring any private method that is not locally called.
+     *
+     * @param allMethods all methods defined for the class
+     * @return the filtered methods
+     */
+    Set<Method> methodsToWrite(Collection<Method> allMethods) {
+        var methods = new HashSet<Method>();
+        var methodsToAdd = new Stack<Method>();
+        for (var method : allMethods) {
+            if (method.modifiers != ACC_PRIVATE) {
+                methodsToAdd.add(method);
+            }
+        }
+        while (!methodsToAdd.isEmpty()) {
+            var method = methodsToAdd.pop();
+            methods.add(method);
+            for (var block : method.blocks) {
+                for (var op : block.operations) {
+                    if (op.inst == Operation.Inst.CALL) {
+                        var spec = op.spec;
+                        if (spec.isSelf || spec.className.equals(getClassName())) {
+                            for (var otherMethod : allMethods) {
+                                if (otherMethod.methodName.equals(spec.name) && !methods.contains(otherMethod)) {
+                                    methodsToAdd.add(otherMethod);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return methods;
     }
 
     protected ClassBuilder getClassBuilder() {

@@ -7,7 +7,7 @@ class RefSpec {
     final String name;
     final String className;
     final String descriptor;
-    // Purely for debugging and pretty-printing
+    // Purely for debugging and pretty-printing--not guaranteed to be set. TODO: why not?
     final boolean isSelf;
 
     RefSpec(String name, String className, String descriptor) {
