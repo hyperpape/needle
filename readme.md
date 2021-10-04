@@ -26,7 +26,7 @@ performance. Those compile-time efforts currently take a few forms:
 
 ### Status
 
-This project has no users as of yet.
+This project is pre version 0.1 and has no users as of yet.
 
 ### Usage
 
@@ -60,14 +60,14 @@ assertEquals(21, matchResult.end);
 At build time:
 
 ```java
-Precompile.precompile("https?", "PrecompiledRegex", somedirectory.getAbsolutePath());
+Precompile.precompile("http://.+", "OversimplifiedURLMatcher", somedirectory.getAbsolutePath());
 ```
 
 At run-time:
 
 ```java
-Pattern pattern = new PrecompiledRegex();
-Matcher matcher = pattern.matcher("http");
+Pattern pattern = new OversimplifiedURLMatcher();
+Matcher matcher = pattern.matcher("http://www.google.com");
 assertTrue(matcher.matches());
 ```
 
@@ -127,4 +127,5 @@ expressions).
 
 ### Building
 
-Requires Java 11. Builds with maven.
+The compiler requires Java 11. Builds with maven. The generated
+classes should work with Java 8.
