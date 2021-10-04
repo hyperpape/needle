@@ -36,9 +36,7 @@ public class ClassBuilder {
      * @return the newly created method
      */
     protected Method mkMethod(String methodName, List<String> arguments, String returnType) {
-        var method = new Method(methodName, arguments, returnType, null);
-        addMethod(method);
-        return method;
+        return mkMethod(methodName, arguments, returnType, null, ACC_PUBLIC);
     }
 
     /**
@@ -51,7 +49,11 @@ public class ClassBuilder {
      * @return the newly created method
      */
     protected Method mkMethod(String methodName, List<String> arguments, String returnType, Vars vars) {
-        var method = new Method(methodName, arguments, returnType, vars);
+        return mkMethod(methodName, arguments, returnType, vars, ACC_PUBLIC);
+    }
+
+    protected Method mkMethod(String methodName, List<String> arguments, String returnType, Vars vars, int modifier) {
+        var method = new Method(methodName, arguments, returnType, vars, modifier);
         addMethod(method);
         return method;
     }

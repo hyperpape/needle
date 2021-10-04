@@ -4,9 +4,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+
 class Method {
 
     final String methodName;
+    final int modifiers;
     final List<String> arguments;
     final List<Block> blocks;
     final String returnType;
@@ -14,9 +17,14 @@ class Method {
     private final Map<String, Object> attributes = new HashMap<>();
 
     Method(String methodName, List<String> arguments, String returnType, Vars matchingVars) {
+        this(methodName, arguments, returnType, matchingVars, ACC_PUBLIC);
+    }
+
+    Method(String methodName, List<String> arguments, String returnType, Vars matchingVars, int modifiers) {
         Objects.requireNonNull(methodName);
         Objects.requireNonNull(arguments);
         Objects.requireNonNull(returnType);
+        this.modifiers = modifiers;
         this.methodName = methodName;
         this.arguments = arguments;
         this.blocks = new ArrayList<>();
@@ -82,5 +90,10 @@ class Method {
             count += block.operations.size();
         }
         return count;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(methodName, modifiers);
     }
 }

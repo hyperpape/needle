@@ -114,7 +114,7 @@ public class ClassCompiler {
 
     void writeMethod(Method method) {
         try {
-            var mv = classVisitor.visitMethod(ACC_PUBLIC, method.methodName, method.descriptor(), null, null);
+            var mv = classVisitor.visitMethod(method.modifiers, method.methodName, method.descriptor(), null, null);
             var vars = method.getMatchingVars();
 
             mv.visitCode();
