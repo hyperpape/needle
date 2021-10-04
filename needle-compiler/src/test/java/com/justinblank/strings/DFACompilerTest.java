@@ -323,7 +323,7 @@ public class DFACompilerTest {
     @Test
     public void testManyStateRegexWithLiteralSuffix() {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING + "ab";
-        Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix");
+        Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix", true);
         match(pattern, "123ab");
         match(pattern, "234234ab");
         fail(pattern, "");

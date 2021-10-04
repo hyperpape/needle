@@ -375,7 +375,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
     private void addStateGroupMethod(int start, int end, boolean forwards) {
         String name = stateGroupName(start, forwards);
-        var method = mkMethod(name, List.of("C", "I"),"I");
+        var method = mkMethod(name, List.of("C", "I"), "I", new MatchingVars(-1, -1, -1, -1, -1), ACC_PRIVATE);
         var mainBlock = method.addBlock();
         mainBlock.readThis().readVar(1, "C").readVar(2, "I");
         var switchBlocks = new ArrayList<Block>();
@@ -416,7 +416,7 @@ public class DFAClassBuilder extends ClassBuilder {
         String name = stateMethodName(dfaState.getStateNumber(), forwards);
         List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
         MatchingVars vars = new MatchingVars(1, -1, -1, -1, -1);
-        var method = mkMethod(name, arguments, "I", vars);
+        var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
         method.setAttribute(FORWARDS, forwards);
         method.setAttribute(COMPILATION_POLICY, compilationPolicy);
         if (forwards) {
