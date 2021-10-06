@@ -38,6 +38,7 @@ public class DFAClassCompiler extends ClassCompiler {
                 switch (op.inst) {
                     case CHECK_BOUNDS:
                         var vars = (MatchingVars) method.getMatchingVars().get();
+
                         transformed.add(Operation.mkReadVar(vars, MatchingVars.INDEX, "I"));
                         transformed.add(Operation.mkReadVar(vars, MatchingVars.LENGTH, "I"));
                         transformed.add(Operation.mkJump(op.target, IF_ICMPGE));

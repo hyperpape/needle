@@ -174,11 +174,8 @@ public class ClassCompiler {
 
     private void writeOperation(MethodVisitor mv, Optional<Vars> vars, Operation op) {
         switch (op.inst) {
-            case INCREMENT_INDEX:
-                mv.visitIincInsn(vars.get().indexByName(MatchingVars.INDEX), 1);
-                return;
-            case DECREMENT_INDEX:
-                mv.visitIincInsn(vars.get().indexByName(MatchingVars.INDEX), -1);
+            case INCREMENT:
+                mv.visitIincInsn(vars.get().indexByName(op.spec.name), op.count);
                 return;
             case RETURN:
             case PASSTHROUGH:

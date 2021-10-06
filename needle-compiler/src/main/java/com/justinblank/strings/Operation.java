@@ -142,6 +142,10 @@ class Operation {
         return new Operation(Inst.SET_VAR, index, null, spec, null);
     }
 
+    public static Operation mkIncrement(String varName, int increment) {
+        return new Operation(Inst.INCREMENT, increment, null, new RefSpec(varName, null, "I"), null);
+    }
+
     static Operation mkReturn(int i) {
         return new Operation(Inst.RETURN, i, null, null, null);
     }
@@ -179,8 +183,7 @@ class Operation {
     public enum Inst {
         VALUE,
         READ_CHAR,
-        INCREMENT_INDEX,
-        DECREMENT_INDEX,
+        INCREMENT,
         CHECK_BOUNDS,
         CHECK_CHARS,
         SET_VAR,

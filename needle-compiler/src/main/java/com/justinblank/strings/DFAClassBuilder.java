@@ -619,12 +619,12 @@ public class DFAClassBuilder extends ClassBuilder {
 
         // Increment/decrement and read character
         if (!vars.forwards) {
-            head.addOperation(Operation.mkOperation(Operation.Inst.DECREMENT_INDEX));
+            head.addOperation(Operation.mkIncrement(MatchingVars.INDEX, -1));
         }
         head.addOperation(Operation.mkReadChar())
                 .setVar(vars, MatchingVars.CHAR, "C");
         if (vars.forwards) {
-            head.addOperation(Operation.mkOperation(Operation.Inst.INCREMENT_INDEX));
+            head.addOperation(Operation.mkIncrement(MatchingVars.INDEX, 1));
         }
         var dfaMaxChar = dfa.maxChar();
         if (compilationPolicy.usedByteClasses) {
