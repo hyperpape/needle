@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -321,9 +322,30 @@ public class DFACompilerTest {
     }
 
     @Test
+    public void testTheSpaceWord() {
+        Pattern pattern = DFACompiler.compile("the\\s+\\w+", "theSpaceWord");
+        find(pattern, "the a");
+        find(pattern, "the art");
+        find(pattern, "the   art");
+        find(pattern, "the   art ");
+
+        find(pattern, " the a");
+        find(pattern, " the art");
+        find(pattern, " the   art");
+        find(pattern, " the   art ");
+        find(pattern, "a the u");
+
+        fail(pattern, "the");
+        fail(pattern, "the ");
+        fail(pattern, "the    ");
+        fail(pattern, "theart");
+
+    }
+
+    @Test
     public void testManyStateRegexWithLiteralSuffix() {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING + "ab";
-        Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix", true);
+        Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix");
         match(pattern, "123ab");
         match(pattern, "234234ab");
         fail(pattern, "");

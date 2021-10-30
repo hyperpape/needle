@@ -1,11 +1,9 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
-import com.justinblank.strings.Search.SearchMethod;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 class DFA {
@@ -324,35 +322,97 @@ class DFA {
      * 0 is used to represent that the byte is not in any byteClass.
      * @return byteClasses
      */
-    protected byte[] byteClasses() {
-        var charRangeBoundaries = computeCharRangeBoundaries();
+    byte[] byteClasses() {
+        var x = charRanges();
+        var uniqueSets = new HashMap<Set<Pair<Integer, Integer>>, RangeGroup>();
+        for (var e : x.entrySet()) {
+            var rangeSet = uniqueSets.computeIfAbsent(e.getValue(), k -> new RangeGroup());
+            rangeSet.ranges.add(e.getKey());
+        }
 
-        byte byteClass = 0;
+        List<RangeGroup> rangeGroups = new ArrayList<>(uniqueSets.values());
+        for (var rangeGroup : rangeGroups) {
+            Collections.sort(rangeGroup.ranges);
+        }
+        Collections.sort(rangeGroups);
+
+        byte byteClass = 1;
         var ranges = new byte[129];
-        boolean inRange = false;
-        for (var i = 0; i < charRangeBoundaries.length; i++) {
-            var changes = charRangeBoundaries[i];
-            if (null == changes) {
-                if (inRange) {
-                    ranges[i] = byteClass;
-                }
-                else {
-                    ranges[i] = 0;
+        for (var rangeGroup : rangeGroups) {
+            for (var range : rangeGroup.ranges) {
+                for (var c = range.getStart(); c <= range.getEnd(); c++) {
+                    ranges[c] = byteClass;
                 }
             }
-            else {
-                if (changes.getLeft()) {
-                    byteClass++;
-                    ranges[i] = byteClass;
-                    inRange = true;
-                }
-                if (changes.getRight()) {
-                    ranges[i] = byteClass;
-                    inRange = false;
+            byteClass++;
+        }
+        return ranges;
+    }
+
+    private Map<CharRange, Set<Pair<Integer, Integer>>> charRanges() {
+        List<CharRange> distinctRanges = getDistinctCharRanges();
+
+        Map<CharRange, Set<Pair<Integer, Integer>>> hashMap = new HashMap<>();
+        for (var range : distinctRanges) {
+            var set = new HashSet<Pair<Integer, Integer>>();
+            hashMap.put(range, set);
+            for (var state : states) {
+                for (var transition : state.transitions) {
+                    if (transition.getLeft().overlaps(range)) {
+                        set.add(Pair.of(state.stateNumber, transition.getRight().getStateNumber()));
+                    }
                 }
             }
         }
-        return ranges;
+        return hashMap;
+    }
+
+    /**
+     * Create a minimal covering of all character ranges included in DFA with the property that if any two ranges in
+     * the DFA disagree on some character, then the covering places those two characters in separate ranges.
+     * @return a list of non-overlapping character ranges that cover every character the DFA recognizes
+     */
+    List<CharRange> getDistinctCharRanges() {
+        var uniqueRanges = states.stream().flatMap(s -> s.getTransitions().stream()).map(Pair::getLeft).collect(Collectors.toSet());
+        var allTransitions = new ArrayList<>(uniqueRanges);
+        Collections.sort(allTransitions);
+
+        List<CharRange> derivedRanges = new ArrayList<>();
+        var highWaterMark = (char) 0;
+        for (var i = 0; i < allTransitions.size(); i++) {
+            var range = allTransitions.get(i);
+            if (range.getEnd() < highWaterMark) {
+                continue;
+            }
+            highWaterMark = addRange(derivedRanges, allTransitions, highWaterMark, i);
+            if (highWaterMark < range.getEnd()) {
+                i--;
+            }
+        }
+        return derivedRanges;
+    }
+
+    private char addRange(List<CharRange> derivedRanges, List<CharRange> allTransitions, char highWaterMark, int i) {
+        var range = allTransitions.get(i);
+        var start = (char) Math.max(highWaterMark, range.getStart());
+        var end = range.getEnd();
+        for (var j = i; j < allTransitions.size(); j++) {
+            if (end < start) {
+                return highWaterMark;
+            }
+            var secondRange = allTransitions.get(j);
+            if (secondRange.getStart() > end) {
+                break;
+            }
+            else if (secondRange.getEnd() < start) {
+                continue;
+            }
+            else {
+                end = (char) Math.min(end, secondRange.getEnd());
+            }
+        }
+        derivedRanges.add(new CharRange(start, end));
+        return (char) (end + 1);
     }
 
     private Pair<Boolean, Boolean>[] computeCharRangeBoundaries() {
@@ -366,19 +426,19 @@ class DFA {
                     throw new IllegalStateException("Illegal character as end of character range:" + charRange.getEnd());
                 }
 
-                var currentPair = pairs[charRange.getStart()];
-                if (null == currentPair) {
+                var startPair = pairs[charRange.getStart()];
+                if (null == startPair) {
                     pairs[charRange.getStart()] = Pair.of(true, false);
                 }
                 else {
-                    pairs[charRange.getStart()] = Pair.of(true, currentPair.getRight());
+                    pairs[charRange.getStart()] = Pair.of(true, startPair.getRight());
                 }
-                currentPair = pairs[charRange.getEnd()];
-                if (null == currentPair) {
+                var endPair = pairs[charRange.getEnd()];
+                if (null == endPair) {
                     pairs[charRange.getEnd()] = Pair.of(false, true);
                 }
                 else {
-                    pairs[charRange.getEnd()] = Pair.of(currentPair.getLeft(), true);
+                    pairs[charRange.getEnd()] = Pair.of(endPair.getLeft(), true);
                 }
 //                if (charRange.getStart() != 0) {
 //                    ints.add((int) charRange.getStart());
@@ -464,4 +524,5 @@ class DFA {
         }
         return Optional.of(dfa);
     }
+
 }

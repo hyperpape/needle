@@ -454,6 +454,26 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testTheSpaceWord() {
+        SearchMethod pattern = NFA.createNFA("the\\s+\\w+");
+        find(pattern, "the a");
+        find(pattern, "the art");
+        find(pattern, "the   art");
+        find(pattern, "the   art ");
+
+        find(pattern, " the a");
+        find(pattern, " the art");
+        find(pattern, " the   art");
+        find(pattern, " the   art ");
+        find(pattern, "a the u");
+
+        fail(pattern, "the");
+        fail(pattern, "the ");
+        fail(pattern, "the    ");
+        fail(pattern, "theart");
+    }
+
+    @Test
     public void testDFAFailure() {
         String regex = "(([b-e]|[T-_])*)e";
         var dfa = DFA.createDFA(regex);

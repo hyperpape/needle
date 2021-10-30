@@ -166,7 +166,7 @@ public class DFATest {
         assertEquals(2, byteClasses['a']);
         assertEquals(3, byteClasses['b']);
         for (var c = 'c'; c <= 'z'; c++) {
-            assertEquals(4, byteClasses[c]);
+            assertEquals(1, byteClasses[c]);
         }
         for (var c = 'z' + 1; c < 128; c++) {
             assertEquals(0, byteClasses[c]);
