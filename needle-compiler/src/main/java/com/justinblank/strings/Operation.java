@@ -63,6 +63,10 @@ class Operation {
         return call(methodName, className, descriptor, false);
     }
 
+    public static Operation call(String methodName, Class<?> clz, String descriptor) {
+        return call(methodName, CompilerUtil.className(clz), descriptor, false);
+    }
+
     public static Operation call(String methodName, String className, String descriptor, boolean invokeSpecial) {
         var spec = new RefSpec(methodName, className, descriptor);
         var inst = invokeSpecial ? Inst.INVOKESPECIAL : Inst.CALL;
@@ -162,6 +166,10 @@ class Operation {
         // TODO...type is a non-descriptor here?
         var spec = new RefSpec("dummy", "dummy", type);
         return new Operation(Inst.NEW, -1, null, spec, null);
+    }
+
+    static Operation mkConstructor(Class<?> cls) {
+        return mkConstructor(cls.getCanonicalName());
     }
 
     static Operation mkTableSwitch(List<Block> blocks, Block failTarget, int min, int max) {

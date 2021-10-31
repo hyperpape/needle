@@ -4,6 +4,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Opcodes;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +19,11 @@ public class DFAClassCompiler extends ClassCompiler {
     private final List<Method> backwardsStateMethods;
 
     DFAClassCompiler(DFAClassBuilder classBuilder) {
-        this(classBuilder, false);
+        this(classBuilder, DebugOptions.none());
     }
 
-    DFAClassCompiler(DFAClassBuilder classBuilder, boolean debug) {
-        super(classBuilder, debug);
+    DFAClassCompiler(DFAClassBuilder classBuilder, DebugOptions debugOptions) {
+        super(classBuilder, debugOptions);
         this.stateMethods = classBuilder.stateMethods;
         this.backwardsStateMethods = classBuilder.backwardsStateMethods;
         for (Method method : classBuilder.allMethods()) {
@@ -119,6 +120,28 @@ public class DFAClassCompiler extends ClassCompiler {
                         vars = (MatchingVars) method.getMatchingVars().get();
                         var methodCount = vars.forwards ? stateMethods.size() : backwardsStateMethods.size();
                         policy = (CompilationPolicy) method.getAttribute(DFAClassBuilder.COMPILATION_POLICY);
+                        if (getDebugOptions().trackStates) {
+                            // Print index
+                            transformed.add(Operation.mkReadStatic("out", CompilerUtil.className(System.class), CompilerUtil.descriptor(PrintStream.class)));
+                            transformed.add(Operation.mkReadStatic("INDEX", true, CompilerUtil.STRING_DESCRIPTOR));
+                            transformed.add(Operation.call("print", CompilerUtil.className(PrintStream.class), "(Ljava/lang/Object;)V"));
+
+                            transformed.add(Operation.mkReadStatic("out", CompilerUtil.className(System.class), CompilerUtil.descriptor(PrintStream.class)));
+                            transformed.add(Operation.mkReadVar(vars.counterVar, "I"));
+                            transformed.add(Operation.callStatic("valueOf", CompilerUtil.className(Integer.class), "(I)" + CompilerUtil.descriptor(Integer.class)));
+                            transformed.add(Operation.call("println", CompilerUtil.className(PrintStream.class), "(Ljava/lang/Object;)V"));
+
+                            // Print state
+                            transformed.add(Operation.mkReadStatic("out", CompilerUtil.className(System.class), CompilerUtil.descriptor(PrintStream.class)));
+                            transformed.add(Operation.mkReadStatic("CURRENT_STATE", true, CompilerUtil.STRING_DESCRIPTOR));
+                            transformed.add(Operation.call("print", CompilerUtil.className(PrintStream.class), "(Ljava/lang/Object;)V"));
+
+                            transformed.add(Operation.mkReadStatic("out", CompilerUtil.className(System.class), CompilerUtil.descriptor(PrintStream.class)));
+                            transformed.add(Operation.mkReadVar(vars.stateVar, "I"));
+                            transformed.add(Operation.callStatic("valueOf", CompilerUtil.className(Integer.class), "(I)" + CompilerUtil.descriptor(Integer.class)));
+                            transformed.add(Operation.call("println", CompilerUtil.className(PrintStream.class), "(Ljava/lang/Object;)V"));
+
+                        }
                         if (policy.useByteClassesForAllStates) {
                             var stateArrayName = vars.forwards ? DFAClassBuilder.STATES_CONSTANT : DFAClassBuilder.STATES_BACKWARDS_CONSTANT;
 

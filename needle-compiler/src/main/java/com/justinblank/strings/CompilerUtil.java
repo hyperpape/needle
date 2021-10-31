@@ -10,6 +10,8 @@ class CompilerUtil {
     public static final String OBJECT_DESCRIPTOR = "Ljava/lang/Object;";
     public static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
 
+    private static final java.util.regex.Pattern PERIOD = java.util.regex.Pattern.compile("\\.");
+
     /**
      * Utility method, push an int onto the stack, assuming it is no bigger than a short
      *
@@ -60,8 +62,12 @@ class CompilerUtil {
         return descriptor(cls.getCanonicalName());
     }
 
-    public static String descriptor(String className) {
-        className = className.replaceAll("\\.", "/");
+    static String descriptor(String className) {
+        className = PERIOD.matcher(className).replaceAll("/");
         return "L" + className + ";";
+    }
+
+    public  static String className(Class<?> cls) {
+        return PERIOD.matcher(cls.getCanonicalName()).replaceAll("/");
     }
 }

@@ -24,17 +24,17 @@ public class ClassCompiler {
     private final ClassVisitor classVisitor;
     private final ClassBuilder classBuilder;
     private final String className;
-    private final boolean debug;
+    private final DebugOptions debug;
     private int lineNumber = 1;
 
     protected ClassCompiler(ClassBuilder classBuilder) {
-        this(classBuilder, false);
+        this(classBuilder, DebugOptions.none());
     }
 
-    protected ClassCompiler(ClassBuilder classBuilder, boolean debug) {
+    protected ClassCompiler(ClassBuilder classBuilder, DebugOptions debugOptions) {
         this.classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        this.debug = debug;
-        if (debug) {
+        this.debug = debugOptions;
+        if (debug.isDebug()) {
             this.classVisitor = new CheckClassAdapter(this.classWriter);
         }
         else {
@@ -58,7 +58,7 @@ public class ClassCompiler {
     }
 
     protected byte[] writeClassAsBytes() {
-        if (debug) {
+        if (debug.printInstructions) {
             var stringWriter = new StringWriter();
             var printer = new ClassPrinter(new PrintWriter(stringWriter));
             printer.printClass(classBuilder);
@@ -72,7 +72,7 @@ public class ClassCompiler {
             writeMethod(method);
         }
         byte[] classBytes = classWriter.toByteArray();
-        if (debug) {
+        if (debug.writeClassToFs) {
             try (FileOutputStream fos = new FileOutputStream("target/" + className + ".class")) {
                 fos.write(classBytes);
             }
@@ -336,5 +336,9 @@ public class ClassCompiler {
         var label = new Label();
         mv.visitLabel(label);
         mv.visitLineNumber(newLine(), label);
+    }
+
+    protected DebugOptions getDebugOptions() {
+        return debug;
     }
 }

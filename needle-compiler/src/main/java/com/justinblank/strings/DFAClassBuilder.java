@@ -26,6 +26,7 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String STATES_CONSTANT = "STATES";
     protected static final String STATES_BACKWARDS_CONSTANT = "STATES_BACKWARDS";
     protected static final String PREFIX_CONSTANT = "PREFIX";
+    protected static final String VISITED_STATES_CONSTANT = "visitedStates";
 
     protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
@@ -42,6 +43,7 @@ public class DFAClassBuilder extends ClassBuilder {
     private final CompilationPolicy compilationPolicy;
     private final Map<Integer, Offset> forwardOffsets;
     private final byte[] byteClasses;
+    private final DebugOptions debugOptions;
 
     final List<Method> stateMethods = new ArrayList<>();
     final List<Method> backwardsStateMethods = new ArrayList<>();
@@ -54,11 +56,22 @@ public class DFAClassBuilder extends ClassBuilder {
      */
     DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA reversed,
                     Factorization factorization) {
+        this(className, superClass, interfaces, dfa, reversed, factorization, DebugOptions.none());
+    }
+
+    /**
+     * @param className  the simple class name of the class to be created
+     * @param superClass the superclass's descriptor
+     * @param interfaces a possibly empty array of interfaces implemented
+     */
+    DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA reversed,
+                    Factorization factorization, DebugOptions debugOptions) {
         super(className, superClass, interfaces);
         this.dfa = dfa;
         this.reversed = reversed;
         this.factorization = factorization;
         this.compilationPolicy = new CompilationPolicy();
+        this.debugOptions = debugOptions;
         // YOLO
         this.forwardOffsets = dfa != null ? dfa.calculateOffsets() : null;
         if (dfa != null) {
@@ -69,8 +82,7 @@ public class DFAClassBuilder extends ClassBuilder {
             if (factorization != null && factorization.getSharedPrefix().isEmpty()) {
                 compilationPolicy.useByteClassesForAllStates = true;
             }
-        }
-        else {
+        } else {
             byteClasses = null;
         }
     }
@@ -288,6 +300,11 @@ public class DFAClassBuilder extends ClassBuilder {
         block.readVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
         block.call("length", "java/lang/String", "()I");
         block.addOperation(Operation.mkSetField(MatchingVars.LENGTH, getClassName(), "I"));
+        if (debugOptions.trackStates) {
+//            block.readThis()
+//                    .construct("java/util/ArrayList")
+//                    .setField("visitedStates", getClassName(), CompilerUtil.descriptor(List.class));
+        }
         block.addReturn(RETURN);
         addMethod(method);
     }
@@ -300,6 +317,11 @@ public class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_PRIVATE, STATE_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, NEXT_START_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2));
+        if (debugOptions.trackStates) {
+            // addField(new Field(ACC_PRIVATE, VISITED_STATES_CONSTANT, CompilerUtil.descriptor(List.class), null, null));
+            addConstant("CURRENT_STATE", CompilerUtil.STRING_DESCRIPTOR, "CURRENT_STATE");
+            addConstant("INDEX", CompilerUtil.STRING_DESCRIPTOR, "INDEX");
+        }
     }
 
     private void addWasAcceptedMethod(boolean backwards) {
@@ -891,6 +913,10 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     public static DFAClassBuilder build(String name, DFA dfa, Node node) {
+        return build(name, dfa, node, DebugOptions.none());
+    }
+
+    public static DFAClassBuilder build(String name, DFA dfa, Node node, DebugOptions debugOptions) {
         Objects.requireNonNull(name, "name cannot be null");
         Objects.requireNonNull(dfa, "dfa cannot be null");
         Objects.requireNonNull(node, "node cannot be null");
@@ -900,7 +926,7 @@ public class DFAClassBuilder extends ClassBuilder {
         node.maxLength().ifPresent(factorization::setMaxLength);
         DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
 
-        var builder = new DFAClassBuilder(name, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"}, dfa, dfaReversed, factorization);
+        var builder = new DFAClassBuilder(name, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"}, dfa, dfaReversed, factorization, debugOptions);
         builder.initMethods();
         return builder;
     }

@@ -2,22 +2,10 @@ package com.justinblank.strings;
 
 import com.justinblank.classloader.MyClassLoader;
 import com.justinblank.strings.RegexAST.Node;
-import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.implementation.MethodDelegation;
-import org.apache.commons.lang3.tuple.Pair;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.justinblank.strings.CompilerUtil.*;
-import static net.bytebuddy.matcher.ElementMatchers.named;
 import static org.objectweb.asm.Opcodes.*;
 
 public class DFACompiler {
@@ -27,7 +15,7 @@ public class DFACompiler {
     }
 
     static Pattern compile(String regex, String className, boolean debug) {
-        byte[] classBytes = compileToBytes(regex, className, debug);
+        byte[] classBytes = compileToBytes(regex, className, debug ? new DebugOptions(true, true, true) : DebugOptions.none() );
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
         Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
         try {
@@ -39,10 +27,10 @@ public class DFACompiler {
     }
 
     public static byte[] compileToBytes(String regex, String className) {
-        return compileToBytes(regex, className, false);
+        return compileToBytes(regex, className, new DebugOptions(false, false, false));
     }
 
-    static byte[] compileToBytes(String regex, String className, boolean debug) {
+    static byte[] compileToBytes(String regex, String className, DebugOptions debugOptions) {
         Node node = RegexParser.parse(regex);
         Factorization factors = node.bestFactors();
         factors.setMinLength(node.minLength());
@@ -51,8 +39,8 @@ public class DFACompiler {
         if (dfa.statesCount() > Short.MAX_VALUE / 2) {
             throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
         }
-        DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, node);
-        DFAClassCompiler compiler = new DFAClassCompiler(builder, debug);
+        DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, node, debugOptions);
+        DFAClassCompiler compiler = new DFAClassCompiler(builder, debugOptions);
         byte[] classBytes = compiler.generateClassAsBytes();
         return classBytes;
     }
@@ -73,5 +61,6 @@ public class DFACompiler {
         ClassCompiler compiler = new ClassCompiler(builder);
         return (Class<? extends Pattern>) MyClassLoader.getInstance().loadClass("Pattern" + name, compiler.writeClassAsBytes());
     }
+
 }
 
