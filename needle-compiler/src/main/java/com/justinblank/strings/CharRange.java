@@ -98,6 +98,10 @@ public class CharRange implements Comparable<CharRange> {
         return minimized;
     }
 
+    public boolean overlaps(CharRange range) {
+        return getStart() <= range.getEnd() && getEnd() >= range.getStart();
+    }
+
     static boolean checkRep(List<CharRange> ranges) {
         for (int i = 0; i < ranges.size() - 1; i++) {
             var range1 = ranges.get(i);
