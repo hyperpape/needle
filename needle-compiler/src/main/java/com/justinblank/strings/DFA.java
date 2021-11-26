@@ -323,9 +323,12 @@ class DFA {
      * @return byteClasses
      */
     byte[] byteClasses() {
-        var x = charRanges();
+        // Sometimes we'll have two disjoint character ranges that can only lead to transitions to the same state, for
+        // instance in the regex [A-Za-z]+ing, [A-Z][a-f][h][j-m][o-z] all lead from the state 0-1. By tracking these
+        // transitions, we can significantly reduce the number of byteClasses that we produce
+        var charRangesToStateTransitions = charRanges();
         var uniqueSets = new HashMap<Set<Pair<Integer, Integer>>, RangeGroup>();
-        for (var e : x.entrySet()) {
+        for (var e : charRangesToStateTransitions.entrySet()) {
             var rangeSet = uniqueSets.computeIfAbsent(e.getValue(), k -> new RangeGroup());
             rangeSet.ranges.add(e.getKey());
         }
@@ -370,6 +373,7 @@ class DFA {
     /**
      * Create a minimal covering of all character ranges included in DFA with the property that if any two ranges in
      * the DFA disagree on some character, then the covering places those two characters in separate ranges.
+     * E.g. [a-z][b-c][g-h] will produce five ranges: [a][b-c][d-f][g-h][i-z]
      * @return a list of non-overlapping character ranges that cover every character the DFA recognizes
      */
     List<CharRange> getDistinctCharRanges() {
@@ -385,6 +389,8 @@ class DFA {
                 continue;
             }
             highWaterMark = addRange(derivedRanges, allTransitions, highWaterMark, i);
+            // If we have ranges like [a-z][b-c][g-h], we'll have to iterate over the [a-z] range several times or we'll
+            // end up missing [i-z].
             if (highWaterMark < range.getEnd()) {
                 i--;
             }
@@ -413,40 +419,6 @@ class DFA {
         }
         derivedRanges.add(new CharRange(start, end));
         return (char) (end + 1);
-    }
-
-    private Pair<Boolean, Boolean>[] computeCharRangeBoundaries() {
-        Pair<Boolean, Boolean>[] pairs = new Pair[129];
-        for (var state : states) {
-            for (var transition : state.transitions) {
-                var charRange = transition.getLeft();
-                if (charRange.getStart() > 128) {
-                    throw new IllegalStateException("Illegal character as start of character range:" + charRange.getStart());
-                } else if (charRange.getEnd() > 128) {
-                    throw new IllegalStateException("Illegal character as end of character range:" + charRange.getEnd());
-                }
-
-                var startPair = pairs[charRange.getStart()];
-                if (null == startPair) {
-                    pairs[charRange.getStart()] = Pair.of(true, false);
-                }
-                else {
-                    pairs[charRange.getStart()] = Pair.of(true, startPair.getRight());
-                }
-                var endPair = pairs[charRange.getEnd()];
-                if (null == endPair) {
-                    pairs[charRange.getEnd()] = Pair.of(false, true);
-                }
-                else {
-                    pairs[charRange.getEnd()] = Pair.of(endPair.getLeft(), true);
-                }
-//                if (charRange.getStart() != 0) {
-//                    ints.add((int) charRange.getStart());
-//                }
-//                ints.add((int) charRange.getEnd() + 1);
-            }
-        }
-        return pairs;
     }
 
     protected int charCount() {
@@ -524,5 +496,4 @@ class DFA {
         }
         return Optional.of(dfa);
     }
-
 }
