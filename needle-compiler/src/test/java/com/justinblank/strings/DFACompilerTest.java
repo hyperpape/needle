@@ -1,9 +1,12 @@
 package com.justinblank.strings;
 
-import com.justinblank.strings.Search.SearchMethod;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static org.junit.Assert.*;
@@ -549,4 +552,44 @@ public class DFACompilerTest {
         assertEquals(2, count);
     }
 
+    @Test
+    public void tests() throws Exception {
+        var baseName = "dfaFileBasedTests";
+        var counter = new AtomicInteger();
+        var patterns = new HashMap<String, Pattern>();
+        var testSpecs = new RegexTestSpecParser().readTests();
+        var correctMatches = 0;
+        var nonMatches = 0;
+        var errors = new ArrayList<String>();
+        for (var spec : testSpecs) {
+            var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet()));
+            if (spec.successful) {
+                // TODO: record failures, rather than dying immediately,
+                var result = pattern.matcher(spec.target).find();
+                if (!result.matched) {
+                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + "failed: expected start=" + spec.start + ", expected end=" + spec.end);
+                }
+                else {
+                    if (result.start != spec.start || result.end != spec.end) {
+                        errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
+                        nonMatches++;
+                    } else {
+                        correctMatches++;
+                    }
+                }
+            }
+            else {
+                nonMatches++;
+            }
+        }
+        if (errors.size() > 0) {
+            for (var error : errors) {
+                System.out.println(error);
+            }
+            fail("Errors in file based tests");
+        }
+        // If these fail, then the test parsing is broken
+        assertNotEquals(0, correctMatches);
+        assertNotEquals(0, nonMatches);
+    }
 }
