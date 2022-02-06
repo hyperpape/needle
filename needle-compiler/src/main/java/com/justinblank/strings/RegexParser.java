@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 public class RegexParser {
 
     private int index = 0;
-    private int parenDepth = 0;
     private int charRangeDepth = 1;
     private String regex;
     private Stack<Node> nodes = new Stack<>();
@@ -458,23 +457,6 @@ public class RegexParser {
         return Optional.ofNullable(union);
     }
 
-    private List<CharRange> explodeChars(Node node) {
-        List<CharRange> ranges = new ArrayList<>();
-        if (node instanceof Union) {
-            Union union = (Union) node;
-            ranges.addAll(explodeChars(union.left));
-            ranges.addAll(explodeChars(union.right));
-        }
-        else if (node instanceof CharRangeNode) {
-            var list = new ArrayList<>();
-            list.add(((CharRangeNode) node).range());
-        }
-        else {
-            throw new IllegalArgumentException("Unexpected argument type of " + node);
-        }
-        return ranges;
-    }
-
     private Optional<Node> buildNode(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
         if (ranges.isEmpty() && characterSet.isEmpty()) {
             return Optional.empty();
@@ -534,9 +516,7 @@ public class RegexParser {
     private boolean peekOctal() {
         if (index < regex.length()) {
             char c = regex.charAt(index);
-            if (c >= '0' && c <= '7') {
-                return true;
-            }
+            return c >= '0' && c <= '7';
         }
         return false;
     }

@@ -40,6 +40,31 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
+    public void testBadRepetitionNoCommaOrBracket() {
+        parse("a{b");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
+    public void testBadRepetitionNoCommaOrSecondNumber() {
+        parse("a{b}");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
+    public void testBadRepetitionOnlyOneNumberThenBadChar() {
+        parse("a{1a}");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
+    public void testBadRepetitionNoComma() {
+        parse("a{b1}");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
+    public void testBadRepetitionNoBracket() {
+        parse("a{b,}");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
     public void testEmptyRegexLeading() {
         parse("{}");
     }
