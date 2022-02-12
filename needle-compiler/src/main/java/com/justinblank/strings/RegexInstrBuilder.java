@@ -18,7 +18,7 @@ public class RegexInstrBuilder {
         regex.add(RegexInstr.match());
         resolveJumps(regex);
         assert checkRep(regex);
-        return regex.toArray(new RegexInstr[regex.size()]);
+        return regex.toArray(new RegexInstr[0]);
     }
     
     private void resolveJumps(List<RegexInstr> regex) {
@@ -57,8 +57,7 @@ public class RegexInstrBuilder {
     }
 
     private boolean checkRep(List<RegexInstr> regex) {
-        for (int i = 0; i < regex.size(); i++) {
-            RegexInstr instr = regex.get(i);
+        for (var instr : regex) {
             if (instr.opcode == JUMP) {
                 assert regex.get(instr.target1).opcode != JUMP;
             }
