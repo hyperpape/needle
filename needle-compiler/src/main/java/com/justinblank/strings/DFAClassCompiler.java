@@ -128,6 +128,8 @@ public class DFAClassCompiler extends ClassCompiler {
 
                             transformed.add(Operation.mkReadStatic("out", CompilerUtil.className(System.class), CompilerUtil.descriptor(PrintStream.class)));
                             transformed.add(Operation.mkReadVar(vars.counterVar, "I"));
+                            transformed.add(Operation.mkOperation(ICONST_1));
+                            transformed.add(Operation.mkOperation(ISUB));
                             transformed.add(Operation.callStatic("valueOf", CompilerUtil.className(Integer.class), "(I)" + CompilerUtil.descriptor(Integer.class)));
                             transformed.add(Operation.call("println", CompilerUtil.className(PrintStream.class), "(Ljava/lang/Object;)V"));
 
