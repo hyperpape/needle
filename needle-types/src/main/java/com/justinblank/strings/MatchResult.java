@@ -14,7 +14,7 @@ public class MatchResult implements Comparable<MatchResult> {
         this.matched = matched;
         if (matched) {
             if (start < 0) {
-                throw new IllegalArgumentException("Index=" + start + "is illegal for the start of a match");
+                throw new IllegalArgumentException("Start of a match cannot be less than 0, Start=" + start);
             }
             else if (end < start) {
                 throw new IllegalArgumentException("End cannot be less than start, Start=" + start + ", End=" + end);
