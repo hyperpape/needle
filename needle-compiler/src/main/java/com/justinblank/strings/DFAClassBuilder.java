@@ -177,7 +177,6 @@ public class DFAClassBuilder extends ClassBuilder {
                     .readStatic(stateArrayName(i, false), true, compilationPolicy.getStateArrayType())
                     .operate(AASTORE);
         }
-
     }
 
     private Method createIndexMethod(boolean forwards) {
@@ -622,8 +621,6 @@ public class DFAClassBuilder extends ClassBuilder {
             loopPreface.push(-1);
             loopPreface.readVar(vars, MatchingVars.STATE, "I");
             loopPreface.jump(head, IF_ICMPNE);
-            loopPreface.push(0);
-            loopPreface.setVar(vars, MatchingVars.STATE, "I");
             loopPreface.jump(returnBlock, GOTO);
         }
 
