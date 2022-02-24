@@ -28,11 +28,22 @@ public class RegexTestSpecParser {
     private String chomp(String s) {
         int start = idx;
         boolean seenChar = false;
+        boolean inQuote = false;
         while (idx < s.length()) {
             var c = s.charAt(idx);
-            if (c == ' ') {
+            if (c == ' ' && !inQuote) {
                 if (seenChar) {
                     return s.substring(start, idx).trim();
+                }
+            }
+            else if (c == '\'') {
+                if (inQuote) {
+                    var substring = s.substring(start, idx++).trim();
+                    // remove beginning ' character.
+                    return substring.substring(1);
+                }
+                else {
+                    inQuote = true;
                 }
             }
             else {

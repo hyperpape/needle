@@ -553,7 +553,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void tests() throws Exception {
+    public void fileBasedTests() throws Exception {
         var baseName = "dfaFileBasedTests";
         var counter = new AtomicInteger();
         var patterns = new HashMap<String, Pattern>();
@@ -564,10 +564,9 @@ public class DFACompilerTest {
         for (var spec : testSpecs) {
             var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet()));
             if (spec.successful) {
-                // TODO: record failures, rather than dying immediately,
                 var result = pattern.matcher(spec.target).find();
                 if (!result.matched) {
-                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + "failed: expected start=" + spec.start + ", expected end=" + spec.end);
+                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
                 }
                 else {
                     if (result.start != spec.start || result.end != spec.end) {
