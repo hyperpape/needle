@@ -113,7 +113,7 @@ class NFA implements SearchMethod {
         SearchMethodUtil.checkIndices(s, start, end);
         int i = start;
         int lastStart = Integer.MAX_VALUE;
-        int lastEnd = -1;
+        int lastEnd = Integer.MIN_VALUE;
         int size = this.regexInstrs.length;
         SparseSet activeStates = new SparseSet(size);
         activeStates.add(0);
@@ -199,11 +199,17 @@ class NFA implements SearchMethod {
                             }
                         }
                     }
-                }
-                if (instr.opcode == MATCH) {
-                    if (origin <= lastStart) {
+                    if (instr.opcode == MATCH) {
                         lastStart = origin;
                         lastEnd = i;
+                    }
+                }
+                else if (instr.opcode == MATCH) {
+                    if (origin <= lastStart) {
+                        lastStart = origin;
+                        if (lastEnd < i) {
+                            lastEnd = i - 1;
+                        }
                     }
                 }
             }
@@ -219,7 +225,7 @@ class NFA implements SearchMethod {
         }
         // TODO: rewrite for clarity
         MatchResult result = null;
-        if (lastEnd > -1) {
+        if (lastEnd > Integer.MIN_VALUE) {
             result = MatchResult.success(lastStart, lastEnd + 1);
         }
         MatchResult result2 = matchResult(activeStates, stateOrigins, i);

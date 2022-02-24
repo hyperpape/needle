@@ -9,7 +9,10 @@ import org.junit.experimental.theories.suppliers.TestedOn;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.generators.StringsDSL;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static junit.framework.TestCase.assertTrue;
@@ -478,6 +481,45 @@ public class IntegrationTest {
         String regex = "(([b-e]|[T-_])*)e";
         var dfa = DFA.createDFA(regex);
         assertTrue(dfa.matches("e"));
+    }
+
+    @Test
+    public void fileBasedTests() throws Exception {
+        var patterns = new HashMap<String, SearchMethod>();
+        var testSpecs = new RegexTestSpecParser().readTests();
+        var correctMatches = 0;
+        var nonMatches = 0;
+        var errors = new ArrayList<String>();
+        for (var spec : testSpecs) {
+            var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> NFA.createNFA(spec.pattern));
+            if (spec.successful) {
+                // TODO: record failures, rather than dying immediately,
+                var result = pattern.matcher(spec.target).find();
+                if (!result.matched) {
+                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
+                }
+                else {
+                    if (result.start != spec.start || result.end != spec.end) {
+                        errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
+                        nonMatches++;
+                    } else {
+                        correctMatches++;
+                    }
+                }
+            }
+            else {
+                nonMatches++;
+            }
+        }
+        if (errors.size() > 0) {
+            for (var error : errors) {
+                System.out.println(error);
+            }
+            fail("Errors in file based tests");
+        }
+        // If these fail, then the test parsing is broken
+        assertNotEquals(0, correctMatches);
+        assertNotEquals(0, nonMatches);
     }
 
     public void check(String regex) {
