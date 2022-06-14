@@ -81,6 +81,7 @@ public class DFACompilerTest {
         Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex");
         match(pattern, "abc");
 
+        new ArrayList<>().addAll(new ArrayList<>());
         fail(pattern, "d");
         assertFalse(pattern.matcher("abcd").matches());
         assertTrue(pattern.matcher("abcd").containedIn());

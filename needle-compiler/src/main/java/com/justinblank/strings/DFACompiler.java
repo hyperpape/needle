@@ -1,5 +1,8 @@
 package com.justinblank.strings;
 
+import com.justinblank.classcompiler.ClassBuilder;
+import com.justinblank.classcompiler.ClassCompiler;
+import com.justinblank.classcompiler.Method;
 import com.justinblank.classloader.MyClassLoader;
 import com.justinblank.strings.RegexAST.Node;
 import org.objectweb.asm.Opcodes;
@@ -47,14 +50,14 @@ public class DFACompiler {
             throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
         }
         DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, node, debugOptions);
-        DFAClassCompiler compiler = new DFAClassCompiler(builder, debugOptions);
+        ClassCompiler compiler = new ClassCompiler(builder, debugOptions.isDebug(), System.out);
         byte[] classBytes = compiler.generateClassAsBytes();
         return classBytes;
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {
-        ClassBuilder builder = new ClassBuilder("Pattern" + name, "java/lang/Object", new String[]{"com/justinblank/strings/Pattern"});
-        builder.emptyConstructor();
+        ClassBuilder builder = new ClassBuilder("Pattern" + name, "", "java/lang/Object", new String[]{"com/justinblank/strings/Pattern"});
+        builder.addEmptyConstructor();
         var method = new Method("matcher", List.of("Ljava/lang/String;"), "Lcom/justinblank/strings/Matcher;", null);
         builder.addMethod(method);
         method

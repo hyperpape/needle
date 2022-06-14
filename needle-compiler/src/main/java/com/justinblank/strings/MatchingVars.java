@@ -1,6 +1,13 @@
 package com.justinblank.strings;
 
+import com.justinblank.classcompiler.Vars;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.ArrayList;
+import java.util.List;
+
 class MatchingVars implements Vars {
+
     static final String STATE = DFAClassBuilder.STATE_FIELD;
     static final String INDEX = DFAClassBuilder.INDEX_FIELD;
     static final String STRING = DFAClassBuilder.STRING_FIELD;
@@ -29,6 +36,27 @@ class MatchingVars implements Vars {
         this.stateVar = stateVar;
         this.lengthVar = lengthVar;
         this.stringVar = stringVar;
+    }
+
+    @Override
+    public List<Pair<String, Integer>> allVars() {
+        List<Pair<String, Integer>> variables = new ArrayList<>();
+        if (charVar != -1) {
+            variables.add(Pair.of(DFAClassBuilder.CHAR_FIELD, charVar));
+        }
+        if (counterVar != -1) {
+            variables.add(Pair.of(DFAClassBuilder.INDEX_FIELD, counterVar));
+        }
+        if (stringVar != -1) {
+            variables.add(Pair.of(DFAClassBuilder.STRING_FIELD, stringVar));
+        }
+        if (lengthVar != -1) {
+            variables.add(Pair.of(DFAClassBuilder.LENGTH_FIELD, lengthVar));
+        }
+        if (stateVar != -1) {
+            variables.add(Pair.of(DFAClassBuilder.STATE_FIELD, stateVar));
+        }
+        return variables;
     }
 
     public MatchingVars setLengthVar(int lengthVar) {
@@ -91,4 +119,30 @@ class MatchingVars implements Vars {
                 throw new IllegalArgumentException("Illegal argument for variable lookup: " + name);
         }
     }
+
+    @Override
+    public String nameByIndex(int count) {
+        if (count == this.stateVar) {
+            return STATE;
+        }
+        else if (count == this.charVar) {
+            return CHAR;
+        }
+        else if (count == this.stringVar) {
+            return STRING;
+        }
+        else if (count == this.counterVar) {
+            return INDEX;
+        }
+        else if (count == this.lastMatchVar) {
+            return LAST_MATCH;
+        }
+        else if (count == this.wasAcceptedVar) {
+            return WAS_ACCEPTED;
+        }
+        else {
+            return null;
+        }
+    }
+
 }

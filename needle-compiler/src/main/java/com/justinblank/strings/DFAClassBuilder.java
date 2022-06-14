@@ -1,12 +1,25 @@
 package com.justinblank.strings;
 
+import com.justinblank.classcompiler.*;
+import com.justinblank.classcompiler.Operation;
+import com.justinblank.classcompiler.lang.*;
+import com.justinblank.classcompiler.lang.Void;
 import com.justinblank.strings.RegexAST.Node;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Opcodes;
 
+import java.io.PrintStream;
 import java.util.*;
+import java.util.stream.Collectors;
 
-import static com.justinblank.strings.CompilerUtil.descriptor;
+import static com.justinblank.classcompiler.CompilerUtil.descriptor;
+import static com.justinblank.classcompiler.lang.ArrayRead.arrayRead;
+import static com.justinblank.classcompiler.lang.BinaryOperator.*;
+import static com.justinblank.classcompiler.lang.CodeElement.*;
+import static com.justinblank.classcompiler.lang.Literal.literal;
+import static com.justinblank.classcompiler.lang.UnaryOperator.not;
 import static org.objectweb.asm.Opcodes.*;
 
 public class DFAClassBuilder extends ClassBuilder {
@@ -26,8 +39,6 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String STATES_CONSTANT = "STATES";
     protected static final String STATES_BACKWARDS_CONSTANT = "STATES_BACKWARDS";
     protected static final String PREFIX_CONSTANT = "PREFIX";
-    protected static final String VISITED_STATES_CONSTANT = "visitedStates";
-
     protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
     protected static final String INDEX_FORWARDS = "indexForwards";
@@ -66,7 +77,7 @@ public class DFAClassBuilder extends ClassBuilder {
      */
     DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA reversed,
                     Factorization factorization, DebugOptions debugOptions) {
-        super(className, superClass, interfaces);
+        super(className, "", superClass, interfaces);
         this.dfa = dfa;
         this.reversed = reversed;
         this.factorization = factorization;
@@ -75,7 +86,7 @@ public class DFAClassBuilder extends ClassBuilder {
         // YOLO
         this.forwardOffsets = dfa != null ? dfa.calculateOffsets(factorization) : null;
         if (dfa != null) {
-            compilationPolicy.stateArraysUseShorts = dfa.statesCount() > 128;
+            compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
         }
         if (dfa != null && dfa.isAllAscii()) {
             byteClasses = dfa.byteClasses();
@@ -85,6 +96,10 @@ public class DFAClassBuilder extends ClassBuilder {
         } else {
             byteClasses = null;
         }
+    }
+
+    private boolean stateArraysUseShorts() {
+        return dfa.statesCount() > 127;
     }
 
     void initMethods() {
@@ -190,101 +205,120 @@ public class DFAClassBuilder extends ClassBuilder {
         vars.setLastMatchVar(7);
         var method = mkMethod(forwards ? INDEX_FORWARDS : INDEX_BACKWARDS, List.of("I"), "I", vars);
 
-        var setupBlock = method.addBlock();
-        var seekBlock = method.addBlock();
-        var matchLoopBlock = method.addBlock();
-        var returnBlock = method.addBlock();
-        returnBlock.readVar(vars, MatchingVars.LAST_MATCH, "I");
-        returnBlock.addReturn(IRETURN);
-        var failureBlock = addFailureBlock(method, -1);
+        String wasAcceptedMethod = vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD;
 
-        addReadStringLength(vars, setupBlock);
-        if (dfa.isAccepting()) {
-            setupBlock.push(0).setVar(vars, MatchingVars.LAST_MATCH, "I");
+        method.set(MatchingVars.LENGTH, get(MatchingVars.LENGTH, Builtin.I, thisRef()));
+        if (vars.forwards) {
+            if (factorization.getMinLength() > 0 && factorization.getMinLength() <= Short.MAX_VALUE) {
+                method.cond(lt(read(MatchingVars.LENGTH), factorization.getMinLength())).withBody(
+                        returnValue(-1)
+                );
+            }
+        }
+
+        method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
+        method.set(MatchingVars.STATE, 0);
+        method.set(MatchingVars.LAST_MATCH, dfa.isAccepting() ? 0 : -1);
+
+        List<CodeElement> outerLoopBody = new ArrayList<>();
+
+        var loopBoundary = vars.forwards ? lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)) :
+                gt(read(MatchingVars.INDEX), 0);
+        method.loop(loopBoundary, outerLoopBody);
+
+        if (vars.forwards && shouldSeek()) {
+            var prefix = factorization.getSharedPrefix().orElseThrow();
+            var postPrefixState = dfa.after(prefix).orElseThrow(()
+                    -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
+            int state = postPrefixState.getStateNumber();
+
+            outerLoopBody.add(set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                    getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
+                    read(MatchingVars.INDEX))));
+            outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
+                    returnValue(-1)));
+            outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
+            outerLoopBody.add(set(MatchingVars.STATE, state));
+            if (postPrefixState.isAccepting()) {
+                outerLoopBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
+            }
         }
         else {
-            setupBlock.push(-1).setVar(vars, MatchingVars.LAST_MATCH, "I");
+            outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
+        // TODO: sometimes emitting crap invocations of wasAccepted that can be statically known to be false
+        // see regex ad*g
+        Expression loopCondition = and(neq(-1, read(MatchingVars.STATE)), loopBoundary);
+        Loop innerLoop = loop(loopCondition,
+                List.of(
+                        cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                                .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))),
+                        !vars.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), -1)) : new NoOpStatement(),
+                        set(MatchingVars.CHAR, call("charAt", Builtin.C,
+                                read(MatchingVars.STRING),
+                                read(MatchingVars.INDEX))),
+                        vars.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)) : new NoOpStatement(),
+                        buildStateSwitch(vars.forwards, -1),
+                        cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
+                                withBody(returnValue(read(MatchingVars.LAST_MATCH))),
+                        // In an indexBackwards method, we always know we're going to find a match, so don't restart on
+                        // when state is -1
+                        vars.forwards ? cond(eq(-1, read(MatchingVars.STATE))).withBody(
+                                List.of(
+                                        set(MatchingVars.STATE, 0),
+                                        buildStateSwitch(vars.forwards,0)
+                                )) : new NoOpStatement(),
+                        cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
+                                set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
+                        )
+                ));
+        outerLoopBody.add(innerLoop);
 
-        if (vars.forwards) {
-            addLengthCheck(vars, setupBlock, failureBlock, false);
-        }
-
-        addContainedInPrefaceBlock(vars, seekBlock, returnBlock);
-        if (vars.forwards && shouldSeek()) {
-            // If we consumed a prefix, then we need to save the last match
-            var lastMatchBlock = method.addBlockAfter(seekBlock);
-            lastMatchBlock.readThis();
-            lastMatchBlock.readVar(vars, MatchingVars.STATE, "I");
-            lastMatchBlock.call(forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
-            lastMatchBlock.jump(matchLoopBlock, IFEQ);
-            lastMatchBlock.readVar(vars, MatchingVars.INDEX, "I");
-            lastMatchBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
-        }
-        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, seekBlock, false, true);
+        method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
     }
 
     private Method createFindMethod() {
+
         var method = mkMethod("find", List.of(), descriptor(MatchResult.class));
-        var body = method.addBlock();
-        body.readThis();
-        body.readThis().readField(NEXT_START_FIELD, true, "I");
-        body.readThis().readField(LENGTH_FIELD, true, "I");
-        body.call("find", getClassName(), "(II)" + descriptor(MatchResult.class)).addReturn(ARETURN);
+        method.returnValue(call("find", MatchResult.class, thisRef(),
+                get(NEXT_START_FIELD, Builtin.I, thisRef()),
+                get(LENGTH_FIELD, Builtin.I, thisRef())));
         return method;
     }
 
     private Method createFindMethodInternal() {
-        var vars = new MapVars();
-        vars.addVar(MatchingVars.INDEX, 1);
-        vars.addVar(INDEX_BACKWARDS, 2);
+        var vars = new GenericVars(MatchingVars.INDEX, INDEX_BACKWARDS);
         var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
-        var block = method.addBlock();
-        var failureBlock = method.addBlock();
-        failureBlock.callStatic("failure", "com/justinblank/strings/MatchResult", "()" + descriptor(MatchResult.class));
-        failureBlock.readThis()
-                .readThis()
-                .readField(LENGTH_FIELD, true, "I")
-                .setField(NEXT_START_FIELD, getClassName(), "I");
-        failureBlock.addReturn(ARETURN);
 
-        block.readThis();
-        block.readThis().readVar(vars, MatchingVars.INDEX, "I");
-        block.call(INDEX_FORWARDS, getClassName(), "(I)I");
-        block.setVar(vars, MatchingVars.INDEX, "I");
-        block.readVar(vars, MatchingVars.INDEX, "I");
-        block.push(-1);
-        block.cmp(failureBlock, IF_ICMPEQ);
+        method.set(MatchingVars.INDEX,
+                call(INDEX_FORWARDS, Builtin.I, thisRef(),
+                        get(NEXT_START_FIELD, Builtin.I, thisRef())));
+        method.fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
+
         // If the string can only have one length, no need to search backwards, we can just compute the starting point
         if (factorization.getMinLength() == factorization.getMaxLength().orElse(Integer.MAX_VALUE)) {
-            // Store last match
-            block.readThis()
-                    .readVar(vars, MatchingVars.INDEX, "I")
-                    .setField(NEXT_START_FIELD, getClassName(), "I");
-            block.readThis()
-                    .readVar(vars, MatchingVars.INDEX, "I")
-                    .push(factorization.getMinLength())
-                    .operate(ISUB)
-                    .readVar(vars, MatchingVars.INDEX, "I")
-                    .callStatic("success", "com/justinblank/strings/MatchResult", "(II)" + descriptor(MatchResult.class))
-                    .addReturn(ARETURN);
+            method.cond(neq(-1, read(MatchingVars.INDEX))).withBody(
+                    List.of(
+                            returnValue(
+                            callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
+                                    sub(read(MatchingVars.INDEX), factorization.getMinLength()), read(MatchingVars.INDEX))
+                    )))
+                    .orElse(List.of(returnValue(callStatic(MatchResult.class, "failure",
+                                            ReferenceType.of(MatchResult.class)))));
         }
         else {
-            block.readThis();
-            block.readVar(vars, MatchingVars.INDEX, "I");
-            block.call(INDEX_BACKWARDS, getClassName(), "(I)I");
-            block.setVar(vars, INDEX_BACKWARDS, "I");
-
-            block.readThis().readVar(vars, MatchingVars.INDEX, "I").setField(NEXT_START_FIELD, getClassName(), "I");
-
-            block.readVar(vars, INDEX_BACKWARDS, "I");
-            block.readVar(vars, MatchingVars.INDEX, "I");
-            block.callStatic("success", "com/justinblank/strings/MatchResult", "(II)" + descriptor(MatchResult.class));
-            block.addReturn(ARETURN);
+            method.cond(neq(-1, read(MatchingVars.INDEX))).
+                    withBody(List.of(
+                            returnValue(
+                                    callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
+                                            call(INDEX_BACKWARDS, Builtin.I, thisRef(), read(MatchingVars.INDEX)),
+                                            read(MatchingVars.INDEX)))))
+                    .orElse(List.of(
+                            returnValue(callStatic(MatchResult.class, "failure",
+                                    ReferenceType.of(MatchResult.class)))));
         }
-
         return method;
     }
 
@@ -372,6 +406,9 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     void addStateMethods(DFA dfa) {
+        // Warning to future me: I find these next few lines annoying, and I wanted to refactor it to make these
+        // Method[] instead of lists. That then made a test stop compiling, in a way that was probably possible to fix,
+        // but annoying.
         for (int i = 0; i < dfa.statesCount(); i++) {
             stateMethods.add(null);
         }
@@ -440,8 +477,9 @@ public class DFAClassBuilder extends ClassBuilder {
     private void addStateMethod(DFA dfaState, boolean forwards) {
         String name = stateMethodName(dfaState.getStateNumber(), forwards);
         List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
-        MatchingVars vars = new MatchingVars(1, -1, -1, -1, -1);
+        Vars vars = new GenericVars("c", "byteClass", "stateTransitions", "state");
         var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
+        // TODO: these methods shouldn't be necessary when the rebuild on top of mako is done
         method.setAttribute(FORWARDS, forwards);
         method.setAttribute(COMPILATION_POLICY, compilationPolicy);
         if (forwards) {
@@ -450,64 +488,46 @@ public class DFAClassBuilder extends ClassBuilder {
             backwardsStateMethods.set(dfaState.getStateNumber(), method);
         }
 
+
+        if (debugOptions.trackStates) {
+            method.call("println", Void.VOID,
+                    getStatic("out", Type.of(System.class), Type.of(PrintStream.class)),
+                    literal(dfaState.getStateNumber()));
+        }
+        // TODO: offsets
         if (willUseByteClasses(dfaState)) {
             prepareMethodToUseByteClasses(dfaState, forwards, method);
+            compilationPolicy.usedByteClasses = true;
+            String stateTransitionsName = "stateTransitions" + (forwards ? "" : "Backwards") + dfaState.getStateNumber();
+
+            Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(Builtin.S) : ArrayType.of(Builtin.OCTET) ;
+            Type byteClassesType = ArrayType.of(Builtin.OCTET);
+            // TODO: this type is never going to have a package for it
+            method.set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getClassName()), byteClassesType), read("c")));
+            method.set("stateTransitions", getStatic(stateTransitionsName, ReferenceType.of(getClassName()), stateTransitionsType));
+            method.returnValue(arrayRead(read("stateTransitions"), read("byteClass")));
         }
+        else {
 
-        Block charBlock = method.addBlock();
-
-        // So long as we only use the backwards methods to get the starting index of a found substring, checking offsets
-        // would be redundant
-        var offset = forwards ? forwardOffsets.get(dfaState.getStateNumber()) : null;
-        if (isUsefulOffset(offset)) {
-            var successBlock = method.addBlock();
-
-            var prefailBlock = method.addBlock();
-            prefailBlock.operate(POP);
-            var failBlock = method.addBlock();
-            failBlock.push(-1);
-            failBlock.addReturn(IRETURN);
-
-            successBlock
-                    .readThis()
-                    .readField(INDEX_FIELD, true, "I")
-                    // -1, because we've incremented the value earlier
-                    // TODO: this can end up doing an IADD with value 0
-                    .push(offset.length - 1)
-                    .operate(IADD)
-                    .readThis()
-                    .readField(LENGTH_FIELD, true, "I")
-                    .jump(prefailBlock, IF_ICMPGE)
-                    .readThis()
-                    .readField(INDEX_FIELD, true, "I")
-                    .push(offset.length - 1)
-                    .operate(IADD)
-                    .readThis()
-                    .readField(STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR)
-                    .operate(SWAP) // GROSS
-                    .call("charAt", "java/lang/String", "(I)C")
-                    .setVar(vars, MatchingVars.CHAR, "C");
-            if (offset.charRange.isSingleCharRange()) {
-                successBlock.readVar(vars, MatchingVars.CHAR, "C");
-
-                successBlock.push(offset.charRange.getStart())
-                        .jump(prefailBlock, IF_ICMPNE);
-            } else {
-                successBlock.
-                        readVar(vars, MatchingVars.CHAR, "C")
-                        .push(offset.charRange.getStart())
-                        .jump(prefailBlock, IF_ICMPLE)
-                        .readVar(vars, MatchingVars.CHAR, "C")
-                        .push(offset.charRange.getEnd())
-                        .jump(prefailBlock, IF_ICMPGT);
+            List<Pair<CharRange, Integer>> transitions = dfaState.getTransitions().
+                    stream().
+                    map(t -> Pair.of(t.getLeft(), t.getRight().getStateNumber())).
+                    collect(Collectors.toList());
+            if (transitions.size() == 1 && transitions.get(0).getLeft().isSingleCharRange()) {
+                var transition = transitions.get(0);
+                var charToRecognize = transition.getLeft().getStart();
+                method.cond(eq(read("c"), (int) charToRecognize)).withBody(returnValue(transition.getRight()))
+                        .orElse(returnValue(-1));
             }
-            successBlock.addReturn(IRETURN);
-            charBlock.operations.add(CheckCharsOperation.checkChars(dfaState, failBlock, successBlock));
-        } else {
-            var failBlock = method.addBlock();
-            failBlock.push(-1);
-            failBlock.addReturn(IRETURN);
-            charBlock.operations.add(CheckCharsOperation.checkChars(dfaState, failBlock, null));
+            else {
+                for (var transition : transitions) {
+                    var charRange = transition.getLeft();
+                    method.cond(and(
+                            gte(read("c"), (int) charRange.getStart()),
+                            lte(read("c"), (int) charRange.getEnd()))).withBody(returnValue(transition.getRight()));
+                }
+                method.returnValue(-1);
+            }
         }
     }
 
@@ -585,326 +605,183 @@ public class DFAClassBuilder extends ClassBuilder {
 
     // TODO: measure breakeven point for offsets
     static boolean isUsefulOffset(Offset offset) {
-        // TODO: temporary choice
-        return false; // offset != null && offset.length > 1;
+        return offset != null && offset.length > 3;
     }
 
     private Method createMatchesMethod() {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("matches", new ArrayList<>(), "Z", vars);
 
-        var setupAndSeekBlock = method.addBlock();
-        var matchLoopBlock = method.addBlock();
-        var returnBlock = addReturnBlock(method, vars);
-        var failBlock = addFailureBlock(method, 0);
+        method.set(MatchingVars.LENGTH,
+                call("length", Builtin.I,
+                        get(STRING_FIELD, ReferenceType.of(String.class), thisRef())));
+        if (factorization.getMinLength() > 0 || factorization.getMaxLength().isPresent()) {
+            Expression expression = null;
+            if (factorization.getMinLength() > 0) {
+                expression = gt(factorization.getMinLength(), read(MatchingVars.LENGTH));
+            }
+            if (factorization.getMaxLength().isPresent()) {
+                var secondExpression = gt(read(LENGTH_FIELD), factorization.getMaxLength().get());
 
-        addMatchesPrefaceBlock(vars, setupAndSeekBlock, failBlock);
-        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, failBlock, true, true);
+                if (expression == null) {
+                    expression = secondExpression;
+                }
+                else {
+                    expression = or(expression, secondExpression);
+                }
+            }
+            method.cond(expression).withBody(returnValue(0));
+        }
+        method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
+        if (shouldSeek()) {
+            var prefix = factorization.getSharedPrefix().orElseThrow();
+            int state = dfa.after(prefix).orElseThrow().getStateNumber();
+
+            method.cond(not(call("startsWith", Builtin.BOOL, read(MatchingVars.STRING),
+                            getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)))))
+                            .withBody(returnValue(0));
+            method.set(MatchingVars.INDEX, prefix.length());
+            method.set(MatchingVars.STATE, state);
+        }
+        else {
+            method.set(MatchingVars.INDEX, 0);
+            method.set(MatchingVars.STATE, 0);
+        }
+
+        method.loop(neq(read(MatchingVars.STATE), -1), List.of(
+                cond(eq(read(MatchingVars.INDEX),
+                        read(MatchingVars.LENGTH)))
+                        .withBody(returnValue(
+                                call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))),
+                set(MatchingVars.CHAR, call("charAt", Builtin.C,
+                        read(MatchingVars.STRING),
+                        read(MatchingVars.INDEX))),
+                buildStateSwitch(true, -1),
+                set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
+                ));
+
+        method.returnValue(
+                call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
         return method;
     }
 
-    void fillMatchLoopBlock(final MatchingVars vars, final Method method, Block head, final Block returnBlock,
-                            final Block failTarget, final boolean isMatch, final boolean isGreedy) {
-        var postCallStateBlock = method.addBlockAfter(head);
-        var loopPreface = head;
-        if (isMatch) {
-            head.readVar(vars, MatchingVars.STATE, "I");
-            head.push(-1);
-            head.cmp(failTarget, IF_ICMPEQ);
-        } else if (isGreedy) {
-            head = method.addBlockAfter(head);
-            loopPreface.push(-1);
-            loopPreface.readVar(vars, MatchingVars.LAST_MATCH, "I");
-            loopPreface.jump(head, IF_ICMPEQ);
-            loopPreface.push(-1);
-            loopPreface.readVar(vars, MatchingVars.STATE, "I");
-            loopPreface.jump(head, IF_ICMPNE);
-            loopPreface.jump(returnBlock, GOTO);
+    private CodeElement buildStateSwitch(boolean forwards, int onFailure) {
+        boolean largeStates = dfa.statesCount() > LARGE_STATE_COUNT;
+        Switch stateSwitchStatement = null;
+        if (largeStates) {
+            stateSwitchStatement = new Switch(div(read(MatchingVars.STATE), 64));
         }
-
-        // Check boundaries
-        if (vars.forwards) {
-            head.addOperation(Operation.checkBounds(returnBlock));
-        } else {
-            head.readVar(vars, MatchingVars.INDEX, "I");
-            // TODO: isn't this wrong? Could be nonzero if we're searching backwards in a substring
-            // Answer: it's fine for now, we're only ever searching backwards when we've seen a match going forwards,
-            // but perhaps it's a bit brittle
-            head.push(0);
-            head.jump(returnBlock, IF_ICMPEQ);
+        else {
+            stateSwitchStatement = new Switch(read(MatchingVars.STATE));
         }
-
-        // Increment/decrement and read character
-        if (!vars.forwards) {
-            head.addOperation(Operation.mkIncrement(MatchingVars.INDEX, -1));
-        }
-        head.addOperation(Operation.mkReadChar())
-                .setVar(vars, MatchingVars.CHAR, "C");
-        if (vars.forwards) {
-            head.addOperation(Operation.mkIncrement(MatchingVars.INDEX, 1));
-        }
-        var dfaMaxChar = dfa.maxChar();
-        if (compilationPolicy.usedByteClasses) {
-            var nonAsciiNegativeOneStateBlock = postCallStateBlock;
-            postCallStateBlock = method.addBlockAfter(nonAsciiNegativeOneStateBlock);
-
-            nonAsciiNegativeOneStateBlock.push(-1).jump(postCallStateBlock, GOTO);
-
-            head.readVar(vars, MatchingVars.CHAR, "C")
-                    .push(dfaMaxChar)
-                    .jump(nonAsciiNegativeOneStateBlock, IF_ICMPGT);
-        }
-
-        // Call state
-        if (!compilationPolicy.useByteClassesForAllStates) {
-            head.readThis();
-            head.readVar(vars.charVar, "I");
-            head.readVar(vars, STATE_FIELD, "I");
-        }
-        var stateOp = Operation.mkCallState(postCallStateBlock);
-        method.setAttribute(COMPILATION_POLICY, compilationPolicy);
-        stateOp.addAttribute(OFFSETS_ATTRIBUTE, forwardOffsets);
-        head.addOperation(stateOp);
-
-        // If we're doing a non-anchored match, we have to reconsider the initial state whenever we hit a failure
-        // mode--if we're doing a containedIn backwards for finding the length of a match, we know we'll never hit the
-        // failure state until we're done
-        if (!isMatch && vars.forwards) {
-            var checkForMatchInDeadState = postCallStateBlock;
-
-            if (isGreedy) {
-                postCallStateBlock = method.addBlockAfter(postCallStateBlock);
-            }
-
-            var stateResetBlock = postCallStateBlock;
-            postCallStateBlock = method.addBlockAfter(postCallStateBlock);
-
-            if (isGreedy) {
-                checkForMatchInDeadState.setVar(vars, MatchingVars.STATE, "I");
-
-                checkForMatchInDeadState.
-                        push(-1)
-                        .readVar(vars, MatchingVars.LAST_MATCH, "I")
-                        .jump(stateResetBlock, IF_ICMPEQ);
-                checkForMatchInDeadState
-                    .push(-1)
-                    .readVar(vars, MatchingVars.STATE, "I")
-                    .jump(stateResetBlock, IF_ICMPNE)
-                    .jump(returnBlock, GOTO);
-            }
-
-            if (!isGreedy) {
-                stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
-            }
-            stateResetBlock.push(-1).readVar(vars, MatchingVars.STATE, "I").jump(postCallStateBlock, IF_ICMPNE);
-            stateResetBlock.push(0).setVar(vars, MatchingVars.STATE, "I");
-            // We have to have index set as a field to handle an offset state
-            if (forwardOffsets.containsKey(0) && isUsefulOffset(forwardOffsets.get(0))) {
-                stateResetBlock
-                        .readThis()
-                        .readVar(vars, MatchingVars.INDEX, "I")
-                        .setField(MatchingVars.INDEX, getClassName(), "I");
-            }
-            // Avoid overflow when reading from byteClass in state method
-            stateResetBlock
-                    .readVar(vars, MatchingVars.CHAR, "C")
-                    .push(dfaMaxChar)
-                    .jump(postCallStateBlock, IF_ICMPGT);
-            stateResetBlock
-                    .readThis()
-                    .readVar(vars, MatchingVars.CHAR, "C")
-                    .call("state0", getClassName(), "(C)I");
-            stateResetBlock.setVar(vars, MatchingVars.STATE, "I");
-            if (shouldSeek()) {
-                // TODO: this block is confusing--is it even correct?
-                var reseekBlock = postCallStateBlock;
-                postCallStateBlock = method.addBlockAfter(postCallStateBlock);
-                reseekBlock.push(-1)
-                    .readVar(vars, MatchingVars.STATE, "I")
-                    .jump(failTarget, IF_ICMPEQ);
-            }
-            else {
-                // Avoid accidentally returning to the top of the loop with a -1 state
-                stateResetBlock.push(-1)
-                        .readVar(vars, MatchingVars.STATE, "I")
-                        .jump(postCallStateBlock, IF_ICMPNE)
-                        .push(0)
-                        .setVar(vars, MatchingVars.STATE, "I")
-                        .jump(postCallStateBlock, GOTO);
+        if (largeStates) {
+            for (var i = 0; i < dfa.statesCount(); i += 64) {
+                stateSwitchStatement.setCase(i / 64,
+                        set(MatchingVars.STATE,
+                                call(stateGroupName(i, forwards), Builtin.I, thisRef(), read(MatchingVars.CHAR), read(MatchingVars.STATE))));
             }
         }
         else {
-            postCallStateBlock.setVar(vars.stateVar, "I");
-        }
-
-        if (isMatch) {
-            if (isGreedy) {
-                postCallStateBlock.readVar(vars.stateVar, "I");
-//                postCallStateBlock.readStatic("out", "java/lang/System", "Ljava/io/PrintStream;")
-//                        .readVar(vars.stateVar, "I")
-//                        .call("println", "java/io/PrintStream", "(I)V");
-                postCallStateBlock.push(-1);
-                postCallStateBlock.cmp(failTarget, IF_ICMPEQ);
-                postCallStateBlock.jump(head, GOTO);
-            }
-        } else {
-            if (isGreedy) {
-                postCallStateBlock.readThis();
-                postCallStateBlock.readVar(vars, MatchingVars.STATE, "I");
-                postCallStateBlock.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
-                postCallStateBlock.setVar(vars, MatchingVars.WAS_ACCEPTED, "I");
-                postCallStateBlock.readVar(vars, MatchingVars.WAS_ACCEPTED, "I");
-
-                var setMatchBlock = method.addBlock();
-                setMatchBlock.readVar(vars, MatchingVars.INDEX, "I");
-                setMatchBlock.setVar(vars, MatchingVars.LAST_MATCH, "I");
-                setMatchBlock.jump(head, GOTO);
-
-                postCallStateBlock.jump(setMatchBlock, Opcodes.IFNE);
-                postCallStateBlock.jump(loopPreface, GOTO);
-            } else {
-                postCallStateBlock.readThis();
-                postCallStateBlock.readVar(vars, MatchingVars.STATE, "I");
-                postCallStateBlock.call(vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD, getClassName(), "(I)Z");
-                postCallStateBlock.jump(loopPreface, IFEQ);
+            for (var i = 0; i < dfa.statesCount(); i++) {
+                var methodName = stateMethodName(i, forwards);
+                stateSwitchStatement.setCase(i,
+                        set(MatchingVars.STATE,
+                                call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))));
             }
         }
-    }
 
-    protected void addMatchesPrefaceBlock(MatchingVars vars, Block initialBlock, Block failureBlock) {
-
-        addReadStringLength(vars, initialBlock);
-        addLengthCheck(vars, initialBlock, failureBlock, true);
-
-        // Initialize variables
-        if (shouldSeek()) {
-            var prefix = factorization.getSharedPrefix().orElseThrow();
-            initialBlock.readThis()
-                    .readField(MatchingVars.STRING, true, CompilerUtil.STRING_DESCRIPTOR)
-                    .readStatic(PREFIX_CONSTANT, true, CompilerUtil.STRING_DESCRIPTOR)
-                    .call("startsWith", "java/lang/String", "(Ljava/lang/String;)Z");
-            initialBlock.jump(failureBlock, IFEQ);
-            int state = dfa.after(prefix).orElseThrow().getStateNumber();
-            initialBlock.push(state);
-            initialBlock.setVar(vars, MatchingVars.STATE, "I");
-            initialBlock.push(prefix.length())
-                    .setVar(vars, MatchingVars.INDEX, "I");
-
-        } else {
-            initialBlock.push(0);
-            initialBlock.setVar(vars, MatchingVars.INDEX, "I");
-            initialBlock.push(0);
-            initialBlock.setVar(vars, MatchingVars.STATE, "I");
+        stateSwitchStatement.setDefault(List.of(set(MatchingVars.STATE, onFailure)));
+        if (compilationPolicy.usedByteClasses) {
+            var dfaMaxChar = dfa.maxChar();
+            var c = cond(gt(read(MatchingVars.CHAR), (int) dfaMaxChar)).withBody(
+                    set(MatchingVars.STATE, onFailure));
+            c.orElse(stateSwitchStatement);
+            return c;
         }
-
-        initialBlock.readThis();
-        initialBlock.readField(DFAClassCompiler.STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR);
-        initialBlock.setVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
-    }
-
-    protected void addContainedInPrefaceBlock(MatchingVars vars, Block initialBlock, Block failureBlock) {
-        initialBlock.readThis()
-                .readField(DFAClassCompiler.STRING_FIELD, true, CompilerUtil.STRING_DESCRIPTOR)
-                .setVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
-
-        if (vars.forwards && shouldSeek()) {
-            var prefix = factorization.getSharedPrefix().orElseThrow();
-            initialBlock.readVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR)
-                    .readStatic(PREFIX_CONSTANT, true, CompilerUtil.STRING_DESCRIPTOR)
-                    .readVar(vars, MatchingVars.INDEX, "I")
-                    .call("indexOf", "java/lang/String", "(Ljava/lang/String;I)I")
-                    .setVar(vars, MatchingVars.INDEX, "I")
-                    .readVar(vars, MatchingVars.INDEX, "I");
-
-            initialBlock.push(-1);
-            initialBlock.cmp(failureBlock, IF_ICMPEQ);
-            var state = dfa.after(prefix).orElseThrow();
-            initialBlock.push(state.getStateNumber());
-            initialBlock.setVar(vars, MatchingVars.STATE, "I");
-            initialBlock.readVar(vars, MatchingVars.INDEX, "I")
-                    .push(prefix.length())
-                    .operate(IADD)
-                    .setVar(vars, MatchingVars.INDEX, "I");
-            if (state.isAccepting()) {
-                // if this is -1, we're doing a seek for a containedIn, otherwise, a find method.
-                // kinda hacky
-                if (vars.lastMatchVar > -1) {
-                    initialBlock.readVar(vars, MatchingVars.INDEX, "I")
-                            .setVar(vars, MatchingVars.LAST_MATCH, "I");
-                }
-                else {
-                    initialBlock.push(1).addReturn(IRETURN);
-                }
-            }
-        } else {
-            initialBlock.push(0);
-            initialBlock.setVar(vars, MatchingVars.STATE, "I");
-        }
-
-    }
-
-    private void addLengthCheck(MatchingVars vars, Block initialBlock, Block failureBlock, boolean isMatch) {
-        if (factorization.getMinLength() > 0 && factorization.getMinLength() <= Short.MAX_VALUE) {
-            initialBlock.readVar(vars, MatchingVars.LENGTH, "I");
-            initialBlock.push(factorization.getMinLength());
-            initialBlock.cmp(failureBlock, IF_ICMPLT);
-        }
-        if (isMatch) {
-            factorization.getMaxLength().ifPresent(max -> {
-                if (max <= Short.MAX_VALUE) {
-                    initialBlock.readVar(vars, MatchingVars.LENGTH, "I");
-                    initialBlock.push(max);
-                    initialBlock.cmp(failureBlock, IF_ICMPGT);
-                }
-            });
-        }
-    }
-
-    private void addReadStringLength(MatchingVars vars, Block initialBlock) {
-        initialBlock.readThis();
-        initialBlock.readField(LENGTH_FIELD, true, "I");
-        initialBlock.setVar(vars, MatchingVars.LENGTH, "I");
-    }
-
-    Block addReturnBlock(Method method, MatchingVars vars) {
-        var returnBlock = method.addBlock();
-        returnBlock.readThis();
-        returnBlock.readVar(vars.stateVar, "I");
-        returnBlock.call(WAS_ACCEPTED_METHOD, getClassName(), "(I)Z");
-        returnBlock.addReturn(IRETURN);
-
-        return returnBlock;
+        return stateSwitchStatement;
     }
 
     Method createContainedInMethod() {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 
-        var setupBlock = method.addBlock();
-        var seekBlock = method.addBlock();
-        var matchLoopBlock = method.addBlock();
-        var returnBlock = addReturnBlock(method, vars);
-        var failureBlock = addFailureBlock(method, 0);
-
-        // Initialize variables
-        setupBlock.push(0);
-        setupBlock.setVar(vars, MatchingVars.INDEX, "I");
-        addReadStringLength(vars, setupBlock);
-        addLengthCheck(vars, setupBlock, failureBlock, false);
-
-        addContainedInPrefaceBlock(vars, seekBlock, failureBlock);
-        var prefix = factorization.getSharedPrefix().orElse("");
-        // TODO: revisit this, generated code looked wonky
-        if (dfa.after(prefix.substring(0, Math.min(1, prefix.length()))).orElseThrow().isAccepting()) {
-            var wasAcceptedPostPrefixBlock = method.addBlockAfter(seekBlock);
-            wasAcceptedPostPrefixBlock.readThis();
-            wasAcceptedPostPrefixBlock.readVar(vars, MatchingVars.STATE, "I");
-            wasAcceptedPostPrefixBlock.call(WAS_ACCEPTED_METHOD, getClassName(), "(I)Z");
-            wasAcceptedPostPrefixBlock.jump(returnBlock, IFNE);
+        method.set(MatchingVars.LENGTH,
+                call("length", Builtin.I,
+                        get(STRING_FIELD, ReferenceType.of(String.class), thisRef())));
+        if (factorization.getMinLength() > 0) {
+            Expression expression = gt(factorization.getMinLength(), read(MatchingVars.LENGTH));
+            method.cond(expression).withBody(returnValue(0));
         }
+        method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
-        fillMatchLoopBlock(vars, method, matchLoopBlock, returnBlock, seekBlock, false, false);
+        method.set(MatchingVars.INDEX, 0);
+        method.set(MatchingVars.STATE, 0);
+
+        List<CodeElement> outerLoopBody = new ArrayList<>();
+        method.loop(lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)), outerLoopBody);
+
+        if (shouldSeek()) {
+            var prefix = factorization.getSharedPrefix().orElseThrow();
+            int postPrefixState = dfa.after(prefix).orElseThrow().getStateNumber();
+
+            outerLoopBody.add(set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                    getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
+                    read(MatchingVars.INDEX))));
+            outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
+                    returnValue(0)));
+
+            if (usesOffsetCalculation(postPrefixState)) {
+                var offset = forwardOffsets.get(postPrefixState);
+                var length = offset.length;
+                outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
+                outerLoopBody.add(set(MatchingVars.CHAR,
+                        call("charAt", Builtin.C, read(MatchingVars.STRING),
+                                plus(read(MatchingVars.INDEX), length))));
+                var charRange = offset.charRange;
+                Expression offsetCheck;
+                if (charRange.isSingleCharRange()) {
+                    offsetCheck = neq(read(MatchingVars.CHAR), literal((int) charRange.getStart()));
+                }
+                else {
+                    offsetCheck = or(lt(read(MatchingVars.CHAR), literal((int) charRange.getStart())),
+                            gt(read(MatchingVars.CHAR), literal((int) charRange.getEnd())));
+                }
+                outerLoopBody.add(cond(not(offsetCheck)).withBody(List.of(
+                        set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                        set(MatchingVars.STATE, -1))));
+            }
+            else {
+                outerLoopBody.add(set(MatchingVars.STATE, postPrefixState));
+            }
+            outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
+        }
+        else {
+            outerLoopBody.add(set(MatchingVars.STATE, 0));
+        }
+        // TODO: sometimes emitting crap invocations of wasAccepted that can be statically known to be false
+        // see regex ad*g
+        Loop innerLoop = loop(and(
+                lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
+                        neq(-1, read(MatchingVars.STATE))),
+                        List.of(
+                                cond(call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                        .withBody(returnValue(1)),
+                                set(MatchingVars.CHAR, call("charAt", Builtin.C,
+                                read(MatchingVars.STRING),
+                                read(MatchingVars.INDEX))),
+                                buildStateSwitch(true,0),
+                                cond(eq(-1, read(MatchingVars.STATE))).withBody(
+                                        List.of(
+                                                set(MatchingVars.STATE, 0),
+                                                buildStateSwitch(true,-1)
+                                )),
+                                set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
+                                ));
+        outerLoopBody.add(innerLoop);
+        method.returnValue(
+                call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
+
         return method;
     }
 
@@ -929,12 +806,5 @@ public class DFAClassBuilder extends ClassBuilder {
 
     public Collection<Method> allMethods() {
         return new ArrayList<>(super.allMethods());
-    }
-
-    public Block addFailureBlock(Method method, int value) {
-        var failBlock = method.addBlock();
-        failBlock.push(value);
-        failBlock.addReturn(IRETURN);
-        return failBlock;
     }
 }

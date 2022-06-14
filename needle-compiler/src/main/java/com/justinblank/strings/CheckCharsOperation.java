@@ -1,5 +1,8 @@
 package com.justinblank.strings;
 
+import com.justinblank.classcompiler.Block;
+import com.justinblank.classcompiler.Operation;
+import com.justinblank.classcompiler.RefSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
