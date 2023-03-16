@@ -600,11 +600,6 @@ public class DFAClassBuilder extends ClassBuilder {
         return method;
     }
 
-    private String getEffectivePrefix(String prefix, boolean isMatch) {
-        var i = isMatch ? Math.min(prefix.length(), 8) : Math.min(prefix.length(), 1);
-        return prefix.substring(0, i);
-    }
-
     void fillMatchLoopBlock(final MatchingVars vars, final Method method, Block head, final Block returnBlock,
                             final Block failTarget, final boolean isMatch, final boolean isGreedy) {
         var postCallStateBlock = method.addBlockAfter(head);
