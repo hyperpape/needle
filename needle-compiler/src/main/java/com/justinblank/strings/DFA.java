@@ -67,6 +67,10 @@ class DFA {
         return accepting;
     }
 
+    protected boolean isTerminal() {
+        return transitions.isEmpty();
+    }
+
     protected DFA transition(char c) {
         for (Pair<CharRange, DFA> transition : transitions) {
             if (transition.getLeft().inRange(c)) {

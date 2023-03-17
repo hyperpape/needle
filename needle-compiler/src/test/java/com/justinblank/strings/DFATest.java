@@ -1,16 +1,47 @@
 package com.justinblank.strings;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class DFATest {
+
+    @Test
+    public void testAfterSingleCharLiteralRegex() {
+        var dfa = DFA.createDFA("a");
+        assertThat(dfa.after("a")).isPresent();
+        assertThat(dfa.after("b")).isEmpty();
+    }
+
+    @Test
+    public void testAfterMultiCharLiteralRegex() {
+        var dfa = DFA.createDFA("abc");
+        assertThat(dfa.after("a")).isPresent();
+        assertThat(dfa.after("ab")).isPresent();
+        assertThat(dfa.after("abc")).isPresent();
+        assertThat(dfa.after("b")).isEmpty();
+    }
+
+    @Test
+    public void testAfter() {
+        var dfa = DFA.createDFA("ab*[0-9]c");
+        assertThat(dfa.after("a")).isPresent();
+        assertThat(dfa.after("ab")).isPresent();
+        assertThat(dfa.after("abbbb4c")).isPresent();
+        assertThat(dfa.after("b")).isEmpty();
+    }
+
+    @Test
+    public void testIsTerminal() {
+        var dfa = DFA.createDFA("abc");
+        assertFalse(dfa.isTerminal());
+        assertFalse(dfa.after("a").get().isTerminal());
+        assertFalse(dfa.after("ab").get().isTerminal());
+        assertTrue(dfa.after("abc").get().isTerminal());
+    }
 
     @Test
     public void testCalculateOffsetRepetition() {
