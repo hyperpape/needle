@@ -15,6 +15,9 @@ public class DFACompiler {
     }
 
     static Pattern compile(String regex, String className, boolean debug) {
+        if (debug) {
+            System.out.println("Compiling " + className + "(" + regex + ")");
+        }
         byte[] classBytes = compileToBytes(regex, className, debug ? new DebugOptions(true, true, true) : DebugOptions.none() );
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
         Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
