@@ -156,10 +156,12 @@ public class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_BACKWARDS_CONSTANT, "[" + compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
 
+        // Instantiate the top level array of state transition arrays
         staticBlock.push(dfa.statesCount())
                 .newArray(compilationPolicy.getStateArrayType())
                 .putStatic(STATES_CONSTANT, true, "[" + compilationPolicy.getStateArrayType());
 
+        // Now fill it with empty arrays
         for (var i = 0; i < dfa.statesCount(); i++) {
             staticBlock.readStatic(STATES_CONSTANT, true, "[" + compilationPolicy.getStateArrayType())
                     .push(i)
@@ -167,6 +169,7 @@ public class DFAClassBuilder extends ClassBuilder {
                     .operate(AASTORE);
         }
 
+        // Do the same for the reversed transition arrays
         staticBlock.push(reversed.statesCount())
                 .newArray(compilationPolicy.getStateArrayType())
                 .putStatic(STATES_BACKWARDS_CONSTANT, true, "[" + compilationPolicy.getStateArrayType());
