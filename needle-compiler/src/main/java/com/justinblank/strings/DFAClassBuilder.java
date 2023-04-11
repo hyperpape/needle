@@ -148,7 +148,8 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     /**
-     * Create array of arrays of state transitions
+     * Create array of arrays of state transitions. Those arrays are of the form int[][]. This method does not populate
+     * the underlying int[] values, it just adds them to the top level array. 
      */
     private void populateByteClassArrays() {
         var stateArrayType = compilationPolicy.getStateArrayType();
