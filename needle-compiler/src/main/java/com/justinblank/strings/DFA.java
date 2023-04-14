@@ -438,6 +438,58 @@ class DFA {
     }
 
     @Override
+    public String toString() {
+        return "DFA{" +
+                "accepting=" + accepting +
+                ", stateNumber=" + stateNumber +
+                '}';
+    }
+
+    public String toGraphviz() {
+        // TODO: before making this part of the public API/tooling, find proper way to test this code
+        var graphSb = new StringBuilder();
+        graphSb.append("digraph {\n");
+        graphSb.append("rankdir=LR\n");
+
+        List<Integer> acceptingStates = acceptingStates().stream().map(DFA::getStateNumber).sorted().collect(Collectors.toList());
+        graphSb.append("node [shape = doublecircle]; ");
+        for (var stateNumber : acceptingStates) {
+            graphSb.append(stateNumber).append(" ");
+        }
+        graphSb.append(";\n");
+        graphSb.append("node [shape = circle];").append("\n");
+
+        var seen = new HashSet<Integer>();
+        var pending = new Stack<DFA>();
+        pending.push(root);
+        seen.add(root.getStateNumber());
+
+        while (!pending.isEmpty()) {
+            var current = pending.pop();
+            for (var transition : current.transitions) {
+                var targetDfa = transition.getRight();
+                if (!seen.contains(targetDfa.getStateNumber())) {
+                    pending.push(targetDfa);
+                    seen.add(targetDfa.stateNumber);
+                }
+                graphSb.append(current.stateNumber).append(" -> ").append(targetDfa.getStateNumber());
+                graphSb.append("[label=\"");
+                var charRange = transition.getLeft();
+                if (charRange.isSingleCharRange()) {
+                    graphSb.append(transition.getLeft().getStart());
+                }
+                else {
+                    graphSb.append(transition.getLeft().getStart()).append("-").append(transition.getLeft().getEnd());
+                }
+                graphSb.append("\"]").append(";\n");
+            }
+        }
+
+        graphSb.append("}");
+        return graphSb.toString();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
