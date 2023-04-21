@@ -40,7 +40,7 @@ public class DFACompiler {
         node.maxLength().ifPresent(factors::setMaxLength);
         DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)));
         if (debugOptions.isDebug()) {
-            System.out.println(dfa.toGraphviz());
+            System.out.println(GraphViz.toGraphviz(dfa));
         }
         // TODO: Why Short.MAX_VALUE / 2--not obvious why this wouldn't work with Short.MAX_VALUE or Short.MAX_VALUE - 1;
         if (dfa.statesCount() > Short.MAX_VALUE / 2) {

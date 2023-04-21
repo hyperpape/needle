@@ -366,7 +366,7 @@ public class RegexParser {
         }
         // TODO: figure out syntax
         if (count != 2) {
-            throw new IllegalStateException("Wrong number of hex chars: " + count);
+            throw new RegexSyntaxException("Wrong number of hex chars: " + count);
         }
         int i = Integer.decode("0x" + str);
         return new CharRangeNode((char) i, (char) i);

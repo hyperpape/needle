@@ -25,13 +25,7 @@ public class DFATest {
         assertThat(dfa.after("b")).isEmpty();
     }
 
-    @Test
-    public void testThatDFAToGraphvizRuns() {
-        var dfa = DFA.createDFA("ab[cd][0-9]+");
-        var string = dfa.toGraphviz();
-        assertNotNull(string);
-        assertNotEquals("", string);
-    }
+
 
     @Test
     public void testAfter() {
