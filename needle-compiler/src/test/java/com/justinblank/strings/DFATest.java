@@ -152,23 +152,26 @@ public class DFATest {
 
     @Test
     public void testOffsetsDiamond() {
-        var dfa = DFA.createDFA("ab(cd|ef)ghi");
-        var offsets = dfa.calculateOffsets();
+        String regexString = "ab(cd|ef)ghi";
+        var dfa = DFA.createDFA(regexString);
+        var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
         // offsets before 'a', 'c', 'e'
         assertEquals(3, offsets.size());
     }
 
     @Test
     public void testOffsetsFakeFork() {
-        var dfa = DFA.createDFA("(a|c)efg");
-        var offsets = dfa.calculateOffsets();
+        String regexString = "(a|c)efg";
+        var dfa = DFA.createDFA(regexString);
+        var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
         assertEquals(1, offsets.size());
     }
 
     @Test
     public void testOffsetsFork() {
-        var dfa = DFA.createDFA("(ab|cd)efg");
-        var offsets = dfa.calculateOffsets();
+        String regexString = "(ab|cd)efg";
+        var dfa = DFA.createDFA(regexString);
+        var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
         assertEquals(2, offsets.size());
     }
 

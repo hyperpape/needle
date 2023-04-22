@@ -235,12 +235,11 @@ class DFA {
         return new ArrayList<>(chain);
     }
 
-    Map<Integer, Offset> calculateOffsets() {
+    Map<Integer, Offset> calculateOffsets(Factorization factorization) {
         var map = new HashMap<Integer, Offset>();
-        var seen = new HashSet<>();
+        var seen = new HashSet<Integer>();
         for (var state : states) {
-            // TODO: this is an oversimplification, but we could
-            if (!seen.contains(state.stateNumber)) {
+            if (shouldCalculateOffset(factorization, seen, state)) {
                 var offset = state.calculateOffset();
                 offset.ifPresent(o -> {
                     seen.addAll(o.passedStates);
@@ -250,6 +249,34 @@ class DFA {
 
         }
         return map;
+    }
+
+    /**
+     * Determine if we'll want to calculate offsets for a dfa state
+     *
+     * This code is very preliminary--need to find a better way to represent the entire issue of considering offsets.
+     *
+     * Normally, in a dfa like "abcd", we want to calculate offsets for the root state, but not the state after "a", as
+     * it's "covered" by the previous offset (there is no point in checking multiple offsets that "look ahead at the
+     * same place").
+     *
+     * However, in a dfa like "the [Cc]rown" the initial state has an offset of 9 characters, pointing to the 'n'.
+     * In spite of that, we want to calculate an offset after the ' ' character, as we'll consume the initial prefix
+     * "the ", then consider looking ahead 5 characters for the 'n' character.
+     *
+     * @param factorization the DFA's factorization
+     * @param passed        the set of states that are passed by some other offset
+     * @param state         the state in question
+     * @return whether to calculate offsets for the state
+     */
+    private boolean shouldCalculateOffset(Factorization factorization, Set<Integer> passed, DFA state) {
+        if (!passed.contains(state.stateNumber)) {
+            return true;
+        }
+        if (factorization != null) {
+            return factorization.getSharedPrefix().flatMap(this::after).map((postPrefixState) -> postPrefixState == state).orElse(false);
+        }
+        return false;
     }
 
     Optional<Offset> calculateOffset() {
@@ -265,6 +292,7 @@ class DFA {
                 break;
             }
             if (next.transitions.size() != 1) {
+                // TODO: this line is more restrictive than it has to be, e.g. "(ab)|(cd)efg won't pass
                 if (!next.allTransitionsLeadToSameState()) {
                     break;
                 }

@@ -73,7 +73,7 @@ public class DFAClassBuilder extends ClassBuilder {
         this.compilationPolicy = new CompilationPolicy();
         this.debugOptions = debugOptions;
         // YOLO
-        this.forwardOffsets = dfa != null ? dfa.calculateOffsets() : null;
+        this.forwardOffsets = dfa != null ? dfa.calculateOffsets(factorization) : null;
         if (dfa != null) {
             compilationPolicy.stateArraysUseShorts = dfa.statesCount() > 128;
         }
