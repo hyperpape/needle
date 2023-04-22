@@ -39,3 +39,6 @@ a.c         a.c         y       0       3
 [^c]        b           y       0       1
 [^c]        d           y       0       1
 a*          baaaa       y       0       0
+# literal prefix but after seeing "the " there should be an offset
+# important for testing seek + offset
+'the [Cc]rown'  'the Crown' y   0       9

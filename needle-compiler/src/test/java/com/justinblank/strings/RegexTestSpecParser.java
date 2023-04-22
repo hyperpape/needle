@@ -12,7 +12,9 @@ public class RegexTestSpecParser {
     List<RegexTestSpec> readTests() throws Exception {
         var resource = this.getClass().getClassLoader().getResource("matches.txt");
         var text = Files.readAllLines(Path.of(resource.toURI()));
-        return text.stream().filter(s -> !s.isBlank()).map(this::readSpec).collect(Collectors.toList());
+        return text.stream().filter(s -> {
+            return !s.isBlank() && !s.startsWith("#");
+        }).map(this::readSpec).collect(Collectors.toList());
     }
 
     private RegexTestSpec readSpec(String s) {
