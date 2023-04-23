@@ -22,9 +22,15 @@ public class RegexTestSpecParser {
         var pattern = chomp(s);
         var target = chomp(s);
         var successful = "y".equals(chomp(s));
-        var start = Integer.parseInt(chomp(s));
-        var end = Integer.parseInt(chomp(s));
-        return new RegexTestSpec(pattern, target, successful, start, end);
+        if (successful) {
+            var start = Integer.parseInt(chomp(s));
+            var end = Integer.parseInt(chomp(s));
+            return new RegexTestSpec(pattern, target, successful, start, end);
+        }
+        else {
+            return new RegexTestSpec(pattern, target, successful, -1, -1);
+        }
+
     }
 
     private String chomp(String s) {
