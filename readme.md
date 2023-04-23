@@ -20,9 +20,9 @@ performance. Those compile-time efforts currently take a few forms:
      explicit for loop (skipping the automaton code).
 
   3. The automaton can look ahead for necessary characters later in
-     the stream. Upon seeing `h` in`http://.*`, the automaton will
-     check whether `/` is found 6 characters ahead, before moving to
-     the next state.
+     the stream. Upon seeing `"the "` when matching `"the [Cc]rown"`, 
+     the automaton will check whether `n` is found 5 characters ahead, 
+     before moving to the next state, skipping four characters in the process.
 
 ### Status
 
@@ -87,43 +87,6 @@ The following character classes are supported:
 
 The library supports searching against any string, however the needles
 that we search for are currently limited to the BMP.
-
-### Performance
-
-I don't know the right way to summarize regular expression engine
-performance. Each operation (match, containedIn, find) has different
-performance characteristics, each of which may differ between short
-and long target strings, matches and non-matches. Further, each
-regular expression allows different optimizations. A regular
-expression with a maximum possible length will fail to match a
-too-long string in O(1) time. A regular expression with a prefix may
-spend most of its time in a while loop looking for the first
-character, which is much faster than having to dispatch to different
-states of the automaton.
-
-With those caveats, at commit
-`3e7fbf70967c488f568ca76f20022ef8d0a9a227`, running the benchmarks
-`SherlockBenchmark`, `EmailBenchmark`, `DigitBenchmark`,
-`SherlockSingleShotBenchmark`, `DigitBenchmark`, `LargeRegexBenchmark`
-from [the benchmarks](https://github.com/hyperpape/needle-benchmarks),
-we have the following improvements compared to the java standard
-library regex implementation:
-
-| Metric         | Ratio (higher is better)  |
-| -------------- |--------------------------:|
-| Worst          | 1.729                     |
-| Best           | 14.924                    |
-| Geometric Mean | 4.261                     |
-
-Any potential users are highly recommended to measure their own use
-case. Examples of regexes that perform worse than the standard library
-are welcome as bug reports.
-
-Since each regular expression is compiled to a separate class, users
-should avoid dynamically compiling large numbers of regexes. Note that
-generated classes may sometimes be quite large (the current
-compilation strategy is probably not suitable for very large regular
-expressions).
 
 ### Building
 
