@@ -563,7 +563,7 @@ public class DFACompilerTest {
         var nonMatches = 0;
         var errors = new ArrayList<String>();
         for (var spec : testSpecs) {
-            var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), true));
+            var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet()));
             if (spec.successful) {
                 var result = pattern.matcher(spec.target).find();
                 if (!result.matched) {
