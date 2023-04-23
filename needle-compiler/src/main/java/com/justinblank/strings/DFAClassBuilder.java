@@ -634,25 +634,26 @@ public class DFAClassBuilder extends ClassBuilder {
         }
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
+        int offsetCheckState = 0;
         if (shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
-            int postPrefixState = dfa.after(prefix).orElseThrow().getStateNumber();
+            offsetCheckState = dfa.after(prefix).orElseThrow().getStateNumber();
 
             method.cond(not(call("startsWith", Builtin.BOOL, read(MatchingVars.STRING),
                             getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)))))
                             .withBody(returnValue(0));
             method.set(MatchingVars.INDEX, prefix.length());
-            method.set(MatchingVars.STATE, postPrefixState);
-            if (usesOffsetCalculation(postPrefixState)) {
-                var offset = forwardOffsets.get(postPrefixState);
-                for (var element : createOffsetCheck(offset, List.of(returnValue(0)))) {
-                    method.addElement(element);
-                }
-            }
+            method.set(MatchingVars.STATE, offsetCheckState);
         }
         else {
             method.set(MatchingVars.INDEX, 0);
             method.set(MatchingVars.STATE, 0);
+        }
+        if (usesOffsetCalculation(offsetCheckState)) {
+            var offset = forwardOffsets.get(offsetCheckState);
+            for (var element : createOffsetCheck(offset, List.of(returnValue(0)))) {
+                method.addElement(element);
+            }
         }
 
         method.loop(neq(read(MatchingVars.STATE), -1), List.of(
