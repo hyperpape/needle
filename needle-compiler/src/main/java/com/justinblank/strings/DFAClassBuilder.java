@@ -636,13 +636,19 @@ public class DFAClassBuilder extends ClassBuilder {
 
         if (shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
-            int state = dfa.after(prefix).orElseThrow().getStateNumber();
+            int postPrefixState = dfa.after(prefix).orElseThrow().getStateNumber();
 
             method.cond(not(call("startsWith", Builtin.BOOL, read(MatchingVars.STRING),
                             getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)))))
                             .withBody(returnValue(0));
             method.set(MatchingVars.INDEX, prefix.length());
-            method.set(MatchingVars.STATE, state);
+            method.set(MatchingVars.STATE, postPrefixState);
+            if (usesOffsetCalculation(postPrefixState)) {
+                var offset = forwardOffsets.get(postPrefixState);
+                for (var element : createOffsetCheck(offset, List.of(returnValue(0)))) {
+                    method.addElement(element);
+                }
+            }
         }
         else {
             method.set(MatchingVars.INDEX, 0);
@@ -733,21 +739,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
             if (usesOffsetCalculation(postPrefixState)) {
                 var offset = forwardOffsets.get(postPrefixState);
-                var length = offset.length;
-                outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
-                outerLoopBody.add(set(MatchingVars.CHAR,
-                        call("charAt", Builtin.C, read(MatchingVars.STRING),
-                                plus(read(MatchingVars.INDEX), length))));
-                var charRange = offset.charRange;
-                Expression offsetCheck;
-                if (charRange.isSingleCharRange()) {
-                    offsetCheck = neq(read(MatchingVars.CHAR), literal((int) charRange.getStart()));
-                }
-                else {
-                    offsetCheck = or(lt(read(MatchingVars.CHAR), literal((int) charRange.getStart())),
-                            gt(read(MatchingVars.CHAR), literal((int) charRange.getEnd())));
-                }
-                outerLoopBody.add(cond(not(offsetCheck)).withBody(List.of(
+                outerLoopBody.addAll(createOffsetCheck(offset, List.of(
                         set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
                         set(MatchingVars.STATE, -1))));
             }
@@ -787,6 +779,28 @@ public class DFAClassBuilder extends ClassBuilder {
 
     public static DFAClassBuilder build(String name, DFA dfa, Node node) {
         return build(name, dfa, node, DebugOptions.none());
+    }
+
+    private List<CodeElement> createOffsetCheck(Offset offset, List<CodeElement> onFailure) {
+
+        List<CodeElement> elementsToAdd = new ArrayList<>();
+
+        var length = offset.length;
+        elementsToAdd.add(set(MatchingVars.CHAR,
+                call("charAt", Builtin.C, read(MatchingVars.STRING),
+                        plus(read(MatchingVars.INDEX), length))));
+        var charRange = offset.charRange;
+        Expression offsetCheck;
+        if (charRange.isSingleCharRange()) {
+            offsetCheck = neq(read(MatchingVars.CHAR), literal((int) charRange.getStart()));
+        }
+        else {
+            offsetCheck = or(lt(read(MatchingVars.CHAR), literal((int) charRange.getStart())),
+                    gt(read(MatchingVars.CHAR), literal((int) charRange.getEnd())));
+        }
+
+        elementsToAdd.add(cond(not(offsetCheck)).withBody(onFailure));
+        return elementsToAdd;
     }
 
     public static DFAClassBuilder build(String name, DFA dfa, Node node, DebugOptions debugOptions) {
