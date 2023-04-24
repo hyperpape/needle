@@ -20,6 +20,17 @@ public class ASCIIAhoCorasickTest {
     private static final String LITERAL_3 = "cd";
 
     @Test
+    public void testSingleChar() {
+        List<String> patterns = List.of("A");
+        SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
+        assertNotNull(method);
+        assertFalse(method.matches("ZZA"));
+        assertTrue(method.containedIn("ZZA"));
+        assertTrue(method.containedIn("ZZABC"));
+        assertFalse(method.containedIn("ZZBC"));
+    }
+
+    @Test
     public void testSingleStringPatternContainedIn() {
         List<String> patterns = List.of(LITERAL_1);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);

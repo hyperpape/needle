@@ -10,12 +10,6 @@ class UnicodeAhoCorasick implements SearchMethod {
         this.trie = trie;
     }
 
-    public boolean matches(String s) {
-        // TODO: this isn't actually good for perf...could search entire string for matching
-        MatchResult result = find(s, 0, s.length(), true);
-        return result.matched && result.start == 0 && result.end == s.length();
-    }
-
     public MatchResult find(String s, int start, int end, boolean anchored) {
         SearchMethodUtil.checkIndices(s, start, end);
         Trie current = this.trie;

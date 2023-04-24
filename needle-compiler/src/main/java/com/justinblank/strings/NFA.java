@@ -44,11 +44,6 @@ class NFA implements SearchMethod {
         return new NFA(RegexInstrBuilder.createNFA(reversed));
     }
 
-    public boolean matches(String s) {
-        MatchResult result = find(s, 0, s.length(), true);
-        return result.matched && result.end == s.length();
-    }
-
     @Override
     public Matcher matcher(String s) {
         return new SearchMethodMatcher(this, s);

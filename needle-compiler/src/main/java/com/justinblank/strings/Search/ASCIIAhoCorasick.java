@@ -2,7 +2,7 @@ package com.justinblank.strings.Search;
 
 import com.justinblank.strings.MatchResult;
 
-// Note that the name refers to the patterns this class works with. It should match non-ASCII strings.
+// Note that the name refers to the patterns this class matches, not the strings that it can search in.
 class ASCIIAhoCorasick implements SearchMethod {
 
     private final ASCIITrie trie;
@@ -11,11 +11,6 @@ class ASCIIAhoCorasick implements SearchMethod {
     ASCIIAhoCorasick(ASCIITrie trie, ASCIITrie partialTrie) {
         this.trie = trie;
         this.partialTrie = partialTrie;
-    }
-
-    public boolean matches(String s) {
-        MatchResult result = find(s, 0, s.length(), true);
-        return result.matched && result.end == s.length();
     }
 
     public MatchResult find(String s, int start, int end, boolean anchored) {

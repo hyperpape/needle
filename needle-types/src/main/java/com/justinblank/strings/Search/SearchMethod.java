@@ -24,7 +24,12 @@ public interface SearchMethod extends Pattern {
 
     MatchResult find(String s, int start, int end, boolean anchored);
 
-    boolean matches(String s);
+    default boolean matches(String s) {
+        // TODO: this will have bad perf...could search entire string for matching
+        MatchResult result = find(s, 0, s.length(), true);
+        // TODO: Note that if anchored was working correctly, the check for result.start would not be required
+        return result.matched && result.start == 0 && result.end == s.length();
+    }
 
     default Matcher matcher(String s) {
         return new SearchMethodMatcher(this, s);
