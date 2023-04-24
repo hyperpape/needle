@@ -54,3 +54,6 @@ a.c                 a.c                 y       0       3
 'the [Cc]rown'  'the Crown'             y       0       9
 'the [Cc]rown'  'the Crowd the Crown'   y       10      19
 'the [Cc]rown'  'the Crowds are'        n
+(AB){1,2}           ABABAB              y       0       4
+AAB                 AAAB                y       1       4
+AAB                 ABAAB               y       2       5
