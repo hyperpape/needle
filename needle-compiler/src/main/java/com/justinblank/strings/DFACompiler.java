@@ -27,8 +27,7 @@ public class DFACompiler {
         try {
             return (Pattern) c.getDeclaredConstructors()[0].newInstance();
         } catch (Throwable t) {
-            // TODO: determine good exceptions/result types
-            throw new RuntimeException(t);
+            throw new PatternClassCompilationException("Failed to compile pattern from regex '" + regex + "'", t);
         }
     }
 
