@@ -490,9 +490,8 @@ public class DFAClassBuilder extends ClassBuilder {
 
 
         if (debugOptions.trackStates) {
-            method.call("println", Void.VOID,
-                    getStatic("out", Type.of(System.class), Type.of(PrintStream.class)),
-                    literal(dfaState.getStateNumber()));
+            method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "debugState", Void.VOID,
+                    literal(dfaState.getStateNumber()), read("c"));
         }
         // TODO: offsets
         if (willUseByteClasses(dfaState)) {
@@ -651,7 +650,16 @@ public class DFAClassBuilder extends ClassBuilder {
         }
         if (usesOffsetCalculation(offsetCheckState)) {
             var offset = forwardOffsets.get(offsetCheckState);
-            for (var element : createOffsetCheck(offset, List.of(returnValue(0)))) {
+            List<CodeElement> onFailure;
+            if (debugOptions.trackStates) {
+                onFailure = List.of(callStatic(DFADebugUtils.class, "failedLookAheadCheck",
+                                Void.VOID, read(MatchingVars.INDEX), plus(read(MatchingVars.INDEX), offset.length)),
+                        returnValue(0));
+            }
+            else {
+                 onFailure = List.of(returnValue(0));
+            }
+            for (var element : createOffsetCheck(offset, onFailure)) {
                 method.addElement(element);
             }
         }
@@ -659,8 +667,11 @@ public class DFAClassBuilder extends ClassBuilder {
         method.loop(neq(read(MatchingVars.STATE), -1), List.of(
                 cond(eq(read(MatchingVars.INDEX),
                         read(MatchingVars.LENGTH)))
-                        .withBody(returnValue(
-                                call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))),
+                        .withBody(List.of(debugOptions.trackStates ?
+                                        callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
+                                        new NoOpStatement(),
+                                returnValue(
+                                        call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))))),
                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                         read(MatchingVars.STRING),
                         read(MatchingVars.INDEX))),
@@ -668,6 +679,9 @@ public class DFAClassBuilder extends ClassBuilder {
                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                 ));
 
+        if (debugOptions.trackStates) {
+            method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "returnWasAccepted", Void.VOID, read(MatchingVars.STATE));
+        }
         method.returnValue(
                 call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
         return method;
