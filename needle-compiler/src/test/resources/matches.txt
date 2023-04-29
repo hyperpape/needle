@@ -51,9 +51,12 @@ a.c                 a.c                 y       0       3
 ((I)|(S{0,4}))      SSSSS               y       0       4
 # literal prefix but after seeing "the " there should be an offset
 # important for testing seek + offset
-'the [Cc]rown'  'the Crown'             y       0       9
-'the [Cc]rown'  'the Crowd the Crown'   y       10      19
-'the [Cc]rown'  'the Crowds are'        n
+'the [Cc]rown'      'the Crown'             y       0       9
+'the [Cc]rown'      'the Crowd the Crown'   y       10      19
+'the [Cc]rown'      'the Crowds are'        n
 (AB){1,2}           ABABAB              y       0       4
 AAB                 AAAB                y       1       4
 AAB                 ABAAB               y       2       5
+[a-q][^u-z]{3}x     aaax                n
+[a-q][^u-z]{3}x     aaaax               y       0       5
+[a-q][^u-z]{3}x     aaaux               n

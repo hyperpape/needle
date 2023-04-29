@@ -814,7 +814,7 @@ public class DFAClassBuilder extends ClassBuilder {
                     gt(read(MatchingVars.CHAR), literal((int) charRange.getEnd())));
         }
 
-        elementsToAdd.add(cond(not(offsetCheck)).withBody(onFailure));
+        elementsToAdd.add(cond(offsetCheck).withBody(onFailure));
         return elementsToAdd;
     }
 

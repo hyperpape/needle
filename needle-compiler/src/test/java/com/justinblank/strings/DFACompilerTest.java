@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
 public class DFACompilerTest {
@@ -552,6 +553,13 @@ public class DFACompilerTest {
         }
         assertEquals(2, count);
     }
+
+    @Test
+    public void testFourCharOffsetWithoutPrefix() {
+        var pattern = DFACompiler.compile("[a-q][^u-z]{3}x", "testFourCharOffsetWithoutPrefix");
+        find(pattern, "aaaax");
+    }
+
 
     @Test
     public void fileBasedTests() throws Exception {
