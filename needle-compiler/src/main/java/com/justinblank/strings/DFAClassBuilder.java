@@ -780,8 +780,10 @@ public class DFAClassBuilder extends ClassBuilder {
                                 buildStateSwitch(true,0),
                                 cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                         List.of(
-                                                set(MatchingVars.STATE, 0),
-                                                buildStateSwitch(true,-1)
+                                                // TODO: see if it matters that this is emitting a call to the state method
+                                                // instead of lookup of next state via byteclass in cases where that's possible
+                                                set(MatchingVars.STATE, call("state0", Builtin.I, thisRef(), read(MatchingVars.CHAR)))
+
                                 )),
                                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                                 ));
