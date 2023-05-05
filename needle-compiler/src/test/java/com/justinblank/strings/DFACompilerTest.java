@@ -522,6 +522,13 @@ public class DFACompilerTest {
         DFACompiler.compile("[A-Za-z]+@[A-Za-z0-9]+.com", "another");
     }
 
+    // Has prefix with offset
+    @Test
+    public void testTheCrown() {
+        var pattern = DFACompiler.compile("the [Cc]rown", "theCrown");
+        find(pattern, "the Crown");
+    }
+
 //    @Test(expected =  IllegalArgumentException.class)
 //    public void testDFACompileFailsLargePattern() {
 //        String manyStateRegexString = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,1000}";
@@ -585,6 +592,7 @@ public class DFACompilerTest {
                         correctMatches++;
                     }
                 }
+                find(pattern, spec.target);
             }
             else {
                 nonMatches++;

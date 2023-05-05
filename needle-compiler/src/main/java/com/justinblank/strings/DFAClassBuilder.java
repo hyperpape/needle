@@ -659,7 +659,7 @@ public class DFAClassBuilder extends ClassBuilder {
             else {
                  onFailure = List.of(returnValue(0));
             }
-            for (var element : createOffsetCheck(offset, onFailure)) {
+            for (var element : createOffsetCheck(offset, 0, onFailure)) {
                 method.addElement(element);
             }
         }
@@ -751,10 +751,11 @@ public class DFAClassBuilder extends ClassBuilder {
                     read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
                     returnValue(0)));
+            outerLoopBody.add(set(MatchingVars.STATE, postPrefixState));
 
             if (usesOffsetCalculation(postPrefixState)) {
                 var offset = forwardOffsets.get(postPrefixState);
-                outerLoopBody.addAll(createOffsetCheck(offset, List.of(
+                outerLoopBody.addAll(createOffsetCheck(offset, prefix.length(), List.of(
                         set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
                         set(MatchingVars.STATE, -1))));
             }
@@ -798,14 +799,18 @@ public class DFAClassBuilder extends ClassBuilder {
         return build(name, dfa, node, DebugOptions.none());
     }
 
-    private List<CodeElement> createOffsetCheck(Offset offset, List<CodeElement> onFailure) {
+    private List<CodeElement> createOffsetCheck(Offset offset, int lookahead, List<CodeElement> onFailure) {
 
         List<CodeElement> elementsToAdd = new ArrayList<>();
 
         var length = offset.length;
+        var targetChar = plus(read(MatchingVars.INDEX), length);
+        if (lookahead > 0) {
+            targetChar = plus(lookahead, targetChar);
+        }
         elementsToAdd.add(set(MatchingVars.CHAR,
                 call("charAt", Builtin.C, read(MatchingVars.STRING),
-                        plus(read(MatchingVars.INDEX), length))));
+                        targetChar)));
         var charRange = offset.charRange;
         Expression offsetCheck;
         if (charRange.isSingleCharRange()) {
