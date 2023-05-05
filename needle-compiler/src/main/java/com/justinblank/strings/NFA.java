@@ -19,6 +19,10 @@ class NFA implements SearchMethod {
         this.regexInstrs = regexInstrs;
     }
 
+    protected NFA(NFA nfa) {
+        this.regexInstrs = nfa.regexInstrs;
+    }
+
     public static SearchMethod createNFA(String regex) {
         Node parse = RegexParser.parse(regex);
         var factors = parse.bestFactors();

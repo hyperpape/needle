@@ -63,6 +63,7 @@ AAB                 AAAB                y       1       4
 AAB                 ABAAB               y       2       5
 [a-q][^u-z]{3}x     aaax                n
 [a-q][^u-z]{3}x     aaaax               y       0       5
+[a-q][^u-z]{3}x     aaaaaax             y       2       7
 [a-q][^u-z]{3}x     aaaux               n
 a                   ''                  n
 a{1,2}              a                   y       0       1

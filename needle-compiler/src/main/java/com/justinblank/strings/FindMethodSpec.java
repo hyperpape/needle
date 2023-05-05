@@ -6,13 +6,15 @@ class FindMethodSpec {
 
     final DFA dfa;
     final String name;
+    boolean forwards;
 
-    public FindMethodSpec(DFA dfa, String name) {
+    public FindMethodSpec(DFA dfa, String name, boolean forwards) {
         Objects.requireNonNull(dfa, "dfa cannot be null");
         Objects.requireNonNull(name, "name cannot be non-null)");
 
         this.dfa = dfa;
         this.name = name;
+        this.forwards = forwards;
     }
 
     int statesCount() {
@@ -47,6 +49,9 @@ class FindMethodSpec {
         else {
             return "stateTransitions" + name + stateNumber;
         }
+    }
 
+    public String indexMethod() {
+        return "index" + name;
     }
 }

@@ -40,15 +40,18 @@ public class DFACompiler {
         Factorization factors = node.bestFactors();
         factors.setMinLength(node.minLength());
         node.maxLength().ifPresent(factors::setMaxLength);
-        DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)));
+        DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.BASIC);
+        DFA selfTransitioningDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.CONTAINED_IN);
         if (debugOptions.isDebug()) {
             System.out.println(GraphViz.toGraphviz(dfa));
+            System.out.println("----");
+            System.out.println(GraphViz.toGraphviz(selfTransitioningDFA));
         }
         // TODO: Why Short.MAX_VALUE / 2--not obvious why this wouldn't work with Short.MAX_VALUE or Short.MAX_VALUE - 1;
-        if (dfa.statesCount() > Short.MAX_VALUE / 2) {
+        if (dfa.statesCount() > Short.MAX_VALUE / 2 || selfTransitioningDFA.statesCount() > Short.MAX_VALUE / 2) {
             throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
         }
-        DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, node, debugOptions);
+        DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, selfTransitioningDFA, node, debugOptions);
         ClassCompiler compiler = new ClassCompiler(builder, debugOptions.isDebug(), System.out);
         byte[] classBytes = compiler.generateClassAsBytes();
         return classBytes;

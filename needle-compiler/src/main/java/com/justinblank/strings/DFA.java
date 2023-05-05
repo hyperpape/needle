@@ -43,9 +43,8 @@ class DFA {
         Node node = RegexParser.parse(regex);
         try {
             NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
-            return NFAToDFACompiler.compile(nfa);
-        }
-        catch (Exception e) {
+            return NFAToDFACompiler.compile(nfa, ConversionMode.BASIC); // TODO: this needs revisited
+        } catch (Exception e) {
             throw new RuntimeException("Failed to create dfa from string '" + regex + "'", e);
         }
     }

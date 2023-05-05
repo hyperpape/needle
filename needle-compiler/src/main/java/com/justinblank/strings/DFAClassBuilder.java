@@ -38,6 +38,8 @@ class DFAClassBuilder extends ClassBuilder {
 
     private final FindMethodSpec forwardFindMethodSpec;
     private final FindMethodSpec reversedFindMethodSpec;
+    private final FindMethodSpec containedInFindMethodSpec;
+    private final FindMethodSpec dfaSearchFindMethodSpec;
     private final Factorization factorization;
     private final CompilationPolicy compilationPolicy;
     private final Map<Integer, Offset> forwardOffsets;
@@ -47,25 +49,17 @@ class DFAClassBuilder extends ClassBuilder {
     final List<Method> findMethods = new ArrayList<>();
 
     /**
-     * @param className the simple class name of the class to be created
-     * @param superClass the superclass's descriptor
-     * @param interfaces a possibly empty array of interfaces implemented
-     */
-    DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA reversed,
-                    Factorization factorization) {
-        this(className, superClass, interfaces, dfa, reversed, factorization, DebugOptions.none());
-    }
-
-    /**
      * @param className  the simple class name of the class to be created
      * @param superClass the superclass's descriptor
      * @param interfaces a possibly empty array of interfaces implemented
      */
-    DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA reversed,
+    DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", superClass, interfaces);
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, "");
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, "Backwards");
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, "", true);
+        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, "ContainedIn", true);
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, "Backwards", false);
+        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, "Forwards", true);
         this.factorization = factorization;
         this.compilationPolicy = new CompilationPolicy();
         this.debugOptions = debugOptions;
@@ -105,12 +99,14 @@ class DFAClassBuilder extends ClassBuilder {
         }
 
         findMethods.add(createMatchesMethod(forwardFindMethodSpec));
-        findMethods.add(createContainedInMethod(forwardFindMethodSpec));
+        findMethods.add(createContainedInMethod(containedInFindMethodSpec));
         findMethods.add(createFindMethod());
         findMethods.add(createFindMethodInternal());
-        findMethods.add(createIndexMethod(forwardFindMethodSpec));
+        findMethods.add(createIndexMethod(dfaSearchFindMethodSpec));
         findMethods.add(createIndexMethod(reversedFindMethodSpec));
         addWasAcceptedMethod(forwardFindMethodSpec);
+        addWasAcceptedMethod(containedInFindMethodSpec);
+        addWasAcceptedMethod(dfaSearchFindMethodSpec);
         addWasAcceptedMethod(reversedFindMethodSpec);
         addConstructor();
         addFields();
@@ -183,12 +179,12 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setForwards(forwards);
         vars.setWasAcceptedVar(6);
         vars.setLastMatchVar(7);
-        var method = mkMethod(forwards ? INDEX_FORWARDS : INDEX_BACKWARDS, List.of("I"), "I", vars);
+        var method = mkMethod(spec.indexMethod(), List.of("I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
 
         method.set(MatchingVars.LENGTH, get(MatchingVars.LENGTH, Builtin.I, thisRef()));
-        if (vars.forwards) {
+        if (spec.forwards) {
             if (factorization.getMinLength() > 0 && factorization.getMinLength() <= Short.MAX_VALUE) {
                 method.cond(lt(read(MatchingVars.LENGTH), factorization.getMinLength())).withBody(
                         returnValue(-1)
@@ -202,11 +198,11 @@ class DFAClassBuilder extends ClassBuilder {
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
-        var loopBoundary = vars.forwards ? lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)) :
+        var loopBoundary = spec.forwards ? lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)) :
                 gt(read(MatchingVars.INDEX), 0);
         method.loop(loopBoundary, outerLoopBody);
 
-        if (vars.forwards && shouldSeek()) {
+        if (spec.forwards && shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
@@ -233,17 +229,17 @@ class DFAClassBuilder extends ClassBuilder {
                 List.of(
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                                 .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))),
-                        !vars.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), -1)) : new NoOpStatement(),
+                        !spec.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), -1)) : new NoOpStatement(),
                         set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
-                        vars.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)) : new NoOpStatement(),
+                        spec.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)) : new NoOpStatement(),
                         buildStateSwitch(spec, -1),
                         cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         // In an indexBackwards method, we always know we're going to find a match, so don't restart on
                         // when state is -1
-                        vars.forwards ? cond(eq(-1, read(MatchingVars.STATE))).withBody(
+                        spec.forwards ? cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                 List.of(
                                         set(MatchingVars.STATE, 0),
                                         buildStateSwitch(spec,0)
@@ -273,9 +269,12 @@ class DFAClassBuilder extends ClassBuilder {
         var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
 
         method.set(MatchingVars.INDEX,
-                call(INDEX_FORWARDS, Builtin.I, thisRef(),
+                call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                         get(NEXT_START_FIELD, Builtin.I, thisRef())));
         method.fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
+        if (debugOptions.trackStates) {
+            method.callStatic(ReferenceType.of(DFADebugUtils.class), "debugIndexForwards", Void.VOID, read(MatchingVars.INDEX));
+        }
 
         // If the string can only have one length, no need to search backwards, we can just compute the starting point
         if (factorization.getMinLength() == factorization.getMaxLength().orElse(Integer.MAX_VALUE)) {
@@ -386,6 +385,8 @@ class DFAClassBuilder extends ClassBuilder {
 
     void addStateMethods() {
         addStateMethods(forwardFindMethodSpec);
+        addStateMethods(containedInFindMethodSpec);
+        addStateMethods(dfaSearchFindMethodSpec);
         addStateMethods(reversedFindMethodSpec);
     }
 
@@ -665,9 +666,18 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             for (var i = 0; i < spec.statesCount(); i++) {
                 var methodName = stateMethodName(spec, i);
-                stateSwitchStatement.setCase(i,
-                        set(MatchingVars.STATE,
-                                call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))));
+                if (debugOptions.trackStates) {
+                    stateSwitchStatement.setCase(i,
+                            List.of(set(MatchingVars.STATE,
+                                    call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))),
+                            callStatic(DFADebugUtils.class, "debugStateTransition", Void.VOID,
+                                    read(MatchingVars.STATE))));
+                }
+                else {
+                    stateSwitchStatement.setCase(i,
+                            set(MatchingVars.STATE,
+                                    call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))));
+                }
             }
         }
 
@@ -732,6 +742,9 @@ class DFAClassBuilder extends ClassBuilder {
                 lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
                         neq(-1, read(MatchingVars.STATE))),
                         List.of(
+                                debugOptions.trackStates ?
+                                        callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE))
+                                        : new NoOpStatement(),
                                 cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                         .withBody(returnValue(1)),
                                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
@@ -748,14 +761,13 @@ class DFAClassBuilder extends ClassBuilder {
                                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                                 ));
         outerLoopBody.add(innerLoop);
+        if (debugOptions.trackStates) {
+            method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
+        }
         method.returnValue(
                 call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
 
         return method;
-    }
-
-    public static DFAClassBuilder build(String name, DFA dfa, Node node) {
-        return build(name, dfa, node, DebugOptions.none());
     }
 
     private List<CodeElement> createOffsetCheck(Offset offset, int lookahead, List<CodeElement> onFailure) {
@@ -784,7 +796,7 @@ class DFAClassBuilder extends ClassBuilder {
         return elementsToAdd;
     }
 
-    public static DFAClassBuilder build(String name, DFA dfa, Node node, DebugOptions debugOptions) {
+    static DFAClassBuilder build(String name, DFA dfa, DFA containedInDFA, Node node, DebugOptions debugOptions) {
         Objects.requireNonNull(name, "name cannot be null");
         Objects.requireNonNull(dfa, "dfa cannot be null");
         Objects.requireNonNull(node, "node cannot be null");
@@ -792,9 +804,10 @@ class DFAClassBuilder extends ClassBuilder {
         var factorization = node.bestFactors();
         factorization.setMinLength(node.minLength());
         node.maxLength().ifPresent(factorization::setMaxLength);
-        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())));
+        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())), ConversionMode.BASIC);
+        DFA dfaSearch = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.DFA_SEARCH);
 
-        var builder = new DFAClassBuilder(name, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"}, dfa, dfaReversed, factorization, debugOptions);
+        var builder = new DFAClassBuilder(name, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"}, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, debugOptions);
         builder.initMethods();
         return builder;
     }

@@ -31,8 +31,9 @@ public class DFAClassBuilderTest {
     public void testContainedIn() {
         var dfa = DFA.createDFA("abcd");
         var factorization = RegexParser.parse("abcd").bestFactors();
-        var builder = new DFAClassBuilder("testContainedIn", "java/lang/Object", new String[]{}, dfa, dfa, factorization);
-        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "")));
+        var builder = new DFAClassBuilder("testContainedIn", "java/lang/Object", new String[]{}, dfa,
+                dfa, dfa, dfa, factorization, DebugOptions.none());
+        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true)));
         builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);
@@ -52,7 +53,8 @@ public class DFAClassBuilderTest {
         try {
             var dfa = DFA.createDFA("abc");
             var node = RegexParser.parse("abc");
-            var builder = new DFAClassBuilder("indexForwards", "java/lang/Object", new String[]{}, dfa, dfa, node.bestFactors());
+            var builder = new DFAClassBuilder("indexForwards", "java/lang/Object", new String[]{},
+                    dfa, dfa, dfa, dfa, node.bestFactors(), DebugOptions.none());
             builder.initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwards");
             Object o = c.getDeclaredConstructors()[0].newInstance("abca");
@@ -68,8 +70,9 @@ public class DFAClassBuilderTest {
         try {
             var dfa = DFA.createDFA("a");
             var node = RegexParser.parse("a");
-            var builder = new DFAClassBuilder("indexForwardsSingleChar", "java/lang/Object", new String[]{}, dfa, dfa, node.bestFactors());
-            builder.initMethods();
+            var builder = new DFAClassBuilder("indexForwardsSingleChar", "java/lang/Object",
+                    new String[]{}, dfa, dfa, dfa, dfa, node.bestFactors(), DebugOptions.none());
+            builder. initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwardsSingleChar");
             Object o = c.getDeclaredConstructors()[0].newInstance("aba");
             assertEquals(1, o.getClass().getDeclaredMethod("indexForwards", int.class).invoke(o, 0));
@@ -93,7 +96,8 @@ public class DFAClassBuilderTest {
     @Test
     public void testStateMethodIsCompilable() throws Exception {
         var dfa = DFA.createDFA("a");
-        var builder = new DFAClassBuilder("testStateMethod", "java/lang/Object", null, dfa, dfa, null);
+        var builder = new DFAClassBuilder("testStateMethod", "java/lang/Object", null,
+                dfa, dfa, dfa, dfa, null, DebugOptions.none());
         builder.addStateMethods();
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }

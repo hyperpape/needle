@@ -74,7 +74,7 @@ public class MinimizeDFATest {
     @Test
     public void testCountedRepetition() {
         var nfa = new NFA(RegexInstrBuilder.createNFA(RegexParser.parse("1{0,2}")));
-        DFA original = new NFAToDFACompiler(nfa)._compile(nfa);
+        DFA original = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.BASIC);
         assertTrue(original.matches("1"));
         DFA dfa = MinimizeDFA.minimizeDFA(original);
         assertTrue(dfa.matches("1"));
