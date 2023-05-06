@@ -32,8 +32,8 @@ public class DFAClassBuilderTest {
         var dfa = DFA.createDFA("abcd");
         var factorization = RegexParser.parse("abcd").bestFactors();
         var builder = new DFAClassBuilder("testContainedIn", "java/lang/Object", new String[]{}, dfa, dfa, factorization);
-        builder.addMethod(builder.createContainedInMethod());
-        builder.addStateMethods(dfa);
+        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "")));
+        builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);
         byte[] classBytes = compiler.generateClassAsBytes();
@@ -90,19 +90,11 @@ public class DFAClassBuilderTest {
         testCompilable("[X-k]{3,6}}");
     }
 
-    private void addTrivialStateMethod(DFAClassBuilder builder, String name) {
-        var stateMethod = builder.mkMethod(name, List.of("I"), "I");
-        builder.stateMethods.add(stateMethod);
-        var stateBlock = stateMethod.addBlock();
-        stateBlock.push(0);
-        stateBlock.addReturn(Opcodes.IRETURN);
-    }
-
     @Test
     public void testStateMethodIsCompilable() throws Exception {
         var dfa = DFA.createDFA("a");
         var builder = new DFAClassBuilder("testStateMethod", "java/lang/Object", null, dfa, dfa, null);
-        builder.addStateMethods(dfa);
+        builder.addStateMethods();
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }
 

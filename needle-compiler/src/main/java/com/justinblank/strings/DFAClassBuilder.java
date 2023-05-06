@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Opcodes;
 
-import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,8 +35,6 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String INDEX_FIELD = "index";
     protected static final String NEXT_START_FIELD = "nextStart";
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
-    protected static final String STATES_CONSTANT = "STATES";
-    protected static final String STATES_BACKWARDS_CONSTANT = "STATES_BACKWARDS";
     protected static final String PREFIX_CONSTANT = "PREFIX";
     protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
     protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
@@ -48,16 +45,14 @@ public class DFAClassBuilder extends ClassBuilder {
 
     static final int LARGE_STATE_COUNT = 64;
 
-    private final DFA dfa;
-    private final DFA reversed;
+    private final FindMethodSpec forwardFindMethodSpec;
+    private final FindMethodSpec reversedFindMethodSpec;
     private final Factorization factorization;
     private final CompilationPolicy compilationPolicy;
     private final Map<Integer, Offset> forwardOffsets;
     private final byte[] byteClasses;
     private final DebugOptions debugOptions;
 
-    final List<Method> stateMethods = new ArrayList<>();
-    final List<Method> backwardsStateMethods = new ArrayList<>();
     final List<Method> findMethods = new ArrayList<>();
 
     /**
@@ -78,8 +73,8 @@ public class DFAClassBuilder extends ClassBuilder {
     DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA reversed,
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", superClass, interfaces);
-        this.dfa = dfa;
-        this.reversed = reversed;
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, "");
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, "Backwards");
         this.factorization = factorization;
         this.compilationPolicy = new CompilationPolicy();
         this.debugOptions = debugOptions;
@@ -98,12 +93,14 @@ public class DFAClassBuilder extends ClassBuilder {
         }
     }
 
+    // This isn't really a global policy, more specific to a particular type of find method
+    @Deprecated
     private boolean stateArraysUseShorts() {
-        return dfa.statesCount() > 127;
+        return forwardFindMethodSpec.statesCount() > 127;
     }
 
     void initMethods() {
-        addStateMethods(dfa);
+        addStateMethods();
         if (compilationPolicy.usedByteClasses) {
             addByteClasses();
             if (compilationPolicy.useByteClassesForAllStates) {
@@ -116,14 +113,14 @@ public class DFAClassBuilder extends ClassBuilder {
             });
         }
 
-        findMethods.add(createMatchesMethod());
-        findMethods.add(createContainedInMethod());
+        findMethods.add(createMatchesMethod(forwardFindMethodSpec));
+        findMethods.add(createContainedInMethod(forwardFindMethodSpec));
         findMethods.add(createFindMethod());
         findMethods.add(createFindMethodInternal());
-        findMethods.add(createIndexMethod(true));
-        findMethods.add(createIndexMethod(false));
-        addWasAcceptedMethod(true);
-        addWasAcceptedMethod(false);
+        findMethods.add(createIndexMethod(forwardFindMethodSpec));
+        findMethods.add(createIndexMethod(reversedFindMethodSpec));
+        addWasAcceptedMethod(forwardFindMethodSpec);
+        addWasAcceptedMethod(reversedFindMethodSpec);
         addConstructor();
         addFields();
     }
@@ -167,45 +164,37 @@ public class DFAClassBuilder extends ClassBuilder {
      * the underlying int[] values, it just adds them to the top level array. 
      */
     private void populateByteClassArrays() {
-        var stateArrayType = compilationPolicy.getStateArrayType();
-        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_CONSTANT, "[" + compilationPolicy.getStateArrayType(), null, null));
-        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, STATES_BACKWARDS_CONSTANT, "[" + compilationPolicy.getStateArrayType(), null, null));
+        populateByteClassArrays(forwardFindMethodSpec);
+        populateByteClassArrays(reversedFindMethodSpec);
+    }
+
+    private void populateByteClassArrays(FindMethodSpec spec) {
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), "[" + compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
 
         // Instantiate the top level array of state transition arrays
-        staticBlock.push(dfa.statesCount())
+        staticBlock.push(spec.statesCount())
                 .newArray(compilationPolicy.getStateArrayType())
-                .putStatic(STATES_CONSTANT, true, "[" + compilationPolicy.getStateArrayType());
+                .putStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType());
 
         // Now fill it with empty arrays
-        for (var i = 0; i < dfa.statesCount(); i++) {
-            staticBlock.readStatic(STATES_CONSTANT, true, "[" + compilationPolicy.getStateArrayType())
+        for (var i = 0; i < spec.statesCount(); i++) {
+            staticBlock.readStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType())
                     .push(i)
-                    .readStatic(stateArrayName(i, true), true, compilationPolicy.getStateArrayType())
-                    .operate(AASTORE);
-        }
-
-        // Do the same for the reversed transition arrays
-        staticBlock.push(reversed.statesCount())
-                .newArray(compilationPolicy.getStateArrayType())
-                .putStatic(STATES_BACKWARDS_CONSTANT, true, "[" + compilationPolicy.getStateArrayType());
-
-        for (var i = 0; i < reversed.statesCount(); i++) {
-            staticBlock.readStatic(STATES_BACKWARDS_CONSTANT, true, "[" + compilationPolicy.getStateArrayType())
-                    .push(i)
-                    .readStatic(stateArrayName(i, false), true, compilationPolicy.getStateArrayType())
+                    .readStatic(spec.stateArrayName(i), true, compilationPolicy.getStateArrayType())
                     .operate(AASTORE);
         }
     }
 
-    private Method createIndexMethod(boolean forwards) {
+    private Method createIndexMethod(FindMethodSpec spec) {
+        boolean forwards = spec.name.equals("");
         var vars = new MatchingVars(2, 1, 3, 4, 5);
         vars.setForwards(forwards);
         vars.setWasAcceptedVar(6);
         vars.setLastMatchVar(7);
         var method = mkMethod(forwards ? INDEX_FORWARDS : INDEX_BACKWARDS, List.of("I"), "I", vars);
 
-        String wasAcceptedMethod = vars.forwards ? WAS_ACCEPTED_METHOD : WAS_ACCEPTED_BACKWARDS_METHOD;
+        String wasAcceptedMethod = spec.wasAcceptedName();
 
         method.set(MatchingVars.LENGTH, get(MatchingVars.LENGTH, Builtin.I, thisRef()));
         if (vars.forwards) {
@@ -218,7 +207,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
         method.set(MatchingVars.STATE, 0);
-        method.set(MatchingVars.LAST_MATCH, dfa.isAccepting() ? 0 : -1);
+        method.set(MatchingVars.LAST_MATCH, spec.dfa.isAccepting() ? 0 : -1);
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
@@ -228,7 +217,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
         if (vars.forwards && shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
-            var postPrefixState = dfa.after(prefix).orElseThrow(()
+            var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
             int state = postPrefixState.getStateNumber();
 
@@ -258,7 +247,7 @@ public class DFAClassBuilder extends ClassBuilder {
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
                         vars.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)) : new NoOpStatement(),
-                        buildStateSwitch(vars.forwards, -1),
+                        buildStateSwitch(spec, -1),
                         cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         // In an indexBackwards method, we always know we're going to find a match, so don't restart on
@@ -266,7 +255,7 @@ public class DFAClassBuilder extends ClassBuilder {
                         vars.forwards ? cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                 List.of(
                                         set(MatchingVars.STATE, 0),
-                                        buildStateSwitch(vars.forwards,0)
+                                        buildStateSwitch(spec,0)
                                 )) : new NoOpStatement(),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
@@ -361,11 +350,11 @@ public class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    private void addWasAcceptedMethod(boolean backwards) {
-        var accepting = new ArrayList<>(backwards ? reversed.acceptingStates() : dfa.acceptingStates());
+    private void addWasAcceptedMethod(FindMethodSpec spec) {
+        var accepting = new ArrayList<>(spec.dfa.acceptingStates());
         accepting.sort(Comparator.comparingInt(DFA::getStateNumber));
 
-        String methodName = backwards ? WAS_ACCEPTED_BACKWARDS_METHOD : WAS_ACCEPTED_METHOD;
+        String methodName = spec.wasAcceptedName();
         Method method = mkMethod(methodName, Collections.singletonList("I"), "Z", new GenericVars("state"));
 
 
@@ -376,7 +365,7 @@ public class DFAClassBuilder extends ClassBuilder {
         // TODO: alternately, implement checking bits in a bytearray or something like that
         else {
 
-            String setName = backwards ? "ACCEPTED_SET_BACKWARDS" : "ACCEPTED_SET";
+            String setName = spec.wasAcceptedSetName();
             addSetOfAcceptingStates(accepting, setName);
 
             var block = method.addBlock();
@@ -404,38 +393,29 @@ public class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    void addStateMethods(DFA dfa) {
+    void addStateMethods() {
+        addStateMethods(forwardFindMethodSpec);
+        addStateMethods(reversedFindMethodSpec);
+    }
+
+    private void addStateMethods(FindMethodSpec spec) {
         // Warning to future me: I find these next few lines annoying, and I wanted to refactor it to make these
         // Method[] instead of lists. That then made a test stop compiling, in a way that was probably possible to fix,
         // but annoying.
-        for (int i = 0; i < dfa.statesCount(); i++) {
-            stateMethods.add(null);
+        for (DFA dfaState : spec.dfa.allStates()) {
+            addStateMethod(dfaState, spec);
         }
-        for (var i = 0; i < reversed.statesCount(); i++) {
-            backwardsStateMethods.add(null);
-        }
-        for (DFA dfaState : dfa.allStates()) {
-            addStateMethod(dfaState, true);
-        }
-        for (DFA dfaState : reversed.allStates()) {
-            addStateMethod(dfaState, false);
-        }
-        var statesCount = dfa.statesCount();
+
+        var statesCount = spec.statesCount();
         if (statesCount > LARGE_STATE_COUNT) {
             for (var i = 0; i < statesCount; i += LARGE_STATE_COUNT) {
-                addStateGroupMethod(i, Math.min(i + LARGE_STATE_COUNT, statesCount), true);
-            }
-        }
-        var reversedStateCount = reversed.statesCount();
-        if (reversedStateCount > LARGE_STATE_COUNT) {
-            for (var i = 0; i < reversedStateCount; i += LARGE_STATE_COUNT) {
-                addStateGroupMethod(i, Math.min(i + LARGE_STATE_COUNT, reversedStateCount), false);
+                addStateGroupMethod(spec, i, Math.min(i + LARGE_STATE_COUNT, statesCount));
             }
         }
     }
 
-    private void addStateGroupMethod(int start, int end, boolean forwards) {
-        String name = stateGroupName(start, forwards);
+    private void addStateGroupMethod(FindMethodSpec spec, int start, int end) {
+        String name = stateGroupName(spec, start);
         var method = mkMethod(name, List.of("C", "I"), "I", new MatchingVars(-1, -1, -1, -1, -1), ACC_PRIVATE);
         var mainBlock = method.addBlock();
         mainBlock.readThis().readVar(1, "C").readVar(2, "I");
@@ -444,7 +424,7 @@ public class DFAClassBuilder extends ClassBuilder {
             var block = method.addBlock();
             switchBlocks.add(block);
             var descriptor = "(C)I";
-            block.call(stateMethodName(i, forwards), getClassName(), descriptor);
+            block.call(stateMethodName(spec, i), getClassName(), descriptor);
         }
         var returnBlock = method.addBlock();
         returnBlock.addReturn(IRETURN);
@@ -456,34 +436,26 @@ public class DFAClassBuilder extends ClassBuilder {
         mainBlock.addOperation(Operation.mkTableSwitch(switchBlocks, switchBlocks.get(0), start, start + switchBlocks.size() - 1));
     }
 
-    static String stateGroupName(int start, boolean forwards) {
+    static String stateGroupName(FindMethodSpec spec, int start) {
         var name = "stateGroup";
-        if (!forwards) {
-            name += "Backwards";
-        }
+        name += spec.name;
         name += (start / LARGE_STATE_COUNT);
         return name;
     }
 
-    static String stateMethodName(int state, boolean forwards) {
-        return "state" + (forwards ? "" : "Backwards") + state;
+    static String stateMethodName(FindMethodSpec spec, int state) {
+        return "state" + spec.name + state;
     }
 
     boolean usesOffsetCalculation(int stateNumber) {
         return forwardOffsets.containsKey(stateNumber) && isUsefulOffset(forwardOffsets.get(stateNumber));
     }
 
-    private void addStateMethod(DFA dfaState, boolean forwards) {
-        String name = stateMethodName(dfaState.getStateNumber(), forwards);
+    private void addStateMethod(DFA dfaState, FindMethodSpec spec) {
+        String name = stateMethodName(spec, dfaState.getStateNumber());
         List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
         Vars vars = new GenericVars("c", "byteClass", "stateTransitions", "state");
         var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
-        if (forwards) {
-            stateMethods.set(dfaState.getStateNumber(), method);
-        } else {
-            backwardsStateMethods.set(dfaState.getStateNumber(), method);
-        }
-
 
         if (debugOptions.trackStates) {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "debugState", Void.VOID,
@@ -491,9 +463,9 @@ public class DFAClassBuilder extends ClassBuilder {
         }
         // TODO: offsets
         if (willUseByteClasses(dfaState)) {
-            prepareMethodToUseByteClasses(dfaState, forwards, method);
+            prepareMethodToUseByteClasses(dfaState, spec.name.equals(""), method);
             compilationPolicy.usedByteClasses = true;
-            String stateTransitionsName = "stateTransitions" + (forwards ? "" : "Backwards") + dfaState.getStateNumber();
+            String stateTransitionsName = "stateTransitions" + spec.name + dfaState.getStateNumber();
 
             Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(Builtin.S) : ArrayType.of(Builtin.OCTET) ;
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
@@ -600,7 +572,7 @@ public class DFAClassBuilder extends ClassBuilder {
         return offset != null && offset.length > 3;
     }
 
-    private Method createMatchesMethod() {
+    private Method createMatchesMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("matches", new ArrayList<>(), "Z", vars);
 
@@ -629,7 +601,7 @@ public class DFAClassBuilder extends ClassBuilder {
         int offsetCheckState = 0;
         if (shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
-            offsetCheckState = dfa.after(prefix).orElseThrow().getStateNumber();
+            offsetCheckState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
             method.cond(not(call("startsWith", Builtin.BOOL, read(MatchingVars.STRING),
                             getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)))))
@@ -668,7 +640,7 @@ public class DFAClassBuilder extends ClassBuilder {
                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                         read(MatchingVars.STRING),
                         read(MatchingVars.INDEX))),
-                buildStateSwitch(true, -1),
+                buildStateSwitch(spec, -1),
                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                 ));
 
@@ -680,8 +652,8 @@ public class DFAClassBuilder extends ClassBuilder {
         return method;
     }
 
-    private CodeElement buildStateSwitch(boolean forwards, int onFailure) {
-        boolean largeStates = dfa.statesCount() > LARGE_STATE_COUNT;
+    private CodeElement buildStateSwitch(FindMethodSpec spec, int onFailure) {
+        boolean largeStates = spec.statesCount() > LARGE_STATE_COUNT;
         Switch stateSwitchStatement = null;
         if (largeStates) {
             stateSwitchStatement = new Switch(div(read(MatchingVars.STATE), 64));
@@ -690,15 +662,15 @@ public class DFAClassBuilder extends ClassBuilder {
             stateSwitchStatement = new Switch(read(MatchingVars.STATE));
         }
         if (largeStates) {
-            for (var i = 0; i < dfa.statesCount(); i += 64) {
+            for (var i = 0; i < spec.statesCount(); i += 64) {
                 stateSwitchStatement.setCase(i / 64,
                         set(MatchingVars.STATE,
-                                call(stateGroupName(i, forwards), Builtin.I, thisRef(), read(MatchingVars.CHAR), read(MatchingVars.STATE))));
+                                call(stateGroupName(spec, i), Builtin.I, thisRef(), read(MatchingVars.CHAR), read(MatchingVars.STATE))));
             }
         }
         else {
-            for (var i = 0; i < dfa.statesCount(); i++) {
-                var methodName = stateMethodName(i, forwards);
+            for (var i = 0; i < spec.statesCount(); i++) {
+                var methodName = stateMethodName(spec, i);
                 stateSwitchStatement.setCase(i,
                         set(MatchingVars.STATE,
                                 call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))));
@@ -707,7 +679,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
         stateSwitchStatement.setDefault(List.of(set(MatchingVars.STATE, onFailure)));
         if (compilationPolicy.usedByteClasses) {
-            var dfaMaxChar = dfa.maxChar();
+            var dfaMaxChar = spec.dfa.maxChar();
             var c = cond(gt(read(MatchingVars.CHAR), (int) dfaMaxChar)).withBody(
                     set(MatchingVars.STATE, onFailure));
             c.orElse(stateSwitchStatement);
@@ -716,7 +688,7 @@ public class DFAClassBuilder extends ClassBuilder {
         return stateSwitchStatement;
     }
 
-    Method createContainedInMethod() {
+    Method createContainedInMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 
@@ -737,7 +709,7 @@ public class DFAClassBuilder extends ClassBuilder {
 
         if (shouldSeek()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
-            int postPrefixState = dfa.after(prefix).orElseThrow().getStateNumber();
+            int postPrefixState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
             outerLoopBody.add(set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
@@ -771,7 +743,7 @@ public class DFAClassBuilder extends ClassBuilder {
                                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
-                                buildStateSwitch(true,0),
+                                buildStateSwitch(spec,0),
                                 cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                         List.of(
                                                 // TODO: see if it matters that this is emitting a call to the state method
