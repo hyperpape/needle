@@ -364,44 +364,43 @@ public class DFAClassBuilder extends ClassBuilder {
     private void addWasAcceptedMethod(boolean backwards) {
         var accepting = new ArrayList<>(backwards ? reversed.acceptingStates() : dfa.acceptingStates());
         accepting.sort(Comparator.comparingInt(DFA::getStateNumber));
-        Method method = mkMethod(backwards ? WAS_ACCEPTED_BACKWARDS_METHOD : WAS_ACCEPTED_METHOD,
-                Collections.singletonList("I"), "Z");
 
-        var block = method.addBlock();
+        String methodName = backwards ? WAS_ACCEPTED_BACKWARDS_METHOD : WAS_ACCEPTED_METHOD;
+        Method method = mkMethod(methodName, Collections.singletonList("I"), "Z", new GenericVars("state"));
+
 
         if (accepting.size() == 1) {
-
-            var successBlock = method.addBlock();
-            block.readVar(1, "I");
-            block.push(accepting.get(0).getStateNumber());
-            var failBlock = method.addBlock();
-            failBlock.push(0);
-            failBlock.addReturn(IRETURN);
-            block.cmp(failBlock, IF_ICMPNE);
-            successBlock.push(1);
-            successBlock.addReturn(IRETURN);
+            method.returnValue(eq(accepting.get(0).getStateNumber(), read("state")));
         }
         // TODO: implement switch for small sets and measure impact
+        // TODO: alternately, implement checking bits in a bytearray or something like that
         else {
-            String name = backwards ? "ACCEPTED_SET_BACKWARDS" : "ACCEPTED_SET";
-            addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, name, "Ljava/util/HashSet;", null, null));
-            var b = addStaticBlock();
-            construct(b, "java/util/HashSet");
-            b.putStatic(name, true, "Ljava/util/HashSet;");
 
-            for (var state : accepting) {
-                b.readStatic(name, true, "Ljava/util/HashSet;");
-                b.push(state.getStateNumber());
-                b.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
-                b.callInterface("add", "java/util/Set", "(Ljava/lang/Object;)Z");
-                b.operate(Opcodes.POP);
-            }
+            String setName = backwards ? "ACCEPTED_SET_BACKWARDS" : "ACCEPTED_SET";
+            addSetOfAcceptingStates(accepting, setName);
 
-            block.readStatic(name, true, "Ljava/util/HashSet;");
+            var block = method.addBlock();
+
+            block.readStatic(setName, true, "Ljava/util/HashSet;");
             block.readVar(1, "I");
             block.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
             block.callInterface("contains", "java/util/Set", "(Ljava/lang/Object;)Z");
             block.addReturn(IRETURN);
+        }
+    }
+
+    private void addSetOfAcceptingStates(ArrayList<DFA> accepting, String setName) {
+        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, setName, "Ljava/util/HashSet;", null, null));
+        var b = addStaticBlock();
+        construct(b, "java/util/HashSet");
+        b.putStatic(setName, true, "Ljava/util/HashSet;");
+
+        for (var state : accepting) {
+            b.readStatic(setName, true, "Ljava/util/HashSet;");
+            b.push(state.getStateNumber());
+            b.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
+            b.callInterface("add", "java/util/Set", "(Ljava/lang/Object;)Z");
+            b.operate(Opcodes.POP);
         }
     }
 
