@@ -478,9 +478,6 @@ public class DFAClassBuilder extends ClassBuilder {
         List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
         Vars vars = new GenericVars("c", "byteClass", "stateTransitions", "state");
         var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
-        // TODO: these methods shouldn't be necessary when the rebuild on top of mako is done
-        method.setAttribute(FORWARDS, forwards);
-        method.setAttribute(COMPILATION_POLICY, compilationPolicy);
         if (forwards) {
             stateMethods.set(dfaState.getStateNumber(), method);
         } else {
