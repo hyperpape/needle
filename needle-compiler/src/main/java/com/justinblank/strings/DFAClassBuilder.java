@@ -528,9 +528,6 @@ public class DFAClassBuilder extends ClassBuilder {
 
     private void prepareMethodToUseByteClasses(DFA dfaState, boolean forwards, Method method) {
         compilationPolicy.usedByteClasses = true;
-        method.setAttribute(USED_BYTECLASSES, true);
-        method.setAttribute(STATE_NUMBER, dfaState.getStateNumber());
-        method.setAttribute(FORWARDS, forwards);
         var arrayName = stateArrayName(dfaState.getStateNumber(), forwards);
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
