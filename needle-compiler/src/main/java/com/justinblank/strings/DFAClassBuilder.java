@@ -487,9 +487,15 @@ public class DFAClassBuilder extends ClassBuilder {
             else {
                 for (var transition : transitions) {
                     var charRange = transition.getLeft();
-                    method.cond(and(
-                            gte(read("c"), (int) charRange.getStart()),
-                            lte(read("c"), (int) charRange.getEnd()))).withBody(returnValue(transition.getRight()));
+                    var charToRecognize = transition.getLeft().getStart();
+                    if (charRange.isSingleCharRange()) {
+                        method.cond(eq(read("c"), (int) charToRecognize)).withBody(returnValue(transition.getRight()));
+                    }
+                    else {
+                        method.cond(and(
+                                gte(read("c"), (int) charRange.getStart()),
+                                lte(read("c"), (int) charRange.getEnd()))).withBody(returnValue(transition.getRight()));
+                    }
                 }
                 method.returnValue(-1);
             }
