@@ -36,8 +36,6 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String NEXT_START_FIELD = "nextStart";
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String PREFIX_CONSTANT = "PREFIX";
-    protected static final String WAS_ACCEPTED_METHOD = "wasAccepted";
-    protected static final String WAS_ACCEPTED_BACKWARDS_METHOD = "wasAcceptedBackwards";
     protected static final String INDEX_FORWARDS = "indexForwards";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
     protected static final String SEEK_MATCH = "seekMatch";
@@ -463,7 +461,7 @@ public class DFAClassBuilder extends ClassBuilder {
         }
         // TODO: offsets
         if (willUseByteClasses(dfaState)) {
-            prepareMethodToUseByteClasses(dfaState, spec.name.equals(""), method);
+            prepareMethodToUseByteClasses(spec, dfaState, method);
             compilationPolicy.usedByteClasses = true;
             String stateTransitionsName = "stateTransitions" + spec.name + dfaState.getStateNumber();
 
@@ -498,9 +496,9 @@ public class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    private void prepareMethodToUseByteClasses(DFA dfaState, boolean forwards, Method method) {
+    private void prepareMethodToUseByteClasses(FindMethodSpec spec, DFA dfaState, Method method) {
         compilationPolicy.usedByteClasses = true;
-        var arrayName = stateArrayName(dfaState.getStateNumber(), forwards);
+        var arrayName = stateArrayName(spec, dfaState.getStateNumber());
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
 
@@ -552,8 +550,8 @@ public class DFAClassBuilder extends ClassBuilder {
         return byteClassesMax;
     }
 
-    static String stateArrayName(int stateNumber, boolean forwards) {
-        return "stateTransitions" + (forwards ? "" : "Backwards") + stateNumber;
+    static String stateArrayName(FindMethodSpec spec, int stateNumber) {
+        return "stateTransitions" + spec.name + stateNumber;
     }
 
     private boolean willUseByteClasses(DFA dfaState) {
@@ -636,7 +634,7 @@ public class DFAClassBuilder extends ClassBuilder {
                                         callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
                                         new NoOpStatement(),
                                 returnValue(
-                                        call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))))),
+                                        call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE))))),
                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                         read(MatchingVars.STRING),
                         read(MatchingVars.INDEX))),
@@ -648,7 +646,7 @@ public class DFAClassBuilder extends ClassBuilder {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "returnWasAccepted", Void.VOID, read(MatchingVars.STATE));
         }
         method.returnValue(
-                call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
+                call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
         return method;
     }
 
@@ -738,7 +736,7 @@ public class DFAClassBuilder extends ClassBuilder {
                 lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
                         neq(-1, read(MatchingVars.STATE))),
                         List.of(
-                                cond(call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                                cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                         .withBody(returnValue(1)),
                                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
@@ -755,7 +753,7 @@ public class DFAClassBuilder extends ClassBuilder {
                                 ));
         outerLoopBody.add(innerLoop);
         method.returnValue(
-                call(WAS_ACCEPTED_METHOD, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
+                call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
 
         return method;
     }
