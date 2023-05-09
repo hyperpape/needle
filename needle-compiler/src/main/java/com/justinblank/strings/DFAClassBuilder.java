@@ -397,9 +397,6 @@ public class DFAClassBuilder extends ClassBuilder {
     }
 
     private void addStateMethods(FindMethodSpec spec) {
-        // Warning to future me: I find these next few lines annoying, and I wanted to refactor it to make these
-        // Method[] instead of lists. That then made a test stop compiling, in a way that was probably possible to fix,
-        // but annoying.
         for (DFA dfaState : spec.dfa.allStates()) {
             addStateMethod(dfaState, spec);
         }
