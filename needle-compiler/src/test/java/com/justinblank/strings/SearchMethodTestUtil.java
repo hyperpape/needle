@@ -56,7 +56,7 @@ public class SearchMethodTestUtil {
 
         var prefix = s.substring(start, result.start);
         // Property #3
-        assertTrue(method.matcher("").matches() && prefix.isEmpty() || !method.matcher(prefix).matches());
+        assertTrue("violated prefix condition for prefix condition on find, prefix=" + prefix + ", string=" + s, method.matcher("").matches() && prefix.isEmpty() || !method.matcher(prefix).matches());
 
         // Property #4 -- match cannot be extended forwards
         if (result.end < end) {
@@ -76,7 +76,7 @@ public class SearchMethodTestUtil {
         }
         // Property 6 -- string that matches empty substring must be anchored at zero
         if (method.matcher("").matches()) {
-            assertEquals(result.start, start);
+            assertEquals("Method matches empty string but match was not at start of needle", result.start, start);
         }
     }
 
