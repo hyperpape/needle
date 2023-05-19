@@ -33,6 +33,10 @@ a+a+bc              aaabc               y       0       5
 a*a+bc              abc                 y       0       3
 a*a+bc              aabc                y       0       4
 a*a+bc              aaabc               y       0       5
+a+a                 a                   n
+a+a                 aa                  y       0       2
+a+a                 aaa                 y       0       3
+a+a                 aaaaaaa             y       0       7
 (ab)cd              abcd                y       0       4
 (ab)+cd             abcd                y       0       4
 (ab)+cd             ababcd              y       0       6
