@@ -21,12 +21,7 @@ import static com.justinblank.classcompiler.lang.Literal.literal;
 import static com.justinblank.classcompiler.lang.UnaryOperator.not;
 import static org.objectweb.asm.Opcodes.*;
 
-public class DFAClassBuilder extends ClassBuilder {
-
-    static final String OFFSETS_ATTRIBUTE = "offsets";
-    static final String USED_BYTECLASSES = "usedByteClasses";
-    static final String STATE_NUMBER = "stateNumber";
-    static final String FORWARDS = "forwards";
+class DFAClassBuilder extends ClassBuilder {
 
     protected static final String STATE_FIELD = "state";
     protected static final String CHAR_FIELD = "c";
@@ -38,8 +33,6 @@ public class DFAClassBuilder extends ClassBuilder {
     protected static final String PREFIX_CONSTANT = "PREFIX";
     protected static final String INDEX_FORWARDS = "indexForwards";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
-    protected static final String SEEK_MATCH = "seekMatch";
-    protected static final String COMPILATION_POLICY = "COMPILATION_POLICY";
 
     static final int LARGE_STATE_COUNT = 64;
 
