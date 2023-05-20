@@ -72,4 +72,38 @@ public class NodeTest {
         assertEquals(1, node.minLength());
         assertEquals(Optional.of(2), node.maxLength());
     }
+
+    @Test
+    public void testConcatentionHeight_isSumOfNodesPlus1() {
+        // (a|b)a
+        var node = new Concatenation(new Union(new CharRangeNode('a', 'c'), new LiteralNode("f")), new LiteralNode("g"));
+        assertEquals(2, node.height());
+    }
+
+    @Test
+    public void testUnionHeight_isMaxOfNodesPlus1() {
+        // (ab)|b
+        Node node = new Union(new LiteralNode("ab"), new LiteralNode("b"));
+        assertEquals(1, node.height());
+    }
+
+
+    @Test
+    public void test_countedRepetitionHeightIs1PlusNodeHeight() {
+        //(ab){2,3};
+        var node = new CountedRepetition(new LiteralNode("ab"), 2, 3);
+        assertEquals(1, node.height());
+    }
+
+
+    @Test
+    public void test_repetitionHeightIs1PlusNodeHeight() {
+        // a*(a|b);
+        var rep = new Repetition(new LiteralNode("a"));
+        var union = new Union(new LiteralNode("a"), new LiteralNode("b"));
+        var node = new Concatenation(rep, union);
+
+        assertEquals(1, node.minLength());
+        assertEquals(Optional.empty(), node.maxLength());
+    }
 }
