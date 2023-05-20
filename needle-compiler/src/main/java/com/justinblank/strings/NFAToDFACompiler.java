@@ -23,6 +23,7 @@ public class NFAToDFACompiler {
     DFA _compile(NFA nfa) {
         Set<Integer> states = nfa.epsilonClosure(0);
         root = DFA.root(nfa.hasAcceptingState(states));
+        stateSets.put(new HashSet<>(0), root);
         addNFAStatesToDFA(states, root);
         return root;
     }
