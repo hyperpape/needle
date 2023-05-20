@@ -4,7 +4,7 @@ import java.util.*;
 
 import static com.justinblank.strings.RegexInstr.Opcode.*;
 
-public class NFAToDFACompiler {
+class NFAToDFACompiler {
 
     private Map<Set<Integer>, DFA> stateSets = new HashMap<>();
     private int state = 1; // root will always be zero

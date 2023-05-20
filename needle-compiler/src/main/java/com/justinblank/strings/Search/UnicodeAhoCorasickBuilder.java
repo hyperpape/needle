@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
-public class UnicodeAhoCorasickBuilder{
+class UnicodeAhoCorasickBuilder{
 
     private Trie root;
     private List<Trie> nodes = new ArrayList<>();

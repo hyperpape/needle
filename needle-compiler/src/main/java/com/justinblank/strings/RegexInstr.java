@@ -1,6 +1,6 @@
 package com.justinblank.strings;
 
-public class RegexInstr {
+class RegexInstr {
 
     enum Opcode {
         CHAR_RANGE,

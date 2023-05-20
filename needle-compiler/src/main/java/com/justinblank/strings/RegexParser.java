@@ -5,7 +5,7 @@ import com.justinblank.strings.RegexAST.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RegexParser {
+class RegexParser {
 
     private int index = 0;
     private int charRangeDepth = 1;

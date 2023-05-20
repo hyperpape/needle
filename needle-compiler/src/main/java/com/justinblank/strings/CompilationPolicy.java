@@ -1,6 +1,6 @@
 package com.justinblank.strings;
 
-public class CompilationPolicy {
+class CompilationPolicy {
 
     boolean usedByteClasses = false;
     boolean useByteClassesForAllStates = false;
