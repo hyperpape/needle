@@ -30,7 +30,6 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String NEXT_START_FIELD = "nextStart";
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String PREFIX_CONSTANT = "PREFIX";
-    protected static final String INDEX_FORWARDS = "indexForwards";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
     static final int LARGE_STATE_COUNT = 64;
@@ -60,12 +59,9 @@ class DFAClassBuilder extends ClassBuilder {
         this.factorization = factorization;
         this.compilationPolicy = new CompilationPolicy();
         this.debugOptions = debugOptions;
-        // YOLO
-        this.forwardOffsets = dfa != null ? dfa.calculateOffsets(factorization) : null;
-        if (dfa != null) {
-            compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
-        }
-        if (dfa != null && dfa.isAllAscii()) {
+        this.forwardOffsets = dfa.calculateOffsets(factorization);
+        compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
+        if (dfa.isAllAscii()) {
             byteClasses = dfa.byteClasses();
             if (factorization != null && factorization.getSharedPrefix().isEmpty()) {
                 compilationPolicy.useByteClassesForAllStates = true;
@@ -75,7 +71,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    // This isn't really a global policy, more specific to a particular type of find method
+    // TODO This isn't really a global policy, more specific to a particular type of find method
     @Deprecated
     private boolean stateArraysUseShorts() {
         return forwardFindMethodSpec.statesCount() > 127;
@@ -289,7 +285,7 @@ class DFAClassBuilder extends ClassBuilder {
                     withBody(List.of(
                             returnValue(
                                     callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
-                                            call(INDEX_BACKWARDS, Builtin.I, thisRef(), read(MatchingVars.INDEX)),
+                                            call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(), read(MatchingVars.INDEX)),
                                             read(MatchingVars.INDEX)))))
                     .orElse(List.of(
                             returnValue(callStatic(MatchResult.class, "failure",
@@ -313,11 +309,6 @@ class DFAClassBuilder extends ClassBuilder {
         block.readVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
         block.call("length", "java/lang/String", "()I");
         block.addOperation(Operation.mkSetField(MatchingVars.LENGTH, getClassName(), "I"));
-        if (debugOptions.trackStates) {
-//            block.readThis()
-//                    .construct("java/util/ArrayList")
-//                    .setField("visitedStates", getClassName(), CompilerUtil.descriptor(List.class));
-        }
         block.addReturn(RETURN);
         addMethod(method);
     }
@@ -455,8 +446,7 @@ class DFAClassBuilder extends ClassBuilder {
 
             Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(Builtin.S) : ArrayType.of(Builtin.OCTET) ;
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
-            // TODO: this type is never going to have a package for it
-            method.set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getClassName()), byteClassesType), read("c")));
+            method.set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), byteClassesType), read("c")));
             method.set("stateTransitions", getStatic(stateTransitionsName, ReferenceType.of(getClassName()), stateTransitionsType));
             method.returnValue(arrayRead(read("stateTransitions"), read("byteClass")));
         }
