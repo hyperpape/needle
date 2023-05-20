@@ -4,7 +4,6 @@ import com.justinblank.classcompiler.*;
 import com.justinblank.classcompiler.Operation;
 import com.justinblank.classcompiler.lang.*;
 import com.justinblank.classcompiler.lang.Void;
-import com.justinblank.strings.RegexAST.Node;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -49,13 +48,11 @@ class DFAClassBuilder extends ClassBuilder {
     final List<Method> findMethods = new ArrayList<>();
 
     /**
-     * @param className  the simple class name of the class to be created
-     * @param superClass the superclass's descriptor
-     * @param interfaces a possibly empty array of interfaces implemented
+     * @param className the simple class name of the class to be created
      */
-    DFAClassBuilder(String className, String superClass, String[] interfaces, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
+    DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
                     Factorization factorization, DebugOptions debugOptions) {
-        super(className, "", superClass, interfaces);
+        super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
         this.forwardFindMethodSpec = new FindMethodSpec(dfa, "", true);
         this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, "ContainedIn", true);
         this.reversedFindMethodSpec = new FindMethodSpec(reversed, "Backwards", false);
@@ -794,22 +791,6 @@ class DFAClassBuilder extends ClassBuilder {
 
         elementsToAdd.add(cond(offsetCheck).withBody(onFailure));
         return elementsToAdd;
-    }
-
-    static DFAClassBuilder build(String name, DFA dfa, DFA containedInDFA, Node node, DebugOptions debugOptions) {
-        Objects.requireNonNull(name, "name cannot be null");
-        Objects.requireNonNull(dfa, "dfa cannot be null");
-        Objects.requireNonNull(node, "node cannot be null");
-
-        var factorization = node.bestFactors();
-        factorization.setMinLength(node.minLength());
-        node.maxLength().ifPresent(factorization::setMaxLength);
-        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())), ConversionMode.BASIC);
-        DFA dfaSearch = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.DFA_SEARCH);
-
-        var builder = new DFAClassBuilder(name, "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"}, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, debugOptions);
-        builder.initMethods();
-        return builder;
     }
 
     public Collection<Method> allMethods() {

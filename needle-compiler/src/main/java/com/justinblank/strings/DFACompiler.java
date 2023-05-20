@@ -36,25 +36,52 @@ public class DFACompiler {
     }
 
     static byte[] compileToBytes(String regex, String className, DebugOptions debugOptions) {
+        Objects.requireNonNull(className, "name cannot be null");
         Node node = RegexParser.parse(regex);
-        Factorization factors = node.bestFactors();
-        factors.setMinLength(node.minLength());
-        node.maxLength().ifPresent(factors::setMaxLength);
+        Factorization factorization = buildFactorization(node);
+
         DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.BASIC);
-        DFA selfTransitioningDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.CONTAINED_IN);
+        DFA containedInDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.CONTAINED_IN);
+        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())), ConversionMode.BASIC);
+        DFA dfaSearch = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.DFA_SEARCH);
+
         if (debugOptions.isDebug()) {
-            System.out.println(GraphViz.toGraphviz(dfa));
-            System.out.println("----");
-            System.out.println(GraphViz.toGraphviz(selfTransitioningDFA));
+            printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
         }
-        // TODO: Why Short.MAX_VALUE / 2--not obvious why this wouldn't work with Short.MAX_VALUE or Short.MAX_VALUE - 1;
-        if (dfa.statesCount() > Short.MAX_VALUE / 2 || selfTransitioningDFA.statesCount() > Short.MAX_VALUE / 2) {
-            throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
-        }
-        DFAClassBuilder builder = DFAClassBuilder.build(className, dfa, selfTransitioningDFA, node, debugOptions);
+        checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
+
+        var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, debugOptions);
+        builder.initMethods();
         ClassCompiler compiler = new ClassCompiler(builder, debugOptions.isDebug(), System.out);
         byte[] classBytes = compiler.generateClassAsBytes();
         return classBytes;
+    }
+
+    private static void checkForOverLongDFAs(List<DFA> dfas) {
+        for (var dfa : dfas) {
+            // TODO: Why Short.MAX_VALUE / 2--not obvious why this wouldn't work with Short.MAX_VALUE or Short.MAX_VALUE - 1;
+            if (dfa.statesCount() > Short.MAX_VALUE / 2) {
+                throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
+            }
+        }
+    }
+
+    private static Factorization buildFactorization(Node node) {
+        var factorization = node.bestFactors();
+        factorization.setMinLength(node.minLength());
+        node.maxLength().ifPresent(factorization::setMaxLength);
+        return factorization;
+    }
+
+    private static void printDFARepresentations(DFA dfa, DFA containedInDFA, DFA dfaReversed, DFA dfaSearch) {
+        System.out.println("----dfa----");
+        System.out.println(GraphViz.toGraphviz(dfa));
+        System.out.println("----selfTransitioningDFA----");
+        System.out.println(GraphViz.toGraphviz(containedInDFA));
+        System.out.println("----reversedDFA----");
+        System.out.println(GraphViz.toGraphviz(dfaReversed));
+        System.out.println("----dfaSearch----");
+        System.out.println(GraphViz.toGraphviz(dfaSearch));
     }
 
     private static Class<? extends Pattern> createPatternClass(String name, Class<? extends Matcher> m) {

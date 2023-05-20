@@ -17,6 +17,7 @@ public class RegexParser {
     }
 
     public static Node parse(String regex) {
+        Objects.requireNonNull(regex, "regex string cannot be null");
         try {
             return new RegexParser(regex)._parse();
         }
