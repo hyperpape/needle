@@ -63,6 +63,7 @@ class DFAClassBuilder extends ClassBuilder {
         compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
         if (dfa.isAllAscii()) {
             byteClasses = dfa.byteClasses();
+            // TODO: remember and document the connection here
             if (factorization != null && factorization.getSharedPrefix().isEmpty()) {
                 compilationPolicy.useByteClassesForAllStates = true;
             }
@@ -146,6 +147,8 @@ class DFAClassBuilder extends ClassBuilder {
     private void populateByteClassArrays() {
         populateByteClassArrays(forwardFindMethodSpec);
         populateByteClassArrays(reversedFindMethodSpec);
+        populateByteClassArrays(containedInFindMethodSpec);
+        populateByteClassArrays(dfaSearchFindMethodSpec);
     }
 
     private void populateByteClassArrays(FindMethodSpec spec) {
