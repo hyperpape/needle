@@ -230,7 +230,19 @@ class DFAClassBuilder extends ClassBuilder {
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
                         spec.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)) : new NoOpStatement(),
-                        buildStateSwitch(spec, -1),
+                        // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
+                        // using non-ascii character from the haystack as our index
+                        // TODO: this should be ok regardless of whether we're using byteclasses?
+                        // TODO: consider an entirely separate version if we're using byteclasses
+                        // current implementation seems overcomplicated
+                        compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                                set(MatchingVars.STATE, -1),
+                                cond(gt(read(MatchingVars.LAST_MATCH), literal(-1))).withBody(
+                                        returnValue(read(MatchingVars.LAST_MATCH))
+                                ),
+                                skip()
+                        )) : new NoOpStatement(),
+                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, -1),
                         cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         // In an indexBackwards method, we always know we're going to find a match, so don't restart on
@@ -238,7 +250,10 @@ class DFAClassBuilder extends ClassBuilder {
                         spec.forwards ? cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                 List.of(
                                         set(MatchingVars.STATE, 0),
-                                        buildStateSwitch(spec,0)
+                                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec,0),
+                                        cond(eq(-1, read(MatchingVars.STATE))).withBody(
+                                                set(MatchingVars.STATE, 0)
+                                        )
                                 )) : new NoOpStatement(),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
@@ -249,6 +264,16 @@ class DFAClassBuilder extends ClassBuilder {
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
+    }
+
+    private CodeElement buildStateLookup(FindMethodSpec spec) {
+        Type type = compilationPolicy.stateArraysUseShorts ? Builtin.S : Builtin.OCTET;
+        var stateArrayRef = arrayRead(
+                getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
+        var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
+        var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
+        // TODO: this is a bit of a hack--we'll have to figure out the type inference story in mako
+        return set(MatchingVars.STATE, cast(Builtin.I, arrayRead(stateArrayRef, byteClassLookup)));
     }
 
     private Method createFindMethod() {

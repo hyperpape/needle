@@ -51,7 +51,7 @@ public class SearchMethodTestUtil {
         // Property #1 -- we'll find substring using the find method
         assertTrue("Failed to find in string=\"" + s + "\", start=" + start + ",end=" + end, result.matched);
         // Property #2 -- that substring will match using the matches method
-        assertTrue("Failed to match substring of string=\"" + s + "\", start=" + start + ",end=" + end,
+        assertTrue("Failed to match substring of string=\"" + s + "\", start=" + result.start + ",end=" + result.end,
                 method.matcher(s.substring(result.start, result.end)).matches());
 
         var prefix = s.substring(start, result.start);
