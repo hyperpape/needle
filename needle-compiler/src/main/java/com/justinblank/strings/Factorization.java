@@ -308,6 +308,9 @@ public class Factorization {
     }
 
     public Optional<String> getSharedSuffix() {
+        if (suffixes == null || suffixes.isEmpty()) {
+            return Optional.empty();
+        }
         var reversedSuffixes = getSuffixes().stream().map(StringUtils::reverse).collect(Collectors.toSet());
         return getSharedPrefix(reversedSuffixes).map(StringUtils::reverse);
     }

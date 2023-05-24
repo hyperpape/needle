@@ -83,7 +83,7 @@ class DFAClassBuilder extends ClassBuilder {
                 populateByteClassArrays();
             }
         }
-        if (shouldSeek()) {
+        if (shouldSeekForwards()) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
             });
@@ -94,7 +94,7 @@ class DFAClassBuilder extends ClassBuilder {
         findMethods.add(createFindMethod());
         findMethods.add(createFindMethodInternal());
         findMethods.add(createIndexMethod(dfaSearchFindMethodSpec));
-        findMethods.add(createIndexMethod(reversedFindMethodSpec));
+        findMethods.add(createIndexMethodReversed(reversedFindMethodSpec));
         addWasAcceptedMethod(forwardFindMethodSpec);
         addWasAcceptedMethod(containedInFindMethodSpec);
         addWasAcceptedMethod(dfaSearchFindMethodSpec);
@@ -175,12 +175,11 @@ class DFAClassBuilder extends ClassBuilder {
         String wasAcceptedMethod = spec.wasAcceptedName();
 
         method.set(MatchingVars.LENGTH, get(MatchingVars.LENGTH, Builtin.I, thisRef()));
-        if (spec.forwards) {
-            if (factorization.getMinLength() > 0 && factorization.getMinLength() <= Short.MAX_VALUE) {
-                method.cond(lt(read(MatchingVars.LENGTH), factorization.getMinLength())).withBody(
-                        returnValue(-1)
-                );
-            }
+
+        if (factorization.getMinLength() > 0 && factorization.getMinLength() <= Short.MAX_VALUE) {
+            method.cond(lt(read(MatchingVars.LENGTH), factorization.getMinLength())).withBody(
+                    returnValue(-1)
+            );
         }
 
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
@@ -189,11 +188,10 @@ class DFAClassBuilder extends ClassBuilder {
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
-        var loopBoundary = spec.forwards ? lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)) :
-                gt(read(MatchingVars.INDEX), 0);
+        var loopBoundary = lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
         method.loop(loopBoundary, outerLoopBody);
 
-        if (spec.forwards && shouldSeek()) {
+        if (shouldSeekForwards()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
@@ -220,14 +218,15 @@ class DFAClassBuilder extends ClassBuilder {
                 List.of(
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                                 .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))),
-                        !spec.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), -1)) : new NoOpStatement(),
+
                         set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
-                        spec.forwards ? set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)) : new NoOpStatement(),
+                        set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
                         // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
                         // using non-ascii character from the haystack as our index
-                        // TODO: this should be ok regardless of whether we're using byteclasses?
+                        // TODO: performing this check should be ok regardless of whether we're using byteclasses--
+                        //  maybe even a valuable speedup?
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
                         compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
@@ -240,21 +239,76 @@ class DFAClassBuilder extends ClassBuilder {
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, -1),
                         cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
-                        // In an indexBackwards method, we always know we're going to find a match, so don't restart on
-                        // when state is -1
-                        spec.forwards ? cond(eq(-1, read(MatchingVars.STATE))).withBody(
+                        cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                 List.of(
                                         set(MatchingVars.STATE, 0),
-                                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec,0),
+                                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, 0),
                                         cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                                 set(MatchingVars.STATE, 0)
                                         )
-                                )) : new NoOpStatement(),
+                                )),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
                         )
                 ));
         outerLoopBody.add(innerLoop);
+
+        method.returnValue(read(MatchingVars.LAST_MATCH));
+
+        return method;
+    }
+
+    private Method createIndexMethodReversed(FindMethodSpec spec) {
+        var vars = new MatchingVars(2, 1, 3, -1, 4);
+        vars.setWasAcceptedVar(5);
+        vars.setLastMatchVar(6);
+        var method = mkMethod(spec.indexMethod(), List.of("I"), "I", vars);
+
+        String wasAcceptedMethod = spec.wasAcceptedName();
+
+        method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
+        // TODO: This zero is quite odd in a reversed method, I don't know what it should be, however
+        method.set(MatchingVars.LAST_MATCH, spec.dfa.isAccepting() ? 0 : -1);
+
+        var loopBoundary = gte(read(MatchingVars.INDEX), 0);
+
+        if (shouldSeekBackwards()) {
+            var suffix = factorization.getSharedSuffix().orElseThrow();
+            var postSuffixState = spec.dfa.after(StringUtils.reverse(suffix)).orElseThrow(()
+                    -> new IllegalStateException("No DFA state available after consuming suffix. This should be impossible"));
+            int state = postSuffixState.getStateNumber();
+            method.set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), suffix.length()));
+            method.set(MatchingVars.STATE, state);
+            if (postSuffixState.isAccepting()) {
+                // awkward--because of the way we're updating the index we have to back off by one
+                method.set(MatchingVars.LAST_MATCH, plus(read(MatchingVars.INDEX), 1));
+            }
+        }
+        else {
+            method.set(MatchingVars.STATE, 0);
+        }
+        Expression loopCondition = and(neq(-1, read(MatchingVars.STATE)), loopBoundary);
+        method.loop(loopCondition,
+                List.of(
+                        set(MatchingVars.CHAR, call("charAt", Builtin.C,
+                                read(MatchingVars.STRING),
+                                read(MatchingVars.INDEX))),
+                        // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
+                        // using non-ascii character from the haystack as our index
+                        // TODO: this should be ok regardless of whether we're using byteclasses?
+                        // TODO: consider an entirely separate version if we're using byteclasses
+                        // current implementation seems overcomplicated
+                        compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                                returnValue(read(MatchingVars.LAST_MATCH))
+                        )) : new NoOpStatement(),
+                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, -1),
+                        cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
+                                withBody(returnValue(read(MatchingVars.LAST_MATCH))),
+                        cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
+                                set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
+                        ),
+                        set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
+                ));
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
@@ -308,7 +362,7 @@ class DFAClassBuilder extends ClassBuilder {
                     withBody(List.of(
                             returnValue(
                                     callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
-                                            call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(), read(MatchingVars.INDEX)),
+                                            call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(), sub(read(MatchingVars.INDEX), 1)),
                                             read(MatchingVars.INDEX)))))
                     .orElse(List.of(
                             returnValue(callStatic(MatchResult.class, "failure",
@@ -568,8 +622,12 @@ class DFAClassBuilder extends ClassBuilder {
         return true; // dfaState.getTransitions().size() > 3 || !dfa.allTransitionsLeadToSameState();
     }
 
-    private boolean shouldSeek() {
+    private boolean shouldSeekForwards() {
         return factorization.getSharedPrefix().map(StringUtils::isNotEmpty).orElse(false);
+    }
+
+    private boolean shouldSeekBackwards() {
+        return factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false);
     }
 
     // TODO: measure breakeven point for offsets
@@ -604,7 +662,7 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
         int offsetCheckState = 0;
-        if (shouldSeek()) {
+        if (shouldSeekForwards()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             offsetCheckState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
@@ -721,7 +779,7 @@ class DFAClassBuilder extends ClassBuilder {
         List<CodeElement> outerLoopBody = new ArrayList<>();
         method.loop(lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)), outerLoopBody);
 
-        if (shouldSeek()) {
+        if (shouldSeekForwards()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             int postPrefixState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 

@@ -45,8 +45,10 @@ public class DFAClassBuilderTest {
         try {
             var dfa = DFA.createDFA("abc");
             var node = RegexParser.parse("abc");
+            var dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())),
+                    ConversionMode.BASIC);
             var builder = new DFAClassBuilder("indexForwards",
-                    dfa, dfa, dfa, dfa, node.bestFactors(), DebugOptions.none());
+                    dfa, dfa, dfaReversed, dfa, node.bestFactors(), DebugOptions.none());
             builder.initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwards");
             Object o = c.getDeclaredConstructors()[0].newInstance("abca");
