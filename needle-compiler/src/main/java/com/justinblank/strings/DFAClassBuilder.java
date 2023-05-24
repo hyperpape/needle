@@ -63,10 +63,7 @@ class DFAClassBuilder extends ClassBuilder {
         compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
         if (dfa.isAllAscii()) {
             byteClasses = dfa.byteClasses();
-            // TODO: remember and document the connection here
-            if (factorization != null && factorization.getSharedPrefix().isEmpty()) {
-                compilationPolicy.useByteClassesForAllStates = true;
-            }
+            compilationPolicy.useByteClassesForAllStates = true;
         } else {
             byteClasses = null;
         }
