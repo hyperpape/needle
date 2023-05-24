@@ -170,9 +170,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createIndexMethod(FindMethodSpec spec) {
-        boolean forwards = spec.name.equals("");
         var vars = new MatchingVars(2, 1, 3, 4, 5);
-        vars.setForwards(forwards);
         vars.setWasAcceptedVar(6);
         vars.setLastMatchVar(7);
         var method = mkMethod(spec.indexMethod(), List.of("I"), "I", vars);

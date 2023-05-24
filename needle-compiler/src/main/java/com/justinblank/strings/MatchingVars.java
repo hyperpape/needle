@@ -15,8 +15,6 @@ class MatchingVars implements Vars {
     static final String LENGTH = DFAClassBuilder.LENGTH_FIELD;
     static final String LAST_MATCH = "lastMatch";
     static final String WAS_ACCEPTED = "wasAccepted";
-
-    boolean forwards;
     int lengthVar = -1;
     int stringVar = -1;
     int charVar = -1;
@@ -26,11 +24,6 @@ class MatchingVars implements Vars {
     int wasAcceptedVar = -1;
 
     MatchingVars(int charVar, int counterVar, int stateVar, int lengthVar, int stringVar) {
-        this(true, charVar, counterVar, stateVar, lengthVar, stringVar);
-    }
-
-    private MatchingVars(boolean forwards, int charVar, int counterVar, int stateVar, int lengthVar, int stringVar) {
-        this.forwards = forwards;
         this.charVar = charVar;
         this.counterVar = counterVar;
         this.stateVar = stateVar;
@@ -86,11 +79,6 @@ class MatchingVars implements Vars {
 
     public MatchingVars setLastMatchVar(int lastMatchVar) {
         this.lastMatchVar = lastMatchVar;
-        return this;
-    }
-
-    public MatchingVars setForwards(boolean forwards) {
-        this.forwards = forwards;
         return this;
     }
 
