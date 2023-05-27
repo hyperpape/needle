@@ -157,13 +157,22 @@ class DFAClassBuilder extends ClassBuilder {
                 .newArray(compilationPolicy.getStateArrayType())
                 .putStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType());
 
-        // Now fill it with empty arrays
+        staticBlock.callStatic("fillStatesConstant" + spec.name, CompilerUtil.internalName(getFQCN()), "()V");
+        createFillStatesConstantMethod(spec);
+    }
+
+    private void createFillStatesConstantMethod(FindMethodSpec spec) {
+        // Fill the top level array of state transition arrays with the individual transition arrays
+        var method = mkMethod("fillStatesConstant" + spec.name, List.of(), "V", null, ACC_STATIC);
+        addMethod(method);
+        var staticBlock = method.addBlock();
         for (var i = 0; i < spec.statesCount(); i++) {
             staticBlock.readStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType())
                     .push(i)
                     .readStatic(spec.stateArrayName(i), true, compilationPolicy.getStateArrayType())
                     .operate(AASTORE);
         }
+        staticBlock.addReturn(RETURN);
     }
 
     private Method createIndexMethod(FindMethodSpec spec) {
@@ -562,6 +571,16 @@ class DFAClassBuilder extends ClassBuilder {
         var arrayName = stateArrayName(spec, dfaState.getStateNumber());
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
+        var methodName = createFillStateArrayMethod(spec, dfaState);
+        staticBlock.callStatic(methodName, CompilerUtil.internalName(getFQCN()), "()V");
+    }
+
+    private String createFillStateArrayMethod(FindMethodSpec spec, DFA dfaState) {
+        var methodName = "createFillStateTransitionArray" + spec.name + dfaState.getStateNumber();
+        var method = new Method(methodName, List.of(), "V", new GenericVars(), ACC_STATIC);
+        addMethod(method);
+        var staticBlock = method.addBlock();
+        var arrayName = stateArrayName(spec, dfaState.getStateNumber());
 
         staticBlock.push(getByteClassesMax() + 1);
         if (compilationPolicy.stateArraysUseShorts) {
@@ -599,6 +618,8 @@ class DFAClassBuilder extends ClassBuilder {
                 }
             }
         }
+        staticBlock.addReturn(RETURN);
+        return methodName;
     }
 
     private int getByteClassesMax() {
