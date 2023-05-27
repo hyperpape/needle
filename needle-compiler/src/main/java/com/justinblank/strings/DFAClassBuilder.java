@@ -470,7 +470,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private void addStateGroupMethod(FindMethodSpec spec, int start, int end) {
         String name = stateGroupName(spec, start);
-        var method = mkMethod(name, List.of("C", "I"), "I", new GenericVars(), ACC_PRIVATE);
+        var method = mkMethod(name, List.of("C", "I"), "I", new GenericVars("C", "I"), ACC_PRIVATE);
         var mainBlock = method.addBlock();
         mainBlock.readThis().readVar(1, "C").readVar(2, "I");
         var switchBlocks = new ArrayList<Block>();
