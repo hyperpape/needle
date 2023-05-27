@@ -372,7 +372,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private void addConstructor() {
-        var vars = new MatchingVars(-1, -1, -1, -1, 1);
+        var vars = new GenericVars(MatchingVars.STRING);
         var method = mkMethod("<init>", Arrays.asList(CompilerUtil.STRING_DESCRIPTOR), "V", vars);
 
         var block = method.addBlock();
@@ -470,7 +470,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private void addStateGroupMethod(FindMethodSpec spec, int start, int end) {
         String name = stateGroupName(spec, start);
-        var method = mkMethod(name, List.of("C", "I"), "I", new MatchingVars(-1, -1, -1, -1, -1), ACC_PRIVATE);
+        var method = mkMethod(name, List.of("C", "I"), "I", new GenericVars(), ACC_PRIVATE);
         var mainBlock = method.addBlock();
         mainBlock.readThis().readVar(1, "C").readVar(2, "I");
         var switchBlocks = new ArrayList<Block>();
