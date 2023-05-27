@@ -421,6 +421,10 @@ class DFA {
                 continue;
             }
             highWaterMark = addRange(derivedRanges, allTransitions, highWaterMark, i);
+            // avoid overflow
+            if (highWaterMark < Character.MAX_VALUE) {
+                highWaterMark++;
+            }
             // If we have ranges like [a-z][b-c][g-h], we'll have to iterate over the [a-z] range several times or we'll
             // end up missing [i-z].
             if (highWaterMark < range.getEnd()) {
@@ -450,7 +454,7 @@ class DFA {
             }
         }
         derivedRanges.add(new CharRange(start, end));
-        return (char) (end + 1);
+        return end;
     }
 
     protected int charCount() {

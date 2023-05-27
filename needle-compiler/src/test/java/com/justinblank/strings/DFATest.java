@@ -208,4 +208,11 @@ public class DFATest {
             assertEquals(0, byteClasses[c]);
         }
     }
+
+    @Test
+    public void testDistinctCharRanges_canBeFormed_fromRegexWithDot() {
+        var dfa = DFA.createDFA("[A-Za-z]+.b");
+        var byteClasses = dfa.getDistinctCharRanges();
+        assertThat(byteClasses).isNotEmpty();
+    }
 }
