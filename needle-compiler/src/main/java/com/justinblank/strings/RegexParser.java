@@ -303,7 +303,8 @@ class RegexParser {
             case '+':
             case '{':
             case ':':
-            case '^': {
+            case '^':
+            case '.': {
                 return new CharRangeNode(c, c);
             }
         }

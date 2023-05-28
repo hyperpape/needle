@@ -440,6 +440,11 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testParseEscapedPeriod() {
+        parse("\\.");
+    }
+
+    @Test
     public void testRightMismatchedBracket() {
         parse("]");
     }
