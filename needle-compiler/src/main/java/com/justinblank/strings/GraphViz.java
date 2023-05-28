@@ -1,8 +1,6 @@
 package com.justinblank.strings;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GraphViz {
@@ -31,34 +29,62 @@ public class GraphViz {
         graphSb.append(";\n");
         graphSb.append("node [shape = circle];").append("\n");
 
+        appendStateTransitions(dfa, graphSb);
+
+        graphSb.append("}");
+        return graphSb.toString();
+    }
+
+    private static void appendStateTransitions(DFA dfa, StringBuilder graphSb) {
         var seen = new HashSet<Integer>();
         var pending = new Stack<DFA>();
         pending.push(dfa);
         seen.add(dfa.getStateNumber());
 
+        List<String> stateTransitionStrings = new ArrayList<>();
         while (!pending.isEmpty()) {
             var current = pending.pop();
             for (var transition : current.getTransitions()) {
+                StringBuilder sb = new StringBuilder();
                 var targetDfa = transition.getRight();
                 if (!seen.contains(targetDfa.getStateNumber())) {
                     pending.push(targetDfa);
                     seen.add(targetDfa.getStateNumber());
                 }
-                graphSb.append(current.getStateNumber()).append(" -> ").append(targetDfa.getStateNumber());
-                graphSb.append("[label=\"");
+                sb.append(current.getStateNumber()).append(" -> ").append(targetDfa.getStateNumber());
+                sb.append("[label=\"");
                 var charRange = transition.getLeft();
                 if (charRange.isSingleCharRange()) {
-                    graphSb.append(graphVizEncode(transition.getLeft().getStart()));
+                    sb.append(graphVizEncode(transition.getLeft().getStart()));
                 }
                 else {
-                    graphSb.append(graphVizEncode(transition.getLeft().getStart())).append("-").append(graphVizEncode(transition.getLeft().getEnd()));
+                    sb.append(graphVizEncode(transition.getLeft().getStart())).append("-").append(graphVizEncode(transition.getLeft().getEnd()));
                 }
-                graphSb.append("\"]").append(";\n");
+                sb.append("\"]").append(";\n");
+                stateTransitionStrings.add(sb.toString());
             }
         }
+        sortStateTransitionStrings(stateTransitionStrings);
+        for (String stateTransition : stateTransitionStrings) {
+            graphSb.append(stateTransition);
+        }
+    }
 
-        graphSb.append("}");
-        return graphSb.toString();
+    private static void sortStateTransitionStrings(List<String> stateTransitionStrings) {
+        stateTransitionStrings.sort((s1, s2) -> {
+            var s1State = takeInt(s1);
+            var s2State = takeInt(s2);
+            return s1State - s2State;
+        });
+    }
+
+    private static int takeInt(String s1) {
+        for (var i = 0; i < s1.length(); i++) {
+            if (s1.charAt(i) < '0' || s1.charAt(i) > '9') {
+                return Integer.parseInt(s1.substring(0, i));
+            }
+        }
+        throw new IllegalArgumentException("Passed a string that didn't start with an integer, String='" + s1 + "'");
     }
 
     static String graphVizEncode(char start) {
@@ -77,11 +103,14 @@ public class GraphViz {
                 return "\\\\";
             case '\t':
                 return "\\t";
-
+            // TODO: Handle more unicode characters
+            case '\uFFFE':
+            case '\uFFFF':
+                return "\\u" + (Integer.toHexString(start));
 
             default:
                 if (start < ' ') {
-                    return "\\u00" + (Integer.toHexString((int) start));
+                    return "\\u00" + Integer.toHexString((start));
                 }
                 return String.valueOf(start);
         }
