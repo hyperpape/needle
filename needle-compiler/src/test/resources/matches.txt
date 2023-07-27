@@ -72,3 +72,11 @@ a{1,2}              aaa                 y       0       2
 \.                  .                   y       0       1
 \.                  a                   n
 \.                  ab.                 y       2       3
+gcg*cg              gccg                y       0       4
+gcg*cg              gcgcgcg             y       0       5
+gcg*cg*             gccgg               y       0       5
+gcg*cg*             gcgcggcg            y       0       6
+gc(g|a)*cg          gccg                y       0       4
+gc(g|a)*cg          gcgcg               y       0       5
+gc(g|a)*cg          gcgcgcg             y       0       5
+gc(g|a)*cg          gcggcgcg            y       0       6

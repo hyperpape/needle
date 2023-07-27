@@ -1,12 +1,19 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
+import com.justinblank.strings.RegexAST.NodePrinter;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
@@ -570,6 +577,43 @@ public class DFACompilerTest {
         find(pattern, "aaaax");
     }
 
+
+//    @Test
+//    public void testFoo() {
+//        String regex = "(a*tgc*|t*acg*)*(cg){1,20}(a|t)*";
+//        Pattern pattern = DFACompiler.compile(regex, "foo");
+//        find(pattern, "agcttttcattctgactgcaacgggcaatatgtctctgtgtggattaaaa");
+//
+////        RegexGenerator regexGenerator = new RegexGenerator(new Random(), 10);
+////        Node node = RegexParser.parse(regex);
+////        for (int i = 0; i < 10000; i++) {
+////            String hayStack = regexGenerator.generateString(node);
+////            match(pattern, hayStack);
+////        }
+//    }
+//
+//    @Test
+//    public void testBar() throws Exception {
+//        String regex = "ggc(g|a)*cg";
+//        String hayStack = Files.readAllLines(Path.of("/home/justin/code/regexbench/src/main/resources/samples/sample-ecoli.sample")).get(0);
+//        Pattern pattern = DFACompiler.compile(regex, "bar");
+//        java.util.regex.Pattern jdkPattern = java.util.regex.Pattern.compile(regex);
+//
+//        hayStack = hayStack.substring(1328, 1337);
+//        Matcher matcher = pattern.matcher(hayStack);
+//        java.util.regex.Matcher jdkMatcher = jdkPattern.matcher(hayStack);
+//        while (true) {
+//            var matchResult = matcher.find();
+//            jdkMatcher.find();
+//            var jdkMatchResult = jdkMatcher.toMatchResult();
+//            if (matchResult.matched) {
+//                assertEquals(matchResult.start, jdkMatchResult.start());
+//                assertEquals(matchResult.end, jdkMatchResult.end());
+//            }
+//        }
+//
+//
+//    }
 
     @Test
     public void fileBasedTests() throws Exception {
