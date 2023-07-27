@@ -104,13 +104,14 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     /**
-     * Create the array of byteClasses that maps a character <= 128 to a byteClass--this allows us to make our state
-     * transition arrays smaller
+     * Create a static block populating the array of byteClasses that maps a character <= 128 to a byteClass. By mapping
+     * characters to byteClasses, we can make our state transition arrays smaller.
      */
     private void addByteClasses() {
         addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, BYTE_CLASSES_CONSTANT, "[B", null, null));
         var staticBlock = addStaticBlock();
 
+        // All characters that cannot be recognized by the DFA are represented with 0
         staticBlock.push(128)
                 .newArray(T_BYTE)
                 .putStatic(BYTE_CLASSES_CONSTANT, true, "[B")
@@ -119,17 +120,19 @@ class DFAClassBuilder extends ClassBuilder {
                 .callStatic("fill", "java/util/Arrays", "([BB)V");
         int start = 0;
         int end = 0;
-        int byteClass = -2;
+        int byteClass = byteClasses[start];
+
+        // Identify runs of characters that are mapped to the same byte class. For each of these runs, we emit a call to
+        // ByteClassUtil#fillBytes() to fill the array with the number representing that byte class.
         while (end < 129) {
-            if (byteClass == -2) {
-                byteClass = byteClasses[start];
-            }
             if (byteClasses[end] != byteClass) {
-                staticBlock.readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
-                        .push(byteClass)
-                        .push(start)
-                        .push(end - 1)
-                        .callStatic("fillBytes", "com/justinblank/strings/ByteClassUtil", "([BBII)V");
+                if (byteClass != 0) {
+                    staticBlock.readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
+                            .push(byteClass)
+                            .push(start)
+                            .push(end - 1)
+                            .callStatic("fillBytes", "com/justinblank/strings/ByteClassUtil", "([BBII)V");
+                }
                 start = end;
                 byteClass = byteClasses[end];
             }
