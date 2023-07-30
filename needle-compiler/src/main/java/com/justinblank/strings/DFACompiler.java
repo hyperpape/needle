@@ -43,10 +43,10 @@ public class DFACompiler {
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed()));
 
-        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC);
-        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN);
-        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC);
-        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, debugOptions.isDebug());
+        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, debugOptions.isDebug());
+        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, debugOptions.isDebug());
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, debugOptions.isDebug());
 
         if (debugOptions.isDebug()) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);

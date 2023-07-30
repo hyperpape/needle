@@ -20,6 +20,15 @@ class NFAToDFACompiler {
         return MinimizeDFA.minimizeDFA(dfa);
     }
 
+    protected static DFA compile(NFA nfa, ConversionMode mode, boolean debug) {
+        DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa, mode);
+        if (debug) {
+            System.out.println("Pre-minimization dfa");
+            System.out.println(GraphViz.toGraphviz(dfa));
+        }
+        return MinimizeDFA.minimizeDFA(dfa);
+    }
+
     DFA _compile(NFA nfa, ConversionMode mode) {
         Set<Integer> states = nfa.epsilonClosure(0);
         if (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH) {
