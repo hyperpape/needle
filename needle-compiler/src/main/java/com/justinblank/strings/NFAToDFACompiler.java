@@ -26,20 +26,17 @@ class NFAToDFACompiler {
             states.add(0);
         }
         root = DFA.root(nfa.hasAcceptingState(states));
-        stateSets.put(new HashSet<>(0), root);
-        addNFAStatesToDFA(states, root, mode);
+        stateSets.put(states, root);
+        addNFAStatesToDFA(states, mode);
         return root;
     }
 
-    private void addNFAStatesToDFA(Set<Integer> states, DFA dfa, ConversionMode mode) {
+    private void addNFAStatesToDFA(Set<Integer> states, ConversionMode mode) {
         Stack<Set<Integer>> pending = new Stack<>();
         pending.add(states);
         while (!pending.isEmpty()) {
             states = pending.pop();
-            DFA foundDFA = stateSets.get(states);
-            if (foundDFA != null) {
-                dfa = foundDFA;
-            }
+            DFA dfa = stateSets.get(states);
             Set<Integer> epsilonClosure = nfa.epsilonClosure(states);
             boolean accepting = nfa.hasAcceptingState(states);
             // No point in ever going past an accepting state for the contained in search
