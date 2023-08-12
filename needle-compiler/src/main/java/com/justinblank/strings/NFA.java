@@ -248,29 +248,28 @@ class NFA implements SearchMethod {
 
     // TODO: Optimized version that works on a collection
     protected Set<Integer> epsilonClosure(Integer initial) {
+        Set<Integer> seen = new HashSet<>();
         Set<Integer> closure = new HashSet<>();
         Queue<Integer> pending = new LinkedList<>();
         pending.add(initial);
         while (!pending.isEmpty()) {
             Integer next = pending.poll();
+            seen.add(next);
             RegexInstr instr = this.regexInstrs[next];
             if (instr.opcode == SPLIT) {
                 Integer newNext1 = instr.target1;
-                if (!closure.contains(newNext1)) {
+                if (!seen.contains(newNext1)) {
                     pending.add(newNext1);
-                    closure.add(newNext1);
                 }
                 Integer newNext2 = instr.target2;
-                if (!closure.contains(newNext2)) {
+                if (!seen.contains(newNext2)) {
                     pending.add(newNext2);
-                    closure.add(newNext2);
                 }
             }
             else if (instr.opcode == JUMP) {
                 Integer newNext = instr.target1;
-                if (!closure.contains(newNext)) {
+                if (!seen.contains(newNext)) {
                     pending.add(newNext);
-                    closure.add(newNext);
                 }
             }
             else {
