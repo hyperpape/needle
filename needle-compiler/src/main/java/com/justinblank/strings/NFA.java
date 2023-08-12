@@ -249,7 +249,6 @@ class NFA implements SearchMethod {
     // TODO: Optimized version that works on a collection
     protected Set<Integer> epsilonClosure(Integer initial) {
         Set<Integer> closure = new HashSet<>();
-        closure.add(initial);
         Queue<Integer> pending = new LinkedList<>();
         pending.add(initial);
         while (!pending.isEmpty()) {
@@ -273,6 +272,9 @@ class NFA implements SearchMethod {
                     pending.add(newNext);
                     closure.add(newNext);
                 }
+            }
+            else {
+                closure.add(next);
             }
         }
         return closure;

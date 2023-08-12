@@ -14,6 +14,7 @@ import org.quicktheories.generators.StringsDSL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static com.justinblank.strings.SearchMethodTestUtil.match;
@@ -422,5 +423,19 @@ public class NFATest {
 
     private static SearchMethod createNFA(List<String> strings) {
         return NFA.createNFANoAhoCorasick(joinLiterals(strings));
+    }
+
+    @Test
+    public void testEpsilonClosure_isNoOpOnCharacter() {
+        NFA nfa = NFA.createNFANoAhoCorasick("gc*g");
+        var closure = nfa.epsilonClosure(0);
+        assertEquals(Set.of(0), closure);
+    }
+
+    @Test
+    public void testEpsilonClosure_omitsSkipInstructions() {
+        NFA nfa = NFA.createNFANoAhoCorasick("gc*g");
+        var closure = nfa.epsilonClosure(1);
+        assertEquals(Set.of(2, 4), closure);
     }
 }
