@@ -438,4 +438,11 @@ public class NFATest {
         var closure = nfa.epsilonClosure(1);
         assertEquals(Set.of(2, 4), closure);
     }
+
+    @Test
+    public void testEpsilonClosure_omitsSkipInstructions_reachedFromJumps() {
+        NFA nfa = NFA.createNFANoAhoCorasick("gc*g");
+        var closure = nfa.epsilonClosure(3);
+        assertEquals(Set.of(2, 4), closure);
+    }
 }
