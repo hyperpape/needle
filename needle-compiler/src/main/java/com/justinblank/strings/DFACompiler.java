@@ -40,10 +40,13 @@ public class DFACompiler {
         Node node = RegexParser.parse(regex);
         Factorization factorization = buildFactorization(node);
 
-        DFA dfa = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.BASIC);
-        DFA containedInDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.CONTAINED_IN);
-        DFA dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())), ConversionMode.BASIC);
-        DFA dfaSearch = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node)), ConversionMode.DFA_SEARCH);
+        NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
+        NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed()));
+
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC);
+        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN);
+        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC);
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
 
         if (debugOptions.isDebug()) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
