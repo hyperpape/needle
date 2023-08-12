@@ -7,7 +7,7 @@ import static com.justinblank.strings.RegexInstr.Opcode.*;
 class NFAToDFACompiler {
 
     private Map<Set<Integer>, DFA> stateSets = new HashMap<>();
-    private int state = 1; // root will always be zero
+    private int nextState = 1; // root will always be zero
     private DFA root;
     private final NFA nfa;
 
@@ -50,16 +50,18 @@ class NFAToDFACompiler {
             List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
             for (CharRange range : ranges) {
                 // any element of the range is equally good here, getStart()/getEnd() doesn't matter
-                Set<Integer> moves = nfa.epsilonClosure(transition(epsilonClosure, range.getStart()));
-                if (mode == ConversionMode.CONTAINED_IN || (!nfa.hasAcceptingState(moves) && mode == ConversionMode.DFA_SEARCH)) {
-                    moves.add(0);
+                Set<Integer> postTransitionStates = nfa.epsilonClosure(transition(epsilonClosure, range.getStart()));
+                // We want to add the initial state to the state set if we're doing a search method (not match) to
+                // enable restarting when we reach an empty state
+                // but we want to avoid doing that when we've reached an accepting state
+                if (!nfa.hasAcceptingState(postTransitionStates) && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
+                    postTransitionStates.add(0);
                 }
-                DFA targetDfa = stateSets.get(moves);
+                DFA targetDfa = stateSets.get(postTransitionStates);
                 if (targetDfa == null) {
-                    pending.add(moves);
-                    boolean moveIsAccepting = nfa.hasAcceptingState(moves);
-                    targetDfa = new DFA(root, moveIsAccepting, state++);
-                    stateSets.put(moves, targetDfa);
+                    pending.add(postTransitionStates);
+                    targetDfa = new DFA(root, nfa.hasAcceptingState(postTransitionStates), nextState++);
+                    stateSets.put(postTransitionStates, targetDfa);
                 }
                 dfa.addTransition(range, targetDfa);
             }
