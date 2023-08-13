@@ -98,4 +98,21 @@ class NFAToDFACompiler {
         }
         return transitionStates;
     }
+
+    static class StateSet extends HashSet<Integer> {
+        Map<Integer, Integer> stateStarts = new HashMap<>();
+
+        public boolean add(Integer integer, Integer distance) {
+            var currentState = stateStarts.get(integer);
+            if (currentState != null) {
+                if (currentState < distance) {
+                    stateStarts.put(integer, distance);
+                }
+            }
+            else {
+                stateStarts.put(integer, distance);
+            }
+            return super.add(integer);
+        }
+    }
 }
