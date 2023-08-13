@@ -65,7 +65,25 @@ class NFAToDFACompiler {
                 // We want to add the initial state to the state set if we're doing a search method (not match) to
                 // enable restarting when we reach an empty state
                 // but we want to avoid doing that when we've reached an accepting state
-                if (!nfa.hasAcceptingState(postTransitionStates) && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
+                boolean acceptingState = nfa.hasAcceptingState(postTransitionStates);
+                // TODO: Pruning should be a no-op for ConversionMode.BASIC, but in fact, removing the mode check will
+                //  cause test failures
+                if (acceptingState && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
+                    boolean removed;
+                    do {
+                        removed = false;
+                        for (var state : postTransitionStates) {
+                            if (nfa.isAcceptingState(state)) {
+                                var distance = postTransitionStates.getDistance(state);
+                                if (postTransitionStates.prune(state, distance)) {
+                                    removed = true;
+                                    break; // avoid ConcurrentModificationException
+                                }
+                            }
+                        }
+                    } while (removed);
+                }
+                if (!acceptingState && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
                     postTransitionStates.add(0, 0);
                 }
                 DFA targetDfa = stateSets.get(postTransitionStates);
@@ -140,6 +158,24 @@ class NFAToDFACompiler {
 
         public Integer getDistance(Integer state) {
             return stateStarts.get(state);
+        }
+
+        public boolean prune(Integer acceptingState, Integer boundary) {
+            boolean removed = false;
+            Iterator<Integer> it = this.iterator();
+            while (it.hasNext()) {
+                var state = it.next();
+                if (state.equals(acceptingState)) {
+                    continue;
+                }
+                var distance = stateStarts.get(state);
+                if (distance < boundary) {
+                    it.remove();
+                    removed = true;
+                    stateStarts.remove(state);
+                }
+            }
+            return removed;
         }
     }
 }

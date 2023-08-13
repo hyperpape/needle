@@ -246,6 +246,10 @@ class NFA implements SearchMethod {
         return false;
     }
 
+    protected boolean isAcceptingState(Integer state) {
+        return this.regexInstrs[state].opcode == MATCH;
+    }
+
     // TODO: Optimized version that works on a collection
     protected Set<Integer> epsilonClosure(Integer initial) {
         Set<Integer> seen = new HashSet<>();
