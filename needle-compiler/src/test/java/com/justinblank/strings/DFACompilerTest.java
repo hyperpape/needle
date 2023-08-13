@@ -599,10 +599,10 @@ public class DFACompilerTest {
                     find(pattern, spec.target);
                 }
                 catch (Exception e) {
-                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had error in find" + e.toString());
+                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had error in find " + e);
                 }
                 catch (AssertionError e) {
-                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had error in find" + e.toString());
+                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had AssertionError in find " + e);
                 }
             }
             else {
