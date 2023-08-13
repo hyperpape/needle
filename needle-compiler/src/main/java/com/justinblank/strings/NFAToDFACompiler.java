@@ -6,7 +6,7 @@ import static com.justinblank.strings.RegexInstr.Opcode.*;
 
 class NFAToDFACompiler {
 
-    private Map<Set<Integer>, DFA> stateSets = new HashMap<>();
+    private Map<StateSet, DFA> stateSets = new HashMap<>();
     private int nextState = 1; // root will always be zero
     private DFA root;
     private final NFA nfa;
@@ -30,9 +30,11 @@ class NFAToDFACompiler {
     }
 
     DFA _compile(NFA nfa, ConversionMode mode) {
-        Set<Integer> states = nfa.epsilonClosure(0);
+        StateSet states = new StateSet();
+        states.add(0, 0);
+        states = getEpsilonClosure(states);
         if (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH) {
-            states.add(0);
+            states.add(0, 0);
         }
         root = DFA.root(nfa.hasAcceptingState(states));
         stateSets.put(states, root);
@@ -40,13 +42,13 @@ class NFAToDFACompiler {
         return root;
     }
 
-    private void addNFAStatesToDFA(Set<Integer> states, ConversionMode mode) {
-        Stack<Set<Integer>> pending = new Stack<>();
+    private void addNFAStatesToDFA(StateSet states, ConversionMode mode) {
+        Stack<StateSet> pending = new Stack<>();
         pending.add(states);
         while (!pending.isEmpty()) {
             states = pending.pop();
             DFA dfa = stateSets.get(states);
-            Set<Integer> epsilonClosure = nfa.epsilonClosure(states);
+            StateSet epsilonClosure = getEpsilonClosure(states);
             boolean accepting = nfa.hasAcceptingState(states);
             // No point in ever going past an accepting state for the contained in search
             // Searches will be correct without this line, but produced DFA will be larger than necessary
@@ -54,17 +56,17 @@ class NFAToDFACompiler {
                 continue;
             }
             if ((mode == ConversionMode.CONTAINED_IN || (!accepting && mode == ConversionMode.DFA_SEARCH))) {
-                epsilonClosure.add(0);
+                epsilonClosure.add(0, 0);
             }
             List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
             for (CharRange range : ranges) {
                 // any element of the range is equally good here, getStart()/getEnd() doesn't matter
-                Set<Integer> postTransitionStates = nfa.epsilonClosure(transition(epsilonClosure, range.getStart()));
+                StateSet postTransitionStates = getEpsilonClosure(transition(epsilonClosure, range.getStart()));
                 // We want to add the initial state to the state set if we're doing a search method (not match) to
                 // enable restarting when we reach an empty state
                 // but we want to avoid doing that when we've reached an accepting state
                 if (!nfa.hasAcceptingState(postTransitionStates) && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
-                    postTransitionStates.add(0);
+                    postTransitionStates.add(0, 0);
                 }
                 DFA targetDfa = stateSets.get(postTransitionStates);
                 if (targetDfa == null) {
@@ -75,6 +77,21 @@ class NFAToDFACompiler {
                 dfa.addTransition(range, targetDfa);
             }
         }
+    }
+
+    private StateSet getEpsilonClosure(StateSet states) {
+        StateSet closure = new StateSet();
+        for (Integer state : states) {
+            for (Integer epsilonTransitionState : nfa.epsilonClosure(state)) {
+                if (states.contains(epsilonTransitionState)) {
+                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState));
+                }
+                else {
+                    closure.add(epsilonTransitionState, states.getDistance(state));
+                }
+            }
+        }
+        return closure;
     }
 
     protected List<CharRange> findCharRanges(Collection<Integer> nfas) {
@@ -88,12 +105,12 @@ class NFAToDFACompiler {
         return ranges;
     }
 
-    protected Set<Integer> transition(Collection<Integer> nfaStates, char c) {
-        Set<Integer> transitionStates = new HashSet<>();
+    protected StateSet transition(StateSet nfaStates, char c) {
+        StateSet transitionStates = new StateSet();
         for (Integer state : nfaStates) {
             RegexInstr instr = nfa.regexInstrs[state];
             if (instr.opcode == CHAR_RANGE && instr.start <= c && instr.end >= c) {
-                transitionStates.add(state + 1);
+                transitionStates.add(state + 1, nfaStates.getDistance(state) + 1);
             }
         }
         return transitionStates;
@@ -101,6 +118,12 @@ class NFAToDFACompiler {
 
     static class StateSet extends HashSet<Integer> {
         Map<Integer, Integer> stateStarts = new HashMap<>();
+
+        @Override
+        public boolean add(Integer integer) {
+            // TODO: decide if this is lazy...could just not extend hashset
+            throw new UnsupportedOperationException("");
+        }
 
         public boolean add(Integer integer, Integer distance) {
             var currentState = stateStarts.get(integer);
@@ -113,6 +136,10 @@ class NFAToDFACompiler {
                 stateStarts.put(integer, distance);
             }
             return super.add(integer);
+        }
+
+        public Integer getDistance(Integer state) {
+            return stateStarts.get(state);
         }
     }
 }
