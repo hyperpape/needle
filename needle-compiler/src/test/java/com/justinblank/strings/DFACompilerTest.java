@@ -625,4 +625,15 @@ public class DFACompilerTest {
         assertNotEquals(0, correctMatches);
         assertNotEquals(0, nonMatches);
     }
+
+    @Test
+    public void testFind_doesntRollOver() {
+        var pattern = DFACompiler.compile("a", "rolloverTestClass");
+        var matcher = pattern.matcher("aa");
+        assertTrue(matcher.find().matched);
+        assertTrue(matcher.find().matched);
+        assertFalse(matcher.find().matched);
+        assertFalse(matcher.find().matched);
+        assertFalse(matcher.find().matched);
+    }
 }

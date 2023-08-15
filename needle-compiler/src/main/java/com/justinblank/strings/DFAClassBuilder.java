@@ -350,6 +350,9 @@ class DFAClassBuilder extends ClassBuilder {
         var vars = new GenericVars(MatchingVars.INDEX, INDEX_BACKWARDS);
         var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
 
+        method.cond(eq(get(NEXT_START_FIELD, Builtin.I, thisRef()), -1
+                )).withBody(returnValue(callStatic(MatchResult.class, "failure",
+                        ReferenceType.of(MatchResult.class))));
         method.set(MatchingVars.INDEX,
                 call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                         get(NEXT_START_FIELD, Builtin.I, thisRef())));
