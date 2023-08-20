@@ -127,7 +127,17 @@ public class NodePrinter {
     }
 
     private boolean needsParens(Node child) {
-        return !(child instanceof CharRangeNode);
+        if (child instanceof CharRangeNode) {
+            return false;
+        }
+        else if (child instanceof LiteralNode) {
+            var l = (LiteralNode) child;
+            if (l.getLiteral().length() == 1) {
+                return false;
+            }
+            return true;
+        }
+        return true;
     }
 
     private String escape(char c) {

@@ -177,6 +177,6 @@ public class EscapeSequenceTests {
 
     @Test
     public void testEscape_0_WorksWithLongDigitStrings() {
-        check("\\01234", "" + ((char) 83) + "(4)");
+        check("\\01234", "" + ((char) 83) + "4");
     }
 }
