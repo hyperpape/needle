@@ -67,66 +67,40 @@ public class NodePrinter {
         }
         else if (node instanceof Concatenation) {
             Concatenation c = (Concatenation) node;
-            if (needsParens(c.tail)) {
-                stack.push(")");
-            }
-            stack.push(c.tail);
-            if (needsParens(c.tail)) {
-                stack.push("(");
-            }
-            if (needsParens(c.head)) {
-                stack.push(")");
-            }
-            stack.push(c.head);
-            if (needsParens(c.head)) {
-                stack.push("(");
-            }
+            pushChild(node, c.tail);
+            pushChild(node, c.head);
         }
         else if (node instanceof Union) {
             Union union = (Union) node;
-            if (needsParens(union.right)) {
-                stack.push(")");
-            }
-            stack.push(union.right);
-            if (needsParens(union.right)) {
-                stack.push("(");
-            }
+            pushChild(node, union.right);
             stack.push("|");
-            if (needsParens(union.left)) {
-                stack.push(")");
-            }
-            stack.push(union.left);
-            if (needsParens(union.left)) {
-                stack.push("(");
-            }
+            pushChild(node, union.left);
         }
         else if (node instanceof CountedRepetition) {
             CountedRepetition cr = (CountedRepetition) node;
             var child = ((CountedRepetition) node).node;
             stack.push("{" + cr.min + "," + cr.max + "}");
-            if (needsParens(child)) {
-                stack.push(")");
-            }
-            stack.push(child);
-            if (needsParens(child)) {
-                stack.push("(");
-            }
+            pushChild(node, child);
         }
         else if (node instanceof Repetition) {
             stack.push("*");
             var child = ((Repetition) node).node;
-            if (needsParens(child)) {
-                stack.push(")");
-            }
-            stack.push(child);
-            if (needsParens(child)) {
-                stack.push("(");
-            }
+            pushChild(node, child);
         }
 
     }
 
-    private boolean needsParens(Node child) {
+    private void pushChild(Node parent, Node child) {
+        if (needsParens(parent, child)) {
+            stack.push(")");
+        }
+        stack.push(child);
+        if (needsParens(parent, child)) {
+            stack.push("(");
+        }
+    }
+
+    private boolean needsParens(Node parent, Node child) {
         if (child instanceof CharRangeNode) {
             return false;
         }
