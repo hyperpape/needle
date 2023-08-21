@@ -109,7 +109,9 @@ public class NodePrinter {
             if (l.getLiteral().length() == 1) {
                 return false;
             }
-            return true;
+        }
+        if (parent instanceof Concatenation) {
+            return child instanceof Union;
         }
         return true;
     }

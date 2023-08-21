@@ -100,13 +100,13 @@ public class RegexParserTest {
     @Test
     public void testRepetitionHasHighPrecedence() {
         Node node = parse("ab*");
-        check(node, "a(b*)");
+        check(node, "ab*");
     }
 
     @Test
     public void testPlusHasHighPrecedence() {
         Node node = parse("ab+");
-        check(node, "a(b(b*))");
+        check(node, "abb*");
     }
 
     @Test
@@ -116,7 +116,7 @@ public class RegexParserTest {
 
     @Test
     public void testBracesHaveHighPrecedence() {
-        check(parse("ab{1,2}"), "a(b{1,2})");
+        check(parse("ab{1,2}"), "ab{1,2}");
     }
 
     @Test
@@ -132,7 +132,7 @@ public class RegexParserTest {
     public void testMultiConcatenation() {
         Node node = parse("(ab)*a");
         assertNotNull(node);
-        check(node, "((ab)*)a");
+        check(node, "(ab)*a");
     }
 
     @Test
@@ -231,7 +231,7 @@ public class RegexParserTest {
         Node node = parse("(AB)(CD)*");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
-        check(node, "(AB)((CD)*)");
+        check(node, "AB(CD)*");
     }
 
     @Test
@@ -331,7 +331,7 @@ public class RegexParserTest {
         Node tail = ((Concatenation) node).tail;
         assertTrue(head instanceof CountedRepetition);
         assertTrue(tail instanceof LiteralNode);
-        check(node, "((1|2){2,3})(abc)");
+        check(node, "(1|2){2,3}abc");
     }
 
     @Test
