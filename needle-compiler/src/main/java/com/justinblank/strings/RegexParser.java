@@ -333,10 +333,6 @@ class RegexParser {
         throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
     }
 
-    public RegexParser() {
-        super();
-    }
-
     private Node parseOctal() {
         int count = 0;
         var str = new StringBuilder();

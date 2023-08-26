@@ -15,6 +15,11 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test(expected = RegexSyntaxException.class)
+    public void testLeftMismatchedBracketWithChars() {
+        parse("[ab");
+    }
+
+    @Test(expected = RegexSyntaxException.class)
     public void testLeftUnbalancedBrackets() {
         parse("[[]");
     }
