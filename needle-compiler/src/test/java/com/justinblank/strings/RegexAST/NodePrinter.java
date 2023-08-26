@@ -79,7 +79,12 @@ public class NodePrinter {
         else if (node instanceof CountedRepetition) {
             CountedRepetition cr = (CountedRepetition) node;
             var child = ((CountedRepetition) node).node;
-            stack.push("{" + cr.min + "," + cr.max + "}");
+            if (cr.min == 0 && cr.max == 1) {
+                stack.push("?");
+            }
+            else {
+                stack.push("{" + cr.min + "," + cr.max + "}");
+            }
             pushChild(node, child);
         }
         else if (node instanceof Repetition) {

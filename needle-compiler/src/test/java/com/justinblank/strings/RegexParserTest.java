@@ -53,7 +53,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
-        check(node, "b{0,1}");
+        check(node, "b?");
     }
 
     @Test
@@ -69,7 +69,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
-        check(node,"1{0,1}");
+        check(node,"1?");
     }
 
     @Test
@@ -80,7 +80,7 @@ public class RegexParserTest {
         CountedRepetition cr = (CountedRepetition) node;
         assertEquals(0, cr.min);
         assertEquals(1, cr.max);
-        check(node, "(1|2){0,1}");
+        check(node, "(1|2)?");
     }
 
     @Test
@@ -337,7 +337,7 @@ public class RegexParserTest {
     @Test
     public void testDuplicateQuestionMark() {
         // This is allowed by the Java regex library
-        check(parse("a??"), "(a{0,1}){0,1}");
+        check(parse("a??"), "(a?)?");
     }
 
     @Test
