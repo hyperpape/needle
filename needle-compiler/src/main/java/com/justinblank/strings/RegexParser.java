@@ -139,7 +139,7 @@ class RegexParser {
 
         while (!nodes.isEmpty()) {
             Node previous = nodes.peek();
-            if (previous instanceof LiteralNode) {
+            if (!(previous instanceof Union) && !(previous instanceof LParenNode)) {
                 previous = nodes.pop();
                 last = concatenate(previous, last);
             }
@@ -153,7 +153,7 @@ class RegexParser {
                     last = new Concatenation(nodes.pop(), last);
                 }
             }
-            else {
+            else if (previous instanceof LParenNode) {
                 break;
             }
         }
@@ -175,8 +175,9 @@ class RegexParser {
                     continue;
                 }
                 assertNonEmpty("found '|' with no preceding content");
-                Node nextNext = nodes.pop();
+                Node nextNext = nodes.peek();
                 if (nextNext instanceof LParenNode) {
+                    nodes.pop(); // Remove lParen
                     nodes.push(new Union(union.left, node));
                     return;
                 }

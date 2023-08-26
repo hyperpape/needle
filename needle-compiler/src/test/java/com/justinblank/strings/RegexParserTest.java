@@ -299,6 +299,11 @@ public class RegexParserTest {
     }
 
     @Test
+    public void testParseUnionWithCompositeLeftSide() {
+        check("(a*tc*|t*ag*)*", "((a*tc*)|(t*ag*))*");
+    }
+
+    @Test
     public void testConcatenatedParens() {
         Node node = parse("(AB)(CD)");
         assertNotNull(node);
