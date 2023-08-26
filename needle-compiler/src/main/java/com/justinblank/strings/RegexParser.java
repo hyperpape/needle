@@ -164,12 +164,12 @@ class RegexParser {
         assertNonEmpty("found unbalanced ')'");
         Node node = null;
         while (!(nodes.peek() instanceof LParenNode)) {
-            Node next = nodes.pop();
+            Node previous = nodes.pop();
             if (node == null) {
-                node = next;
+                node = previous;
             }
-            else if (next instanceof Union) {
-                Union union = (Union) next;
+            else if (previous instanceof Union) {
+                Union union = (Union) previous;
                 if (union.left != null && union.right != null) {
                     node = new Concatenation(union, node);
                     continue;
@@ -184,16 +184,15 @@ class RegexParser {
                 node = new Union(union.left, node);
             }
             else {
-                node = concatenate(next, node);
+                node = concatenate(previous, node);
             }
             assertNonEmpty("found unbalanced ')'");
         }
         nodes.pop(); // remove the left paren
         if (node == null) {
-            node = new LiteralNode("");
+            node = new LiteralNode(""); // this is needed for constructs like "()|abc"
         }
         nodes.push(node);
-
     }
 
     private Node concatenate(Node next, Node node) {
