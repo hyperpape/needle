@@ -1,8 +1,14 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.Search.SearchMethod;
-import org.junit.Assert;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.regex.PatternSyntaxException;
 
 import static com.justinblank.strings.RegexParserMalformedRegexTest.expectError;
 import static com.justinblank.strings.RegexParserTest.check;
@@ -178,5 +184,100 @@ public class EscapeSequenceTests {
     @Test
     public void testEscape_0_WorksWithLongDigitStrings() {
         check("\\01234", "" + ((char) 83) + "4");
+    }
+
+    @Test
+    public void testParsingForAllOctals() {
+        for (int i = 0; i < 9999; i++) {
+            String regex = "\\0" + i;
+            compareParsabilityToJdk(regex);
+        }
+    }
+
+    @Test
+    public void testParsingForAllHex() {
+        allHexStrings().forEach(EscapeSequenceTests::compareParsabilityToJdk);
+    }
+
+    @Test
+    public void test0x0000Regex() {
+        String regex = "\\x0000";
+        java.util.regex.Pattern jdkPattern = java.util.regex.Pattern.compile(regex);
+        Pattern pattern = DFACompilerTest.anonymousPattern(regex);
+        for (int i = 0; i < 4; i++) {
+            for (var s : makeStrings(new ArrayList<>(), "", i)) {
+                if (jdkPattern.matcher(s).matches()) {
+                    assertTrue(pattern.matcher(s).matches());
+                }
+            }
+        }
+    }
+
+    private List<String> makeStrings(List<String> strings, String s, int length) {
+        if (length == 0) {
+            strings.add(s);
+        }
+        else {
+            for (int i = 0; i < 128; i++) {
+                makeStrings(strings, s + (char) i, length - 1);
+            }
+        }
+        return strings;
+    }
+
+    private static void compareParsabilityToJdk(String regex) {
+        RegexSyntaxException parseFailure = null;
+        Node node = null;
+        java.util.regex.Pattern jdkPattern;
+        try {
+            node = RegexParser.parse(regex);
+        }
+        catch (RegexSyntaxException e) {
+            parseFailure = e;
+        }
+        try {
+            jdkPattern = java.util.regex.Pattern.compile(regex);
+            RegexGenerator generator = new RegexGenerator(new Random(), 5);
+            String haystack = generator.generateString(node);
+            NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
+
+            String nfaErrorMessage = "Generated haystack wasn't matched by the NFA, regex=" + regex + ", haystack=" + haystack;
+            assertTrue(nfaErrorMessage, nfa.matcher(haystack).matches());
+            String jdkErrorMessage = "Generated haystack wasn't matched by the JDK, regex=" + regex + ", haystack=" + haystack;
+            assertTrue(jdkErrorMessage, jdkPattern.matcher(haystack).matches());
+        }
+        catch (PatternSyntaxException e) {
+            if (parseFailure == null) {
+                Assertions.fail("Parsed an octal escape that the JDK rejected, regex=" + regex);
+            }
+            else {
+                return;
+            }
+        }
+        if (parseFailure != null) {
+            throw new AssertionError("Failed to parse an octal escape that the JDK accepted, regex=" + regex, parseFailure);
+        }
+    }
+
+    static List<String> allHexStrings() {
+        char[] hexChars = new char[16];
+        for (int i = 0; i < 10; i++) {
+            hexChars[i] = (char) (((int) '0') + i);
+        }
+        for (int i = 0; i < 6; i++) {
+            hexChars[10 + i] = (char) (((int) 'A') + i);
+        }
+
+        List<String> strings = new ArrayList<>();
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
+                for (int k = 0; k < 16; k++) {
+                    for (int l = 0; l < 16; l++) {
+                        strings.add("\\x" + i + j + k + l);
+                    }
+                }
+            }
+        }
+        return strings;
     }
 }

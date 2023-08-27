@@ -337,15 +337,12 @@ class RegexParser {
         int count = 0;
         var str = new StringBuilder();
         while (count < 3 && peekOctal()) {
+            if (count == 2 && str.charAt(0) > '3') {
+                break;
+            }
             var c = takeChar();
             count++;
             str.append(c);
-        }
-        if (count > 2) {
-            char first = str.charAt(0);
-            if (first > '3') {
-                throw new RegexSyntaxException("Octals must not be larger than 0377");
-            }
         }
         if (count == 0) {
             throw new RegexSyntaxException("Illegal octal escape at index " + (index - 1));
@@ -357,12 +354,11 @@ class RegexParser {
     private Node parseHexadecimal() {
         int count = 0;
         var str = new StringBuilder();
-        while (count < 4 && peekHex()) {
+        while (count < 2 && peekHex()) {
             var c = takeChar();
             count++;
             str.append(c);
         }
-        // TODO: figure out syntax
         if (count != 2) {
             throw new RegexSyntaxException("Wrong number of hex chars: " + count);
         }
@@ -522,12 +518,19 @@ class RegexParser {
     private boolean peekHex() {
         if (index < regex.length()) {
             char c = regex.charAt(index);
-            if (c >= '0' && c <= '9') {
+            if (isHexChar(c)) {
                 return true;
             }
-            if (c >= 'A' && c <= 'F') {
-                return true;
-            }
+        }
+        return false;
+    }
+
+    private static boolean isHexChar(char c) {
+        if (c >= '0' && c <= '9') {
+            return true;
+        }
+        if (c >= 'A' && c <= 'F') {
+            return true;
         }
         return false;
     }

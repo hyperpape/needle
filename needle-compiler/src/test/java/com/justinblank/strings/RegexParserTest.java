@@ -3,8 +3,12 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.*;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import static com.justinblank.strings.TestUtil.parse;
 import static junit.framework.TestCase.assertTrue;
