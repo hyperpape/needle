@@ -18,7 +18,7 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
     }
 
     public CharRangeNode(char start, char end) {
-        this.range = new CharRange(start, end);
+        this(new CharRange(start, end));
     }
 
     public int minLength() {
