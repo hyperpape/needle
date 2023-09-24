@@ -8,6 +8,7 @@ import org.quicktheories.core.Gen;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -573,6 +574,12 @@ public class DFACompilerTest {
     public void testFourCharOffsetWithoutPrefix() {
         var pattern = DFACompiler.compile("[a-q][^u-z]{3}x", "testFourCharOffsetWithoutPrefix");
         find(pattern, "aaaax");
+    }
+
+    @Test
+    public void testSherlockStreetInFile() throws Exception {
+        var path = Paths.get("src", "test", "resources", "sherlockholmes.txt");
+        checkMatchesInFileAgainstStandardLibrary("Sherlock|Street", path);
     }
 
     /**
