@@ -1,19 +1,15 @@
 package com.justinblank.strings;
 
-import com.justinblank.strings.RegexAST.Node;
-import com.justinblank.strings.RegexAST.NodePrinter;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
@@ -21,6 +17,8 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
 public class DFACompilerTest {
+
+    private static final AtomicInteger CLASS_NAME_COUNTER = new AtomicInteger();
 
     static final String CORE_LARGE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,";
 
@@ -575,6 +573,45 @@ public class DFACompilerTest {
     public void testFourCharOffsetWithoutPrefix() {
         var pattern = DFACompiler.compile("[a-q][^u-z]{3}x", "testFourCharOffsetWithoutPrefix");
         find(pattern, "aaaax");
+    }
+
+    /**
+     * Compare a regex against the JDK standard library implementation, by ensuring that the compiled DFA finds the same
+     * set of (non-overlapping) matches as the stdlib. The match is performed against the contents of a file.
+     *
+     * @param regex the regex
+     * @param path  the path of the file
+     * @throws IOException    if the file cannot be read
+     * @throws AssertionError if the comparison fails
+     */
+    private static void checkMatchesInFileAgainstStandardLibrary(String regex, Path path) throws IOException {
+        String hayStack = Files.readAllLines(path).get(0);
+        Pattern pattern = DFACompiler.compile(regex, "fileSearchRegex" + CLASS_NAME_COUNTER.incrementAndGet());
+        java.util.regex.Pattern jdkPattern = java.util.regex.Pattern.compile(regex);
+        compareResultsToStandardLibrary(hayStack, pattern, jdkPattern);
+    }
+
+    private static void compareResultsToStandardLibrary(String hayStack, Pattern pattern, java.util.regex.Pattern jdkPattern) {
+        Matcher matcher = pattern.matcher(hayStack);
+        java.util.regex.Matcher jdkMatcher = jdkPattern.matcher(hayStack);
+        int index = 0;
+        while (true) {
+            var matchResult = matcher.find();
+            var jdkMatched = jdkMatcher.find();
+            var jdkMatchResult = jdkMatcher.toMatchResult();
+            if (matchResult.matched && jdkMatched) {
+                var comparison = "patternStart=" + matchResult.start + ", patternEnd=" + matchResult.end + ", jdkStart=" + jdkMatchResult.start() + ", jdkEnd=" + jdkMatchResult.end();
+                assertEquals("Match start was not equal at index=" + index + ", " + comparison, matchResult.start, jdkMatchResult.start());
+                assertEquals("Match end was not equal at index=" + index + ", " + comparison, matchResult.end, jdkMatchResult.end());
+            } else if (matchResult.matched) {
+                fail("Pattern matched and standard library didn't at index=" + index + ", patternStart=" + matchResult.start + ", patternEnd=" + matchResult.end);
+            } else if (jdkMatched) {
+                fail("Standard library matched and pattern didn't at index=" + index + ", stdLibStart=" + jdkMatchResult.start() + ", stdLibEnd=" + jdkMatchResult.end());
+            } else {
+                return;
+            }
+            index = matchResult.end + 1;
+        }
     }
 
     @Test
