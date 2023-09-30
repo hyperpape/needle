@@ -575,7 +575,7 @@ class DFAClassBuilder extends ClassBuilder {
     private void prepareMethodToUseByteClasses(FindMethodSpec spec, DFA dfaState, Method method) {
         compilationPolicy.usedByteClasses = true;
         var arrayName = stateArrayName(spec, dfaState.getStateNumber());
-        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, arrayName, compilationPolicy.getStateArrayType(), null, null));
+        addField(new Field(ACC_PRIVATE | ACC_STATIC, arrayName, compilationPolicy.getStateArrayType(), null, null));
         var staticBlock = addStaticBlock();
         var methodName = createFillStateArrayMethod(spec, dfaState);
         staticBlock.callStatic(methodName, CompilerUtil.internalName(getFQCN()), "()V");
