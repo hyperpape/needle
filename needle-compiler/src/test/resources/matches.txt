@@ -80,3 +80,10 @@ gc(g|a)*cg          gccg                y       0       4
 gc(g|a)*cg          gcgcg               y       0       5
 gc(g|a)*cg          gcgcgcg             y       0       5
 gc(g|a)*cg          gcggcgcg            y       0       6
+
+http://.+\.com      http://www.google.com       y   0   21
+http://.+\.com      http://www.google.co.uk     n
+
+# unicode haystacks
+a.c                 aεc                 y       0       3
+[^c]                ε                   y       0       1
