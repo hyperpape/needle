@@ -1,5 +1,7 @@
 package com.justinblank.strings;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 class FindMethodSpec {
@@ -7,6 +9,8 @@ class FindMethodSpec {
     final DFA dfa;
     final String name;
     boolean forwards;
+
+
 
     public FindMethodSpec(DFA dfa, String name, boolean forwards) {
         Objects.requireNonNull(dfa, "dfa cannot be null");

@@ -26,6 +26,7 @@ public class DFAClassBuilderTest {
         var builder = new DFAClassBuilder("testContainedIn", dfa,
                 dfa, dfa, dfa, factorization, DebugOptions.none());
         builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true)));
+        builder.addByteClassStringMaps();
         builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);
@@ -92,6 +93,7 @@ public class DFAClassBuilderTest {
         var dfa = DFA.createDFA("a");
         var builder = new DFAClassBuilder("testStateMethod",
                 dfa, dfa, dfa, dfa, null, DebugOptions.none());
+        builder.addByteClassStringMaps();
         builder.addStateMethods();
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }

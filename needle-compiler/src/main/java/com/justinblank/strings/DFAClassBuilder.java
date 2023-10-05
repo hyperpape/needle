@@ -44,6 +44,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final byte[] byteClasses;
     private final DebugOptions debugOptions;
 
+    Map<String, Set<String>> byteClassStringMaps = new HashMap<>();
     final List<Method> findMethods = new ArrayList<>();
 
     /**
@@ -67,6 +68,7 @@ class DFAClassBuilder extends ClassBuilder {
         } else {
             byteClasses = null;
         }
+        addByteClassStringMaps();
     }
 
     // TODO This isn't really a global policy, more specific to a particular type of find method
@@ -86,7 +88,13 @@ class DFAClassBuilder extends ClassBuilder {
             if (compilationPolicy.useByteClassesForAllStates) {
                 populateByteClassArrays();
             }
+            // these methods depend on being called after addStateMethods()
+            setByteClassTransitions(forwardFindMethodSpec);
+            setByteClassTransitions(containedInFindMethodSpec);
+            setByteClassTransitions(reversedFindMethodSpec);
+            setByteClassTransitions(dfaSearchFindMethodSpec);
         }
+
         if (shouldSeekForwards()) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
@@ -104,6 +112,64 @@ class DFAClassBuilder extends ClassBuilder {
         }
         addConstructor();
         addFields();
+    }
+
+    protected void addByteClassStringMaps() {
+        byteClassStringMaps.put(forwardFindMethodSpec.statesConstant(), new HashSet<>());
+        byteClassStringMaps.put(reversedFindMethodSpec.statesConstant(), new HashSet<>());
+        byteClassStringMaps.put(containedInFindMethodSpec.statesConstant(), new HashSet<>());
+        byteClassStringMaps.put(dfaSearchFindMethodSpec.statesConstant(), new HashSet<>());
+    }
+
+    private void setByteClassTransitions(FindMethodSpec spec) {
+        List<String> names = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (var entry : byteClassStringMaps.get(spec.statesConstant())) {
+            if (sb.length() + 1 + entry.length() > 65536) {
+                names.add(addConstantForByteClassString(spec, names, sb));
+                sb = new StringBuilder();
+                first = true;
+            }
+            if (!first) {
+                sb.append(';');
+            }
+            first = false;
+            sb.append(entry);
+        }
+        if (sb.length() != 0) {
+            names.add(addConstantForByteClassString(spec, names, sb));
+        }
+        Block block = addStaticBlock();
+
+        for (var name : names) {
+            if (stateArraysUseShorts()) {
+                block.readStatic(spec.statesConstant(), true, "[[S");
+            }
+            else {
+                block.readStatic(spec.statesConstant(), true, "[[B");
+            }
+            block.push(ByteClassUtil.maxByteClass(byteClasses) + 1);
+
+            block.readStatic(name, true, CompilerUtil.STRING_DESCRIPTOR);
+
+            if (stateArraysUseShorts()) {
+                block.callStatic("fillMultipleByteClassesFromStringUsingShorts", CompilerUtil.internalName(ByteClassUtil.class), "([[SILjava/lang/String;)V");
+            }
+            else {
+                block.callStatic("fillMultipleByteClassesFromString", CompilerUtil.internalName(ByteClassUtil.class), "([[BILjava/lang/String;)V");
+            }
+        }
+    }
+
+    private String addConstantForByteClassString(FindMethodSpec spec, List<String> names, StringBuilder sb) {
+        String name = "BYTE_CLASS_STRING_" + spec.statesConstant() +  names.size();
+        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL,
+                name,
+                CompilerUtil.descriptor(String.class),
+                null,
+                sb.toString()));
+        return name;
     }
 
     /**
@@ -161,23 +227,6 @@ class DFAClassBuilder extends ClassBuilder {
         staticBlock.push(spec.statesCount())
                 .newArray(compilationPolicy.getStateArrayType())
                 .putStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType());
-
-        staticBlock.callStatic("fillStatesConstant" + spec.name, CompilerUtil.internalName(getFQCN()), "()V");
-        createFillStatesConstantMethod(spec);
-    }
-
-    private void createFillStatesConstantMethod(FindMethodSpec spec) {
-        // Fill the top level array of state transition arrays with the individual transition arrays
-        var method = mkMethod("fillStatesConstant" + spec.name, List.of(), "V", null, ACC_STATIC);
-        addMethod(method);
-        var staticBlock = method.addBlock();
-        for (var i = 0; i < spec.statesCount(); i++) {
-            staticBlock.readStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType())
-                    .push(i)
-                    .readStatic(spec.stateArrayName(i), true, compilationPolicy.getStateArrayType())
-                    .operate(AASTORE);
-        }
-        staticBlock.addReturn(RETURN);
     }
 
     private Method createIndexMethod(FindMethodSpec spec) {
@@ -535,12 +584,13 @@ class DFAClassBuilder extends ClassBuilder {
         if (willUseByteClasses(dfaState)) {
             prepareMethodToUseByteClasses(spec, dfaState, method);
             compilationPolicy.usedByteClasses = true;
-            String stateTransitionsName = "stateTransitions" + spec.name + dfaState.getStateNumber();
 
-            Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(Builtin.S) : ArrayType.of(Builtin.OCTET) ;
+            Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
             method.set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), byteClassesType), read("c")));
-            method.set("stateTransitions", getStatic(stateTransitionsName, ReferenceType.of(getClassName()), stateTransitionsType));
+            method.set("stateTransitions", arrayRead(
+                    getStatic(spec.statesConstant(), ReferenceType.of(getClassName()), stateTransitionsType),
+                    dfaState.getStateNumber()));
             method.returnValue(arrayRead(read("stateTransitions"), read("byteClass")));
         }
         else {
@@ -577,66 +627,41 @@ class DFAClassBuilder extends ClassBuilder {
         compilationPolicy.usedByteClasses = true;
         var arrayName = stateArrayName(spec, dfaState.getStateNumber());
         addField(new Field(ACC_PRIVATE | ACC_STATIC, arrayName, compilationPolicy.getStateArrayType(), null, null));
-        var staticBlock = addStaticBlock();
-        var methodName = createFillStateArrayMethod(spec, dfaState);
-        staticBlock.callStatic(methodName, CompilerUtil.internalName(getFQCN()), "()V");
+
+        StringBuilder sb = getByteClassString(dfaState);
+        if (sb.length() != 0) {
+            byteClassStringMaps.get(spec.statesConstant()).add(sb.toString());
+        }
     }
 
-    private String createFillStateArrayMethod(FindMethodSpec spec, DFA dfaState) {
-        var methodName = "createFillStateTransitionArray" + spec.name + dfaState.getStateNumber();
-        var method = new Method(methodName, List.of(), "V", new GenericVars(), ACC_STATIC);
-        addMethod(method);
-        var staticBlock = method.addBlock();
-        var arrayName = stateArrayName(spec, dfaState.getStateNumber());
-
-        staticBlock.push(getByteClassesMax() + 1);
-        if (compilationPolicy.stateArraysUseShorts) {
-            staticBlock.newArray(T_SHORT);
-        }
-        else {
-            staticBlock.newArray(T_BYTE);
-        }
-        staticBlock.putStatic(arrayName, true, compilationPolicy.getStateArrayType());
-
-        staticBlock.readStatic(arrayName, true, compilationPolicy.getStateArrayType())
-                .push(-1);
-        if (compilationPolicy.stateArraysUseShorts) {
-            staticBlock.callStatic("fill", "java/util/Arrays", "([SS)V");
-        }
-        else {
-            staticBlock.callStatic("fill", "java/util/Arrays", "([BB)V");
-        }
-
+    private StringBuilder getByteClassString(DFA dfaState) {
+        boolean first = true;
+        StringBuilder sb = new StringBuilder();
+        sb.append(ByteClassUtil.encode(dfaState.getStateNumber())).append(':');
+        Set<Byte> bytesWitnessed = new HashSet<>();
         for (var transition : dfaState.getTransitions()) {
             var largestSeenByteClass = 0;
             for (var i = transition.getLeft().getStart(); i <= transition.getLeft().getEnd(); i++) {
                 var byteClass = byteClasses[i];
                 if (byteClass > largestSeenByteClass) {
                     var state = transition.getRight().getStateNumber();
-                    staticBlock.readStatic(arrayName, true, compilationPolicy.getStateArrayType())
-                            .push(byteClass)
-                            .push(state);
-                    if (compilationPolicy.stateArraysUseShorts) {
-                        staticBlock.operate(SASTORE);
-                    } else {
-                        staticBlock.operate(BASTORE);
+                    if (!bytesWitnessed.contains(byteClass)) {
+                        bytesWitnessed.add(byteClass);
+                        if (!first) {
+                            sb.append(",");
+                        }
+                        first = false;
+                        sb.append(ByteClassUtil.encode(byteClass)).append('-').append(ByteClassUtil.encode(state));
                     }
                     largestSeenByteClass = byteClass;
                 }
             }
         }
-        staticBlock.addReturn(RETURN);
-        return methodName;
-    }
-
-    private int getByteClassesMax() {
-        var byteClassesMax = 0;
-        for (var b : byteClasses) {
-            if (b > byteClassesMax) {
-                byteClassesMax = b;
-            }
+        // In case we had no transitions
+        if (sb.charAt(sb.length() - 1) == ':') {
+            sb = new StringBuilder();
         }
-        return byteClassesMax;
+        return sb;
     }
 
     static String stateArrayName(FindMethodSpec spec, int stateNumber) {
