@@ -75,6 +75,10 @@ class DFAClassBuilder extends ClassBuilder {
         return forwardFindMethodSpec.statesCount() > 127;
     }
 
+    List<FindMethodSpec> allSpecs() {
+        return List.of(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec);
+    }
+
     void initMethods() {
         addStateMethods();
         if (compilationPolicy.usedByteClasses) {
@@ -95,10 +99,9 @@ class DFAClassBuilder extends ClassBuilder {
         findMethods.add(createFindMethodInternal());
         findMethods.add(createIndexMethod(dfaSearchFindMethodSpec));
         findMethods.add(createIndexMethodReversed(reversedFindMethodSpec));
-        addWasAcceptedMethod(forwardFindMethodSpec);
-        addWasAcceptedMethod(containedInFindMethodSpec);
-        addWasAcceptedMethod(dfaSearchFindMethodSpec);
-        addWasAcceptedMethod(reversedFindMethodSpec);
+        for (var spec : allSpecs()) {
+            addWasAcceptedMethod(spec);
+        }
         addConstructor();
         addFields();
     }
@@ -145,10 +148,9 @@ class DFAClassBuilder extends ClassBuilder {
      * the underlying int[] values, it just adds them to the top level array. 
      */
     private void populateByteClassArrays() {
-        populateByteClassArrays(forwardFindMethodSpec);
-        populateByteClassArrays(reversedFindMethodSpec);
-        populateByteClassArrays(containedInFindMethodSpec);
-        populateByteClassArrays(dfaSearchFindMethodSpec);
+        for (var spec : allSpecs()) {
+            populateByteClassArrays(spec);
+        }
     }
 
     private void populateByteClassArrays(FindMethodSpec spec) {
@@ -464,10 +466,9 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     void addStateMethods() {
-        addStateMethods(forwardFindMethodSpec);
-        addStateMethods(containedInFindMethodSpec);
-        addStateMethods(dfaSearchFindMethodSpec);
-        addStateMethods(reversedFindMethodSpec);
+        for (var spec : allSpecs()) {
+            addStateMethods(spec);
+        }
     }
 
     private void addStateMethods(FindMethodSpec spec) {
