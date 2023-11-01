@@ -33,9 +33,6 @@ class NFAToDFACompiler {
         StateSet states = new StateSet();
         states.add(0, 0);
         states = getEpsilonClosure(states);
-        if (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH) {
-            states.add(0, 0);
-        }
         root = DFA.root(nfa.hasAcceptingState(states));
         stateSets.put(states, root);
         addNFAStatesToDFA(states, mode);
@@ -86,6 +83,8 @@ class NFAToDFACompiler {
                 }
                 if (!acceptingState && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
                     postTransitionStates.add(0, 0);
+                    // This doesn't change behavior, but it does make it easier to read the stateSets
+                    postTransitionStates = getEpsilonClosure(postTransitionStates);
                 }
                 DFA targetDfa = stateSets.get(postTransitionStates);
                 if (targetDfa == null) {
