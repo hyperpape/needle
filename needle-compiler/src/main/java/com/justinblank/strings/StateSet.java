@@ -9,6 +9,9 @@ class StateSet extends HashSet<Integer> {
      */
     Map<Integer, Integer> stateStarts = new HashMap<>();
 
+    // TODO: fix up how this is set
+    boolean seenAccepting;
+
     @Override
     public boolean add(Integer integer) {
         // TODO: decide if this is lazy...could just not extend hashset

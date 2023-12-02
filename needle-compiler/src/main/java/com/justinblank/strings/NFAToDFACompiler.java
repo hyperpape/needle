@@ -1,12 +1,14 @@
 package com.justinblank.strings;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.util.*;
 
 import static com.justinblank.strings.RegexInstr.Opcode.*;
 
 class NFAToDFACompiler {
 
-    private Map<StateSet, DFA> stateSets = new HashMap<>();
+    private Map<StateSet, List<Pair<StateSet, DFA>>> stateSets = new HashMap<>();
     private int nextState = 1; // root will always be zero
     private DFA root;
     private final NFA nfa;
@@ -34,9 +36,21 @@ class NFAToDFACompiler {
         states.add(0, 0);
         states = getEpsilonClosure(states);
         root = DFA.root(nfa.hasAcceptingState(states));
-        stateSets.put(states, root);
+        states.seenAccepting = root.isAccepting();
+        storeDFA(states, root);
         addNFAStatesToDFA(states, mode);
         return root;
+    }
+
+    private DFA storeDFA(StateSet states, DFA dfa) {
+        var stateDFAPairs = stateSets.get(states);
+        if (null == stateDFAPairs) {
+            stateDFAPairs = new ArrayList<>();
+            stateSets.put(states, stateDFAPairs);
+        }
+        stateDFAPairs.add(Pair.of(states, dfa));
+        stateSets.put(states, stateDFAPairs);
+        return dfa;
     }
 
     private void addNFAStatesToDFA(StateSet states, ConversionMode mode) {
@@ -44,9 +58,9 @@ class NFAToDFACompiler {
         pending.add(states);
         while (!pending.isEmpty()) {
             states = pending.pop();
-            DFA dfa = stateSets.get(states);
+            DFA dfa = getDFA(states);
             StateSet epsilonClosure = getEpsilonClosure(states);
-            boolean accepting = nfa.hasAcceptingState(states);
+            boolean accepting = epsilonClosure.seenAccepting;
             // No point in ever going past an accepting state for the contained in search
             // Searches will be correct without this block, because the compiled DFA algorithm also checks for accepting
             // states, but produced DFA will be larger than necessary
@@ -63,10 +77,10 @@ class NFAToDFACompiler {
                 // We want to add the initial state to the state set if we're doing a search method (not match) to
                 // enable restarting when we reach an empty state
                 // but we want to avoid doing that when we've reached an accepting state
-                boolean acceptingState = nfa.hasAcceptingState(postTransitionStates);
+                postTransitionStates.seenAccepting = nfa.hasAcceptingState(postTransitionStates) || epsilonClosure.seenAccepting;
                 // TODO: Pruning should be a no-op for ConversionMode.BASIC, but in fact, removing the mode check will
                 //  cause test failures
-                if (acceptingState && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
+                if (postTransitionStates.seenAccepting && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
                     boolean removed;
                     do {
                         removed = false;
@@ -81,26 +95,42 @@ class NFAToDFACompiler {
                         }
                     } while (removed);
                 }
-                if (!acceptingState && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
+                if (!postTransitionStates.seenAccepting && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
                     postTransitionStates.add(0, 0);
                     // This doesn't change behavior, but it does make it easier to read the stateSets
                     postTransitionStates = getEpsilonClosure(postTransitionStates);
                 }
-                DFA targetDfa = stateSets.get(postTransitionStates);
+                DFA targetDfa = getDFA(postTransitionStates);
                 if (targetDfa == null) {
                     pending.add(postTransitionStates);
                     targetDfa = new DFA(root, nfa.hasAcceptingState(postTransitionStates), nextState++);
-                    stateSets.put(postTransitionStates, targetDfa);
+                    storeDFA(postTransitionStates, targetDfa);
                 }
                 dfa.addTransition(range, targetDfa);
             }
         }
     }
 
+    private DFA getDFA(StateSet states) {
+        var stateDFAPairs = stateSets.get(states);
+        if (stateDFAPairs == null) {
+            return null;
+        }
+        for (var pair : stateDFAPairs) {
+            if (states.size() == 1 || (states.seenAccepting == pair.getLeft().seenAccepting)) {
+                return pair.getRight();
+            }
+        }
+        return null;
+    }
+
     private StateSet getEpsilonClosure(StateSet states) {
         StateSet closure = new StateSet();
         for (Integer state : states) {
             for (Integer epsilonTransitionState : nfa.epsilonClosure(state)) {
+                if (nfa.isAcceptingState(epsilonTransitionState)) {
+                    closure.seenAccepting = true;
+                }
                 if (states.contains(epsilonTransitionState)) {
                     closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState));
                 }
@@ -109,6 +139,7 @@ class NFAToDFACompiler {
                 }
             }
         }
+        closure.seenAccepting |= states.seenAccepting;
         return closure;
     }
 
