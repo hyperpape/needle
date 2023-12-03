@@ -51,7 +51,8 @@ class NFAToDFACompiler {
             StateSet epsilonClosure = getEpsilonClosure(states);
             boolean accepting = nfa.hasAcceptingState(states);
             // No point in ever going past an accepting state for the contained in search
-            // Searches will be correct without this line, but produced DFA will be larger than necessary
+            // Searches will be correct without this block, because the compiled DFA algorithm also checks for accepting
+            // states, but produced DFA will be larger than necessary
             if (accepting && mode == ConversionMode.CONTAINED_IN) {
                 continue;
             }
