@@ -27,6 +27,10 @@ public class DFACompilerTest {
     static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE)
             .mix(SMALL_BMP.ofLengthBetween(0, SMALL_DATA_SIZE));
 
+    public static Pattern anonymousPattern(String regex) {
+        return anonymousPattern(regex, false);
+    }
+
     public static Pattern anonymousPattern(String regex, boolean debug) {
         return DFACompiler.compile(regex, "Pattern" + CLASS_NAME_COUNTER.incrementAndGet(), debug);
     }
