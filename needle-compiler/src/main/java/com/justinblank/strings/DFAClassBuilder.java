@@ -243,10 +243,10 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createIndexMethod(FindMethodSpec spec) {
-        var vars = new MatchingVars(2, 1, 3, 4, 5);
+        var vars = new MatchingVars(4, 1, 3, 2, 5);
         vars.setWasAcceptedVar(6);
         vars.setLastMatchVar(7);
-        var method = mkMethod(spec.indexMethod(), List.of("I"), "I", vars);
+        var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
 
@@ -335,10 +335,12 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createIndexMethodReversed(FindMethodSpec spec) {
-        var vars = new MatchingVars(2, 1, 3, -1, 4);
+        // We're overriding the meaning of the length variable, here it refers to the starting point of the backwards
+        // match
+        var vars = new MatchingVars(5, 1, 3, 2, 4);
         vars.setWasAcceptedVar(5);
         vars.setLastMatchVar(6);
-        var method = mkMethod(spec.indexMethod(), List.of("I"), "I", vars);
+        var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
 
@@ -346,7 +348,7 @@ class DFAClassBuilder extends ClassBuilder {
         // TODO: This zero is quite odd in a reversed method, I don't know what it should be, however
         method.set(MatchingVars.LAST_MATCH, spec.dfa.isAccepting() ? 0 : -1);
 
-        var loopBoundary = gte(read(MatchingVars.INDEX), 0);
+        var loopBoundary = gte(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
 
         if (shouldSeekBackwards()) {
             var suffix = factorization.getSharedSuffix().orElseThrow();
@@ -411,7 +413,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createFindMethodInternal() {
-        var vars = new GenericVars(MatchingVars.INDEX, INDEX_BACKWARDS);
+        var vars = new GenericVars("FROM", "TO", MatchingVars.INDEX, INDEX_BACKWARDS);
         var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
 
         method.cond(eq(get(NEXT_START_FIELD, Builtin.I, thisRef()), -1
@@ -419,7 +421,7 @@ class DFAClassBuilder extends ClassBuilder {
                         ReferenceType.of(MatchResult.class))));
         method.set(MatchingVars.INDEX,
                 call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
-                        get(NEXT_START_FIELD, Builtin.I, thisRef())));
+                        read("FROM"), read("TO")));
         method.fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
         if (debugOptions.trackStates) {
             method.callStatic(ReferenceType.of(DFADebugUtils.class), "debugIndexForwards", Void.VOID, read(MatchingVars.INDEX));
@@ -441,7 +443,8 @@ class DFAClassBuilder extends ClassBuilder {
                     withBody(List.of(
                             returnValue(
                                     callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
-                                            call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(), sub(read(MatchingVars.INDEX), 1)),
+                                            call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
+                                                    sub(read(MatchingVars.INDEX), 1), read("FROM")),
                                             read(MatchingVars.INDEX)))))
                     .orElse(List.of(
                             returnValue(callStatic(MatchResult.class, "failure",

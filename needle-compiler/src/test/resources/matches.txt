@@ -80,6 +80,7 @@ gc(g|a)*cg          gccg                y       0       4
 gc(g|a)*cg          gcgcg               y       0       5
 gc(g|a)*cg          gcgcgcg             y       0       5
 gc(g|a)*cg          gcggcgcg            y       0       6
+(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag     y       0       6
 
 http://.+\.com      http://www.google.com       y   0   21
 http://.+\.com      http://www.google.co.uk     n

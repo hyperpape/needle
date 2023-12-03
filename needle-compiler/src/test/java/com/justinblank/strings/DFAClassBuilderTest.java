@@ -53,7 +53,7 @@ public class DFAClassBuilderTest {
             builder.initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwards");
             Object o = c.getDeclaredConstructors()[0].newInstance("abca");
-            assertEquals(3, o.getClass().getDeclaredMethod("indexForwards", int.class).invoke(o, 0));
+            assertEquals(3, o.getClass().getDeclaredMethod("indexForwards", int.class, int.class).invoke(o, 0, 0));
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException(t);
@@ -70,7 +70,7 @@ public class DFAClassBuilderTest {
             builder. initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwardsSingleChar");
             Object o = c.getDeclaredConstructors()[0].newInstance("aba");
-            assertEquals(1, o.getClass().getDeclaredMethod("indexForwards", int.class).invoke(o, 0));
+            assertEquals(1, o.getClass().getDeclaredMethod("indexForwards", int.class, int.class).invoke(o, 0, 0));
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException(t);
