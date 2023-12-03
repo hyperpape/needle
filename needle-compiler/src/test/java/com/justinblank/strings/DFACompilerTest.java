@@ -551,8 +551,6 @@ public class DFACompilerTest {
 //    }
 
     @Test
-    @Ignore
-    // TODO: we've increased class size and DFAs this big can't be compiled any more...find solution
     public void testLargeRegex() {
         String largeRegex = CORE_LARGE_REGEX_STRING + "4}";
         var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4");
