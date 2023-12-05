@@ -81,6 +81,9 @@ gc(g|a)*cg          gcgcg               y       0       5
 gc(g|a)*cg          gcgcgcg             y       0       5
 gc(g|a)*cg          gcggcgcg            y       0       6
 (a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag     y       0       6
+(a*tgc*|t*acg*)*(cg)(a|t)*  aacgatgccgaa    y   1       12
+(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag         y   0       6
+(t*acg*)*(cg)       acgggactcgcc        y       1       3
 
 http://.+\.com      http://www.google.com       y   0   21
 http://.+\.com      http://www.google.co.uk     n

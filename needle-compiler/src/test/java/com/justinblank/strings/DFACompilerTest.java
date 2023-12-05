@@ -1,6 +1,5 @@
 package com.justinblank.strings;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -674,6 +673,30 @@ public class DFACompilerTest {
         // If these fail, then the test parsing is broken
         assertNotEquals(0, correctMatches);
         assertNotEquals(0, nonMatches);
+    }
+
+    @Test
+    public void testFind_doesntBacktrackPastSpecifiedWindow() {
+        String regex = "a*baa";
+        Pattern pattern = DFACompiler.compile(regex, "noOverbacktracking");
+        String hayStack = "aaaabaa";
+        var result = pattern.matcher(hayStack).find(3, 7);
+
+        assertEquals(3, result.start);
+        assertEquals(7, result.end);
+    }
+
+    @Test
+    public void testFind_doesntBacktrackPastSpecifiedWindow_2() {
+        // Not sure if there are interesting ways to fail this but not the previous test
+        String regex = "(a*tgc*|t*acg*)*(cg)(a|t)*";
+        Pattern pattern = anonymousPattern(regex);
+        String hayStack = "cgatgccgaa";
+
+        var matcher = pattern.matcher(hayStack);
+        var result = matcher.find(6, 10);
+        assertEquals(6, result.start);
+        assertEquals(10, result.end);
     }
 
     @Test
