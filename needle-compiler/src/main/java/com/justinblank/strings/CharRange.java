@@ -39,6 +39,14 @@ public class CharRange implements Comparable<CharRange> {
         return start == end;
     }
 
+    public boolean acceptsAllChars() {
+        return start == '\u0000' && end == '\uFFFF';
+    }
+
+    public boolean treatsAllNonAsciiIdentically() {
+        return start <= 127 && end == '\uFFFF';
+    }
+
     @Override
     public String toString() {
         return "CharRange{" +

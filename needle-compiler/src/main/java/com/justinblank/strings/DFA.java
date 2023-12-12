@@ -323,7 +323,7 @@ class DFA {
     protected boolean isAllAscii() {
         for (var dfa : states) {
             for (var transition : dfa.transitions) {
-                if ((int) transition.getLeft().getStart() > 127 || (int) transition.getLeft().getEnd() > 127) {
+                if ((int) transition.getLeft().getEnd() > 127) {
                     return false;
                 }
             }
@@ -348,13 +348,64 @@ class DFA {
     }
 
     /**
+     * Return the largest character that the DFA treats uniquely.
+     *
+     * Treating a character uniquely means that when we have a regex like "a." the regex can match characters larger
+     * than "a", but it doesn't need byteclasses that distinguish those characters from each other.
+     *
+     * Recognizing that we can handle all characters larger than a certain size with the same byteclass should allow us
+     * to use byteclasses on some regexes that couldn't previously use them. 
+     * @return
+     */
+    char maxDistinguishedChar() {
+        char maxChar = 0;
+        for (var dfa : states) {
+            for (var transition : dfa.transitions) {
+                var charRange = transition.getLeft();
+                if (charRange.getStart() > maxChar) {
+                    maxChar = charRange.getStart();
+                }
+                if (charRange.treatsAllNonAsciiIdentically()) {
+                    continue;
+                }
+                if (charRange.getEnd() > maxChar) {
+                    maxChar = charRange.getEnd();
+                }
+            }
+        }
+        return maxChar;
+    }
+
+    /**
      * Calculate a byte[129] of byteClasses that are sufficient to distinguish characters in all transitions of this
      * DFA. Assumes that this DFA consists only of ascii characters.
      *
      * 0 is used to represent that the byte is not in any byteClass.
      * @return byteClasses
      */
-    byte[] byteClasses() {
+    ByteClasses byteClasses() {
+        List<RangeGroup> rangeGroups = generateRangeGroups();
+
+        byte byteClass = 1;
+        byte catchAll = ByteClasses.CATCHALL_INVALID;
+        var ranges = new byte[129];
+        for (var rangeGroup : rangeGroups) {
+            // This only should work because we're only calling this method after checking
+            // DFA.maxDistinguishedChar <= 127
+            if (rangeGroup.ranges.get(rangeGroup.ranges.size() - 1).getEnd() == '\uFFFF') {
+                catchAll = byteClass;
+            }
+            for (var range : rangeGroup.ranges) {
+                for (var c = range.getStart(); c <= Math.min(range.getEnd(), 127); c++) {
+                    ranges[c] = byteClass;
+                }
+            }
+            byteClass++;
+        }
+        return new ByteClasses(ranges, catchAll);
+    }
+
+    List<RangeGroup> generateRangeGroups() {
         // Sometimes we'll have two disjoint character ranges that can only lead to transitions to the same state, for
         // instance in the regex [A-Za-z]+ing, [A-Z][a-f][h][j-m][o-z] all lead from the state 0-1. By tracking these
         // transitions, we can significantly reduce the number of byteClasses that we produce
@@ -370,22 +421,11 @@ class DFA {
             Collections.sort(rangeGroup.ranges);
         }
         Collections.sort(rangeGroups);
-
-        byte byteClass = 1;
-        var ranges = new byte[129];
-        for (var rangeGroup : rangeGroups) {
-            for (var range : rangeGroup.ranges) {
-                for (var c = range.getStart(); c <= range.getEnd(); c++) {
-                    ranges[c] = byteClass;
-                }
-            }
-            byteClass++;
-        }
-        return ranges;
+        return rangeGroups;
     }
 
-    private Map<CharRange, Set<Pair<Integer, Integer>>> charRanges() {
-        List<CharRange> distinctRanges = getDistinctCharRanges();
+    Map<CharRange, Set<Pair<Integer, Integer>>> charRanges() {
+        List<CharRange> distinctRanges = getDistinctCharRanges(getSortedTransitions());
 
         Map<CharRange, Set<Pair<Integer, Integer>>> hashMap = new HashMap<>();
         for (var range : distinctRanges) {
@@ -408,30 +448,66 @@ class DFA {
      * E.g. [a-z][b-c][g-h] will produce five ranges: [a][b-c][d-f][g-h][i-z]
      * @return a list of non-overlapping character ranges that cover every character the DFA recognizes
      */
-    List<CharRange> getDistinctCharRanges() {
-        var uniqueRanges = states.stream().flatMap(s -> s.getTransitions().stream()).map(Pair::getLeft).collect(Collectors.toSet());
-        var allTransitions = new ArrayList<>(uniqueRanges);
-        Collections.sort(allTransitions);
+    List<CharRange> getDistinctCharRanges(List<CharRange> allTransitions) {
 
         List<CharRange> derivedRanges = new ArrayList<>();
-        var highWaterMark = (char) 0;
+        char nextStart = '\u0000';
         for (var i = 0; i < allTransitions.size(); i++) {
-            var range = allTransitions.get(i);
-            if (range.getEnd() < highWaterMark) {
-                continue;
-            }
-            highWaterMark = addRange(derivedRanges, allTransitions, highWaterMark, i);
-            // avoid overflow
-            if (highWaterMark < Character.MAX_VALUE) {
-                highWaterMark++;
-            }
-            // If we have ranges like [a-z][b-c][g-h], we'll have to iterate over the [a-z] range several times or we'll
-            // end up missing [i-z].
-            if (highWaterMark < range.getEnd()) {
-                i--;
+            var leftRange = allTransitions.get(i);
+            nextStart = (char) Math.max(nextStart, leftRange.getStart());
+            while (nextStart <= leftRange.getEnd()) {
+                var nextEnd = getNextEnd(allTransitions, i, nextStart, leftRange);
+                derivedRanges.add(new CharRange(nextStart, nextEnd));
+                if (nextEnd == Character.MAX_VALUE) {
+                    return derivedRanges;
+                }
+                else {
+                    nextStart = (char) (nextEnd + 1);
+                }
             }
         }
         return derivedRanges;
+    }
+
+    private char getNextEnd(List<CharRange> allTransitions, int i, char nextStart, CharRange leftRange) {
+        var nextEnd = leftRange.getEnd();
+        for (var j = i + 1; j < allTransitions.size(); j++) {
+            var rightRange = allTransitions.get(j);
+            if (rightRange.getEnd() < nextStart) {
+                continue;
+            }
+            if (rightRange.getStart() > nextEnd) {
+                return nextEnd;
+            }
+            if (nextStart >= rightRange.getStart()) {
+                nextEnd = (char) Math.min(nextEnd, rightRange.getEnd());
+            }
+            else {
+                nextEnd = (char) (rightRange.getStart() - 1);
+            }
+        }
+        return nextEnd;
+    }
+
+    private static char determineEnd(List<CharRange> allTransitions, int i, CharRange startRange) {
+        var end = startRange.getEnd();
+        for (; i < allTransitions.size(); i++) {
+            var otherRange = allTransitions.get(i);
+            if (startRange.overlaps(otherRange)) {
+                end = (char) Math.min(end, otherRange.getEnd());
+            }
+            else {
+                return end;
+            }
+        }
+        return end;
+    }
+
+    List<CharRange> getSortedTransitions() {
+        var uniqueRanges = states.stream().flatMap(s -> s.getTransitions().stream()).map(Pair::getLeft).collect(Collectors.toSet());
+        var allTransitions = new ArrayList<>(uniqueRanges);
+        Collections.sort(allTransitions);
+        return allTransitions;
     }
 
     private char addRange(List<CharRange> derivedRanges, List<CharRange> allTransitions, char highWaterMark, int i) {
@@ -446,10 +522,7 @@ class DFA {
             if (secondRange.getStart() > end) {
                 break;
             }
-            else if (secondRange.getEnd() < start) {
-                continue;
-            }
-            else {
+            else if (secondRange.getStart() == start) {
                 end = (char) Math.min(end, secondRange.getEnd());
             }
         }

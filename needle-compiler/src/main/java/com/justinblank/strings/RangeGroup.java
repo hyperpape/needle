@@ -11,7 +11,6 @@ class RangeGroup implements Comparable<RangeGroup> {
         if (this == o) {
             return 0;
         }
-        // TODO: O(n^2)
         for (var i = 0; i < ranges.size(); i++) {
             if (i >= o.ranges.size()) {
                 return 1;

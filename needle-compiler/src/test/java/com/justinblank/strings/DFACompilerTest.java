@@ -522,11 +522,19 @@ public class DFACompilerTest {
         assertTrue(matchResult.matched);
         assertEquals(0, matchResult.start);
         assertEquals(21, matchResult.end);
+
+        matcher = pattern.matcher("http://Γειά σου.com");
+        matcher.matches();
+        matcher.containedIn();
+        matchResult = matcher.find();
+        assertTrue(matchResult.matched);
+        assertEquals(0, matchResult.start);
+        assertEquals(19, matchResult.end);
     }
 
     @Test
     public void testHolmesWithin25CharactersOfWatson() {
-        final var pattern = DFACompiler.compile("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson");
+        final var pattern = DFACompiler.compile("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson", true);
         Matcher matcher = pattern.matcher("HolmesThenWatson");
         assertTrue(matcher.matches());
     }

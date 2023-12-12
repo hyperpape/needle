@@ -22,6 +22,7 @@ class MatchingVars implements Vars {
     int stateVar = -1;
     int lastMatchVar = -1;
     int wasAcceptedVar = -1;
+    int byteClassVar = -1;
 
     MatchingVars(int charVar, int counterVar, int stateVar, int lengthVar, int stringVar) {
         this.charVar = charVar;
@@ -48,6 +49,9 @@ class MatchingVars implements Vars {
         }
         if (stateVar != -1) {
             variables.add(Pair.of(DFAClassBuilder.STATE_FIELD, stateVar));
+        }
+        if (byteClassVar != -1) {
+            variables.add(Pair.of(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassVar));
         }
         return variables;
     }
@@ -77,6 +81,11 @@ class MatchingVars implements Vars {
         return this;
     }
 
+    public MatchingVars setByteClassVar(int byteClassVar) {
+        this.byteClassVar = byteClassVar;
+        return this;
+    }
+
     public MatchingVars setLastMatchVar(int lastMatchVar) {
         this.lastMatchVar = lastMatchVar;
         return this;
@@ -103,6 +112,8 @@ class MatchingVars implements Vars {
                 return this.lastMatchVar;
             case WAS_ACCEPTED:
                 return this.wasAcceptedVar;
+            case DFAClassBuilder.BYTE_CLASS_FIELD:
+                return this.byteClassVar;
             default:
                 throw new IllegalArgumentException("Illegal argument for variable lookup: " + name);
         }
@@ -127,6 +138,9 @@ class MatchingVars implements Vars {
         }
         else if (count == this.wasAcceptedVar) {
             return WAS_ACCEPTED;
+        }
+        else if (count == this.byteClassVar) {
+            return DFAClassBuilder.BYTE_CLASS_FIELD;
         }
         else {
             return null;

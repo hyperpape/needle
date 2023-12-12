@@ -27,6 +27,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String LENGTH_FIELD = "length";
     protected static final String STRING_FIELD = "string";
     protected static final String INDEX_FIELD = "index";
+    protected static final String BYTE_CLASS_FIELD = "byteClass";
     protected static final String NEXT_START_FIELD = "nextStart";
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String PREFIX_CONSTANT = "PREFIX";
@@ -63,7 +64,7 @@ class DFAClassBuilder extends ClassBuilder {
         this.forwardOffsets = dfa.calculateOffsets(factorization);
         compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
         if (dfa.isAllAscii()) {
-            stateTransitions.byteClasses = dfa.byteClasses();
+            stateTransitions.byteClasses = dfa.byteClasses().ranges;
             compilationPolicy.useByteClassesForAllStates = true;
         } else {
             stateTransitions.byteClasses = null;

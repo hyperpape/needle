@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -178,7 +179,7 @@ public class DFATest {
     @Test
     public void testByteClassesLiteral() {
         var dfa = DFA.createDFA("abc");
-        var byteClasses = dfa.byteClasses();
+        var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < 'a'; i++) {
             assertEquals(0, byteClasses[i]);
         }
@@ -193,7 +194,7 @@ public class DFATest {
     @Test
     public void testByteClassesTwoDisconnectedRangesFollowedByLiteral() {
         var dfa = DFA.createDFA("[A-Za-z]+ab");
-        var byteClasses = dfa.byteClasses();
+        var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < 'A'; i++) {
             assertEquals(0, byteClasses[i]);
         }
@@ -210,9 +211,132 @@ public class DFATest {
     }
 
     @Test
+    public void testByteClasses_canBeFormed_fromRegexWithDot() {
+        var dfa = DFA.createDFA("[A-Za-z]+.b");
+        var byteClasses = dfa.byteClasses().ranges;
+        for (var i = 0; i < 'A'; i++) {
+            assertEquals(1, byteClasses[i]);
+        }
+        assertEquals(2, byteClasses['A']);
+        assertEquals(2, byteClasses['Z']);
+        assertEquals(2, byteClasses['a']);
+        assertEquals(3, byteClasses['b']);
+        for (var c = 'c'; c <= 'z'; c++) {
+            assertEquals(2, byteClasses[c]);
+        }
+        for (var c = 'z' + 1; c < 128; c++) {
+            assertEquals(1, byteClasses[c]);
+        }
+    }
+
+    @Test
+    public void newTest() {
+        var dfa = DFA.createDFA("http://.+");
+        var byteClasses = dfa.byteClasses().ranges;
+        for (var i = 0; i < '/'; i++) {
+            assertEquals(1, byteClasses[i]);
+        }
+        assertEquals(2, byteClasses['/']);
+        for (var i = '0'; i < ':'; i++) {
+            assertEquals(1, byteClasses[i]);
+        }
+        assertEquals(3, byteClasses[':']);
+    }
+
+    @Test
     public void testDistinctCharRanges_canBeFormed_fromRegexWithDot() {
         var dfa = DFA.createDFA("[A-Za-z]+.b");
-        var byteClasses = dfa.getDistinctCharRanges();
-        assertThat(byteClasses).isNotEmpty();
+        var distinguishedRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
+        assertThat(distinguishedRanges).isNotEmpty();
+        assertEquals(new CharRange('\u0000', '@'), distinguishedRanges.get(0));
+    }
+
+    @Test
+    public void testDistinctCharRanges_withCharRangeSplitMultipleTimes() {
+        // the [a-z] range gets subdivided into [a-f][g][h][i][j-m][n][o-z]
+        var dfa = DFA.createDFA("[A-Za-z]+ing");
+        var distinguishedRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
+        assertEquals(new CharRange('A', 'Z'), distinguishedRanges.get(0));
+    }
+
+    @Test
+    public void testCharRanges_forRegexWithDot() {
+        // not isolating the behavior
+        var dfa = DFA.createDFA("[A-Za-z]+.b");
+        var rangeGroups = dfa.generateRangeGroups();
+        var rangeGroup = rangeGroups.get(0);
+        assertEquals(new CharRange('\u0000', '@'), rangeGroup.ranges.get(0));
+        // TODO: fill out test case
+    }
+
+    @Test
+    public void testCharRanges_forOtherRegexWithDot() {
+        // not isolating the behavior
+        var dfa = DFA.createDFA("h:.+");
+        var rangeGroups = dfa.generateRangeGroups();
+        var rangeGroup = rangeGroups.get(0);
+        assertEquals(new CharRange('\u0000', '9'), rangeGroup.ranges.get(0));
+        // TODO: fill out test case
+    }
+
+    @Test
+    public void testAgainAgain() {
+        var dfa = DFA.createDFA("h:.+");
+        var charRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
+        assertEquals(new CharRange('\u0000', '9'), charRanges.get(0));
+        assertEquals(new CharRange(':', ':'), charRanges.get(1));
+        assertEquals(new CharRange(';', 'g'), charRanges.get(2));
+        assertEquals(new CharRange('h', 'h'), charRanges.get(3));
+        assertEquals(new CharRange('i', '\uFFFF'), charRanges.get(4));
+    }
+
+    @Test
+    public void testAgainByteClasses() {
+        var dfa = DFA.createDFA("h:.+");
+        var byteClasses = dfa.byteClasses();
+        assertEquals(1, byteClasses.ranges[0]);
+        assertEquals(2, byteClasses.ranges[':']);
+        assertEquals(1, byteClasses.ranges[';']);
+        assertEquals(3, byteClasses.ranges['h']);
+        assertEquals(1, byteClasses.ranges['i']);
+    }
+
+    @Test
+    public void testYetAnotherRanges() {
+        var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol");
+        List<CharRange> distinctRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
+        List<CharRange> expectedRanges = List.of(
+                new CharRange('\u0000', 'G'),
+                new CharRange('H', 'H'),
+                new CharRange('I', 'V'),
+                new CharRange('W', 'W'),
+                new CharRange('X', '`'),
+                new CharRange('a', 'a'),
+                new CharRange('b', 'k'),
+                new CharRange('l', 'l'),
+                new CharRange('m', 'n'),
+                new CharRange('o', 'o'),
+                new CharRange('p', 's'),
+                new CharRange('t', 't'),
+                new CharRange('u', '\uFFFF'));
+        assertEquals(expectedRanges, distinctRanges);
+    }
+
+    @Test
+    public void testEvenMore() {
+        var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol");
+        var byteClasses = dfa.byteClasses();
+        assertEquals(1, byteClasses.ranges[0]);
+        assertEquals(2, byteClasses.ranges['H']);
+        assertEquals(1, byteClasses.ranges['I']);
+        assertEquals(3, byteClasses.ranges['W']);
+        assertEquals(1, byteClasses.ranges['X']);
+        assertEquals(4, byteClasses.ranges['a']);
+        assertEquals(1, byteClasses.ranges['b']);
+        assertEquals(5, byteClasses.ranges['l']);
+        assertEquals(1, byteClasses.ranges['m']);
+        assertEquals(6, byteClasses.ranges['o']);
+        assertEquals(1, byteClasses.ranges['p']);
+        assertEquals(7, byteClasses.ranges['t']);
     }
 }
