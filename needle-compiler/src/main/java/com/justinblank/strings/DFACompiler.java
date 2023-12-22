@@ -18,10 +18,15 @@ public class DFACompiler {
     }
 
     static Pattern compile(String regex, String className, boolean debug) {
-        if (debug) {
+        var debugOptions = debug ? new DebugOptions(true, true, true, true) : DebugOptions.none();
+        return compile(regex, className, debugOptions);
+    }
+
+    static Pattern compile(String regex, String className, DebugOptions debugOptions) {
+        if (debugOptions.isDebug()) {
             System.out.println("Compiling " + className + "(" + regex + ")");
         }
-        byte[] classBytes = compileToBytes(regex, className, debug ? new DebugOptions(true, true, true) : DebugOptions.none() );
+        byte[] classBytes = compileToBytes(regex, className, debugOptions);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
         Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
         try {
@@ -32,7 +37,7 @@ public class DFACompiler {
     }
 
     public static byte[] compileToBytes(String regex, String className) {
-        return compileToBytes(regex, className, new DebugOptions(false, false, false));
+        return compileToBytes(regex, className, DebugOptions.none());
     }
 
     static byte[] compileToBytes(String regex, String className, DebugOptions debugOptions) {
@@ -48,7 +53,7 @@ public class DFACompiler {
         DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, debugOptions.isDebug());
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, debugOptions.isDebug());
 
-        if (debugOptions.isDebug()) {
+        if (debugOptions.printDFAs) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
         }
         checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
