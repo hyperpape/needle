@@ -1,0 +1,27 @@
+package com.justinblank.strings;
+
+import org.junit.Ignore;
+import org.junit.Test;
+
+// For generating compiled classes for manual inspection of their contents
+public class GenerateExamples {
+
+    @Ignore
+    @Test
+    public void generateExamples() {
+        var debugOptions = new DebugOptions(false, true, false, false);
+        // Should compile to indexOf
+        DFACompiler.compile("Sherlock", "Sherlock", debugOptions);
+        // Should use indexOf to find the 'S' prefix
+        DFACompiler.compile("Sherlock|Street", "SherlockStreet", debugOptions);
+        // Basic regexes, no prefix, should dispatch entirely with byteClasses
+        DFACompiler.compile("Sherlock|Holmes|Watson|Irene|Adler|John|Baker", "ManyNames", debugOptions);
+        DFACompiler.compile("([Ss]herlock)|([Hh]olmes)", "TwoNamesCaseInsensitiveFirstChar", debugOptions);
+        // Dot character including unicode
+        DFACompiler.compile("a.c", "aDotc", debugOptions);
+
+        // Unicode needles
+        DFACompiler.compile("ε", "SingleUnicodeCharNeedle", debugOptions);
+        DFACompiler.compile("ε|λ", "UnicodeUnion", debugOptions);
+    }
+}
