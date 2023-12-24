@@ -58,4 +58,12 @@ class FindMethodSpec {
     public String indexMethod() {
         return "index" + name;
     }
+
+    @Override
+    public String toString() {
+        return "FindMethodSpec{" +
+                "name='" + name + '\'' +
+                ", forwards=" + forwards +
+                '}';
+    }
 }
