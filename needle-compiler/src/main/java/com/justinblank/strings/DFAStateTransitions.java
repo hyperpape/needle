@@ -10,16 +10,16 @@ import java.util.Set;
  */
 class DFAStateTransitions {
 
-    protected byte[] byteClasses;
+    protected ByteClasses byteClasses;
 
     /**
-     * Map from strings representing the search methods (e.g) STATES_FORWARD to sets of strings encoding
+     * Map from strings representing the search methods (e.g) "STATES_FORWARD" to sets of strings encoding
      * state transitions. For the encoding, see {@link ByteClassUtil}.
      */
     protected Map<String, Set<String>> byteClassStringMaps = new HashMap<>();
 
     protected void addStateTransitionString(FindMethodSpec spec, DFA dfaState) {
-        StringBuilder sb = getByteClassString(dfaState);
+        StringBuilder sb = buildByteClassString(dfaState);
         if (sb.length() != 0) {
             byteClassStringMaps.get(spec.statesConstant()).add(sb.toString());
         }
@@ -32,7 +32,7 @@ class DFAStateTransitions {
         return true; // dfaState.getTransitions().size() > 3 || !dfa.allTransitionsLeadToSameState();
     }
 
-    StringBuilder getByteClassString(DFA dfaState) {
+    StringBuilder buildByteClassString(DFA dfaState) {
         boolean first = true;
         StringBuilder sb = new StringBuilder();
         sb.append(ByteClassUtil.encode(dfaState.getStateNumber())).append(':');
@@ -40,8 +40,14 @@ class DFAStateTransitions {
         for (var transition : dfaState.getTransitions()) {
             var largestSeenByteClass = 0;
             for (var i = transition.getLeft().getStart(); i <= transition.getLeft().getEnd(); i++) {
-                var byteClass = byteClasses[i];
-                if (byteClass > largestSeenByteClass) {
+                byte byteClass;
+                if (i >= 128) {
+                    byteClass = byteClasses.catchAll;
+                }
+                else {
+                    byteClass = byteClasses.ranges[i];
+                }
+                if (byteClass == 0 || byteClass > largestSeenByteClass) {
                     var state = transition.getRight().getStateNumber();
                     if (!bytesWitnessed.contains(byteClass)) {
                         bytesWitnessed.add(byteClass);
@@ -51,7 +57,12 @@ class DFAStateTransitions {
                         first = false;
                         sb.append(ByteClassUtil.encode(byteClass)).append('-').append(ByteClassUtil.encode(state));
                     }
-                    largestSeenByteClass = byteClass;
+                    if (!(i > 128)) {
+                        largestSeenByteClass = byteClass;
+                    }
+                }
+                if (i > 128) {
+                    break;
                 }
             }
         }

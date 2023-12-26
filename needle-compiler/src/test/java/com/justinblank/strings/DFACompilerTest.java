@@ -534,8 +534,15 @@ public class DFACompilerTest {
 
     @Test
     public void testHolmesWithin25CharactersOfWatson() {
-        final var pattern = DFACompiler.compile("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson", true);
+        final var pattern = DFACompiler.compile("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson");
         Matcher matcher = pattern.matcher("HolmesThenWatson");
+        assertTrue(matcher.matches());
+    }
+
+    @Test
+    public void testMinimized() {
+        final var pattern = DFACompiler.compile("AB.{0,2}12|AB.{0,2}12", "minimized");
+        Matcher matcher = pattern.matcher("AB+12");
         assertTrue(matcher.matches());
     }
 

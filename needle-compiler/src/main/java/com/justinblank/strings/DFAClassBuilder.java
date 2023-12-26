@@ -44,6 +44,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final Map<Integer, Offset> forwardOffsets;
 
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
+    private int catchAllByteClass;
     private final DebugOptions debugOptions;
 
     final List<Method> findMethods = new ArrayList<>();
@@ -63,9 +64,12 @@ class DFAClassBuilder extends ClassBuilder {
         this.debugOptions = debugOptions;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
         compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
-        if (dfa.isAllAscii()) {
-            stateTransitions.byteClasses = dfa.byteClasses().ranges;
+        if (dfa.maxDistinguishedChar() <= 127) {
+            // TODO: test whether it matters that the four DFAs can have different byteClasses
+            ByteClasses byteClasses = dfa.byteClasses();
+            stateTransitions.byteClasses = byteClasses;
             compilationPolicy.useByteClassesForAllStates = true;
+            catchAllByteClass = byteClasses.catchAll;
         } else {
             stateTransitions.byteClasses = null;
         }
@@ -84,9 +88,14 @@ class DFAClassBuilder extends ClassBuilder {
 
     void initMethods() {
         addStateMethods();
-        if (compilationPolicy.usedByteClasses) {
+        // TODO: why both?
+        if (compilationPolicy.usedByteClasses || compilationPolicy.useByteClassesForAllStates) {
             addByteClasses();
             if (compilationPolicy.useByteClassesForAllStates) {
+                // The order of the next two statements is important: addTransitionsForAllSpecs populates variables like
+                // stateTransitionsForwards0, then populateByteClassArrays references them and puts them in the main
+                // array
+                // addStateTransitionsForAllSpecs();
                 populateByteClassArrays();
             }
             // these methods depend on being called after addStateMethods()
@@ -114,6 +123,15 @@ class DFAClassBuilder extends ClassBuilder {
         addConstructor();
         addFields();
     }
+
+//    private void addStateTransitionsForAllSpecs() {
+//        // temporarily leave out:  containedInFindMethodSpec
+//        for (var spec : List.of(forwardFindMethodSpec, reversedFindMethodSpec, dfaSearchFindMethodSpec)) {
+//            for (var dfaState : spec.dfa.allStates()) {
+//               prepareMethodToUseByteClasses(spec, dfaState);
+//            }
+//        }
+//    }
 
     protected void addByteClassStringMaps() {
         stateTransitions.byteClassStringMaps.put(forwardFindMethodSpec.statesConstant(), new HashSet<>());
@@ -163,7 +181,7 @@ class DFAClassBuilder extends ClassBuilder {
             else {
                 block.readStatic(spec.statesConstant(), true, "[[B");
             }
-            block.push(ByteClassUtil.maxByteClass(stateTransitions.byteClasses) + 1);
+            block.push(ByteClassUtil.maxByteClass(stateTransitions.byteClasses.ranges) + 1);
 
             block.readStatic(name, true, CompilerUtil.STRING_DESCRIPTOR);
 
@@ -203,12 +221,12 @@ class DFAClassBuilder extends ClassBuilder {
                 .callStatic("fill", "java/util/Arrays", "([BB)V");
         int start = 0;
         int end = 0;
-        int byteClass = stateTransitions.byteClasses[start];
+        int byteClass = stateTransitions.byteClasses.ranges[start];
 
         // Identify runs of characters that are mapped to the same byte class. For each of these runs, we emit a call to
         // ByteClassUtil#fillBytes() to fill the array with the number representing that byte class.
         while (end < 129) {
-            if (stateTransitions.byteClasses[end] != byteClass) {
+            if (stateTransitions.byteClasses.ranges[end] != byteClass) {
                 if (byteClass != 0) {
                     staticBlock.readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
                             .push(byteClass)
@@ -217,7 +235,7 @@ class DFAClassBuilder extends ClassBuilder {
                             .callStatic("fillBytes", "com/justinblank/strings/ByteClassUtil", "([BBII)V");
                 }
                 start = end;
-                byteClass = stateTransitions.byteClasses[end];
+                byteClass = stateTransitions.byteClasses.ranges[end];
             }
             end++;
         }
@@ -247,6 +265,7 @@ class DFAClassBuilder extends ClassBuilder {
         var vars = new MatchingVars(4, 1, 3, 2, 5);
         vars.setWasAcceptedVar(6);
         vars.setLastMatchVar(7);
+        vars.setByteClassVar(8);
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
@@ -313,13 +332,15 @@ class DFAClassBuilder extends ClassBuilder {
                                 ),
                                 skip()
                         )) : new NoOpStatement(),
-                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, -1),
+                        compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                        compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                 List.of(
                                         set(MatchingVars.STATE, 0),
-                                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, 0),
+                                        compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                                        compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, 0),
                                         cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                                 set(MatchingVars.STATE, 0)
                                         )
@@ -335,19 +356,39 @@ class DFAClassBuilder extends ClassBuilder {
         return method;
     }
 
+    private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
+        Type type = compilationPolicy.stateArraysUseShorts ? Builtin.S : Builtin.OCTET;
+        var stateArrayRef = arrayRead(
+                        getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
+        // TODO: use a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
+        return set(MatchingVars.STATE, cast(Builtin.I, arrayRead(stateArrayRef, read(BYTE_CLASS_FIELD))));
+    }
+
+    private CodeElement setByteClass() {
+        var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
+        var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
+        return cond(gt(read(MatchingVars.CHAR), 127)).withBody(set(DFAClassBuilder.BYTE_CLASS_FIELD, catchAllByteClass)).orElse(
+            set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup));
+    }
+
     private Method createIndexMethodReversed(FindMethodSpec spec) {
         // We're overriding the meaning of the length variable, here it refers to the starting point of the backwards
         // match
         var vars = new MatchingVars(5, 1, 3, 2, 4);
         vars.setWasAcceptedVar(5);
         vars.setLastMatchVar(6);
+        vars.setByteClassVar(7);
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
 
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
-        // TODO: This zero is quite odd in a reversed method, I don't know what it should be, however
-        method.set(MatchingVars.LAST_MATCH, spec.dfa.isAccepting() ? 0 : -1);
+        if (spec.dfa.isAccepting()) {
+            method.set(MatchingVars.LAST_MATCH, read(vars.LENGTH));
+        }
+        else {
+            method.set(MatchingVars.LAST_MATCH, Integer.MAX_VALUE);
+        }
 
         var loopBoundary = gte(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
 
@@ -380,7 +421,8 @@ class DFAClassBuilder extends ClassBuilder {
                         compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 returnValue(read(MatchingVars.LAST_MATCH))
                         )) : new NoOpStatement(),
-                        compilationPolicy.useByteClassesForAllStates ? buildStateLookup(spec) : buildStateSwitch(spec, -1),
+                        compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                        compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
@@ -400,7 +442,7 @@ class DFAClassBuilder extends ClassBuilder {
                 getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
         var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
-        // TODO: this is a bit of a hack--we'll have to figure out the type inference story in mako
+        // TODO: using a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
         return set(MatchingVars.STATE, cast(Builtin.I, arrayRead(stateArrayRef, byteClassLookup)));
     }
 
@@ -604,7 +646,9 @@ class DFAClassBuilder extends ClassBuilder {
 
             Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
-            method.set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), byteClassesType), read("c")));
+            method.cond(gt(read("c"), 127)).withBody(set("byteClass", catchAllByteClass)).orElse(
+                set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), byteClassesType), read("c")))
+            );
             method.set("stateTransitions", arrayRead(
                     getStatic(spec.statesConstant(), ReferenceType.of(getClassName()), stateTransitionsType),
                     dfaState.getStateNumber()));
