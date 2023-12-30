@@ -351,7 +351,6 @@ class DFATest {
         assertEquals(7, byteClasses.ranges['t']);
     }
 
-
     @Test
     void initialBytes() {
         var dfa = DFA.createDFA("Sherlock|Holmes|Adler|Watson");
@@ -360,10 +359,45 @@ class DFATest {
             DFA target = dfa.transition((char) i);
             if (initialBytes[i]) {
                 assertNotEquals(0, target.getStateNumber());
-            }
-            else {
+            } else {
                 assertNull(target);
             }
         }
+    }
+
+    @Test
+    public void testHasInfixDoesntMatchSuffix() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertFalse(dfa.hasInfix("Suffix"));
+    }
+
+    @Test
+    public void testHasNonSuffixDoesntMatchSuffix() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertFalse(dfa.hasNonSuffix("Suffix"));
+    }
+
+    @Test
+    public void testHasInfixDoesntMatchPrefix() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertFalse(dfa.hasInfix("Prefix"));
+    }
+
+    @Test
+    public void testHasNonSuffixMatchesPrefix() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertTrue(dfa.hasNonSuffix("Prefix"));
+    }
+
+    @Test
+    public void testHasInfixMatchesSuffixWhenItAppearsAsInfix() {
+        var dfa = DFA.createDFA("PrefixSuffixSuffix");
+        assertTrue(dfa.hasInfix("Suffix"));
+    }
+
+    @Test
+    public void testHasNonSuffixMatchesSuffixWhenItAppearsAsInfix() {
+        var dfa = DFA.createDFA("PrefixSuffixSuffix");
+        assertTrue(dfa.hasNonSuffix("Suffix"));
     }
 }

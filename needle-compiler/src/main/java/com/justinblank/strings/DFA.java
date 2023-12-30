@@ -773,4 +773,28 @@ class DFA {
         }
         return liveStates;
     }
+
+    public boolean hasNonSuffix(String infix) {
+        for (var state : this.states) {
+            var afterInfix = state.after(infix);
+            if (afterInfix.map(s -> !s.isAccepting()).orElse(false)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasInfix(String infix) {
+        for (var state : this.states) {
+            if (state == this) {
+                continue;
+            }
+            var afterInfix = state.after(infix);
+            if (afterInfix.map(s -> !s.isAccepting()).orElse(false)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
+
