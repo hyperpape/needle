@@ -19,6 +19,8 @@ public class GenerateExamples {
         DFACompiler.compile("([Ss]herlock)|([Hh]olmes)", "TwoNamesCaseInsensitiveFirstChar", debugOptions);
         // Dot character including unicode
         DFACompiler.compile("a.c", "aDotc", debugOptions);
+        // Large dfa with doc character including unicode
+        DFACompiler.compile("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson", debugOptions);
 
         // Unicode needles
         DFACompiler.compile("ε", "SingleUnicodeCharNeedle", debugOptions);
