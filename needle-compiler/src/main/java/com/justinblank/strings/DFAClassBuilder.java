@@ -461,8 +461,7 @@ class DFAClassBuilder extends ClassBuilder {
         var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
 
         method.cond(eq(get(NEXT_START_FIELD, Builtin.I, thisRef()), -1
-                )).withBody(returnValue(callStatic(MatchResult.class, "failure",
-                        ReferenceType.of(MatchResult.class))));
+                )).withBody(returnValue(createFailureObject()));
         method.set(MatchingVars.INDEX,
                 call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                         read("FROM"), read("TO")));
@@ -479,8 +478,7 @@ class DFAClassBuilder extends ClassBuilder {
                             callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
                                     sub(read(MatchingVars.INDEX), factorization.getMinLength()), read(MatchingVars.INDEX))
                     )))
-                    .orElse(List.of(returnValue(callStatic(MatchResult.class, "failure",
-                                            ReferenceType.of(MatchResult.class)))));
+                    .orElse(List.of(returnValue(createFailureObject())));
         }
         else {
             method.cond(neq(-1, read(MatchingVars.INDEX))).
@@ -491,10 +489,14 @@ class DFAClassBuilder extends ClassBuilder {
                                                     sub(read(MatchingVars.INDEX), 1), read("FROM")),
                                             read(MatchingVars.INDEX)))))
                     .orElse(List.of(
-                            returnValue(callStatic(MatchResult.class, "failure",
-                                    ReferenceType.of(MatchResult.class)))));
+                            returnValue(createFailureObject())));
         }
         return method;
+    }
+
+    private static Expression createFailureObject() {
+        return callStatic(MatchResult.class, "failure",
+                ReferenceType.of(MatchResult.class));
     }
 
     private void addConstructor() {
@@ -700,6 +702,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Method createMatchesMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
+        vars.setByteClassVar(6);
         var method = mkMethod("matches", new ArrayList<>(), "Z", vars);
 
         method.set(MatchingVars.LENGTH,
@@ -745,10 +748,10 @@ class DFAClassBuilder extends ClassBuilder {
             if (debugOptions.trackStates) {
                 onFailure = List.of(callStatic(DFADebugUtils.class, "failedLookAheadCheck",
                                 Void.VOID, read(MatchingVars.INDEX), plus(read(MatchingVars.INDEX), offset.length)),
-                        returnValue(0));
+                        returnValue(false));
             }
             else {
-                 onFailure = List.of(returnValue(0));
+                 onFailure = List.of(returnValue(false));
             }
             for (var element : createOffsetCheck(offset, 0, onFailure)) {
                 method.addElement(element);
@@ -766,7 +769,11 @@ class DFAClassBuilder extends ClassBuilder {
                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                         read(MatchingVars.STRING),
                         read(MatchingVars.INDEX))),
-                buildStateSwitch(spec, -1),
+                compilationPolicy.useByteClassesForAllStates ? cond(
+                        gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
+                        returnValue(false)) : new NoOpStatement(),
+                compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                 ));
 
