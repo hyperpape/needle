@@ -325,7 +325,8 @@ class DFAClassBuilder extends ClassBuilder {
                         //  maybe even a valuable speedup?
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
-                        compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+
+                        spec.dfa.maxChar() < Character.MAX_VALUE && compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 set(MatchingVars.STATE, -1),
                                 cond(gt(read(MatchingVars.LAST_MATCH), literal(-1))).withBody(
                                         returnValue(read(MatchingVars.LAST_MATCH))
@@ -418,7 +419,7 @@ class DFAClassBuilder extends ClassBuilder {
                         // TODO: this should be ok regardless of whether we're using byteclasses?
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
-                        compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                        spec.dfa.maxChar() < Character.MAX_VALUE && compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 returnValue(read(MatchingVars.LAST_MATCH))
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
