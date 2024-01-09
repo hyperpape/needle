@@ -25,5 +25,7 @@ public class GenerateExamples {
         // Unicode needles
         DFACompiler.compile("ε", "SingleUnicodeCharNeedle", debugOptions);
         DFACompiler.compile("ε|λ", "UnicodeUnion", debugOptions);
+
+        DFACompiler.compile("[0-9]+", "DigitPlus", debugOptions);
     }
 }
