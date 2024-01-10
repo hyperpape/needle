@@ -866,7 +866,7 @@ class DFAClassBuilder extends ClassBuilder {
                     getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
                     read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
-                    returnValue(0)));
+                    returnValue(false)));
             outerLoopBody.add(set(MatchingVars.STATE, postPrefixState));
 
             if (usesOffsetCalculation(postPrefixState)) {
@@ -893,7 +893,7 @@ class DFAClassBuilder extends ClassBuilder {
                                         callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE))
                                         : new NoOpStatement(),
                                 cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
-                        .withBody(returnValue(1)),
+                        .withBody(returnValue(true)),
                                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
