@@ -643,7 +643,6 @@ public class DFACompilerTest {
 
     @Test
     public void fileBasedTests() throws Exception {
-        // a.c is breaking
         var baseName = "dfaFileBasedTests";
         var counter = new AtomicInteger();
         var patterns = new HashMap<String, Pattern>();
