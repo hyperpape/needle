@@ -841,6 +841,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     Method createContainedInMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
+        vars.setByteClassVar(6);
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 
         method.set(MatchingVars.LENGTH,
@@ -897,7 +898,15 @@ class DFAClassBuilder extends ClassBuilder {
                                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
                                 read(MatchingVars.INDEX))),
-                                buildStateSwitch(spec,0),
+                                compilationPolicy.useByteClassesForAllStates ? cond(
+                                        gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
+                                                List.of(set(MatchingVars.STATE, -1),
+                                                        set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                                                        escape())) : new NoOpStatement(),
+                                compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                                compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+
+                                // buildStateSwitch(spec,0), // TODO: should on-failure be -1 here? does it matter?
                                 cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                         List.of(
                                                 // TODO: see if it matters that this is emitting a call to the state method
