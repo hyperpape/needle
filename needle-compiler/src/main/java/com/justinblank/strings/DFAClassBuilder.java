@@ -87,6 +87,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     void initMethods() {
+        addStateTransitionStrings();
         addStateMethods();
         // TODO: why both?
         if (compilationPolicy.usedByteClasses || compilationPolicy.useByteClassesForAllStates) {
@@ -582,6 +583,17 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
+    private void addStateTransitionStrings() {
+        for (var spec : allSpecs()) {
+            for (var dfaState : spec.dfa.allStates()) {
+                if (stateTransitions.willUseByteClasses(dfaState, this)) {
+                    stateTransitions.addStateTransitionString(spec, dfaState);
+                    compilationPolicy.usedByteClasses = true;
+                }
+            }
+        }
+    }
+
     private void addStateMethods(FindMethodSpec spec) {
         for (DFA dfaState : spec.dfa.allStates()) {
             addStateMethod(dfaState, spec);
@@ -644,9 +656,6 @@ class DFAClassBuilder extends ClassBuilder {
         }
         // TODO: offsets
         if (stateTransitions.willUseByteClasses(dfaState, this)) {
-            stateTransitions.addStateTransitionString(spec, dfaState);
-            compilationPolicy.usedByteClasses = true;
-
             Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
             method.cond(gt(read("c"), 127)).withBody(set("byteClass", catchAllByteClass)).orElse(
