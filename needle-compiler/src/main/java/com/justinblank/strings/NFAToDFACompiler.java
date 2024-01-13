@@ -69,6 +69,13 @@ class NFAToDFACompiler {
             }
             if ((mode == ConversionMode.CONTAINED_IN || (!accepting && mode == ConversionMode.DFA_SEARCH))) {
                 epsilonClosure.add(0, 0, RegexInstrBuilder.STARTING_PRIORITY);
+                // TODO: for the sake of normalizing things, should this be:
+                // var initialStates = new StateSet();
+                // initialStates.add(0, 0);
+                // initialStates = getEpsilonClosure(initialStates);
+                // for (var state : initialStates) {
+                //     epsilonClosure.add(state, initialStates.getDistance(state);
+                // }
             }
             List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
             for (CharRange range : ranges) {

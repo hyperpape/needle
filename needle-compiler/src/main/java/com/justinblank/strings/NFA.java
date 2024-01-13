@@ -11,6 +11,9 @@ import java.util.*;
 
 import static com.justinblank.strings.RegexInstr.Opcode.*;
 
+/**
+ * Warning: this doesn't implement the same leftmost-first semantics that the DFA now implements. 
+ */
 class NFA implements SearchMethod {
 
     RegexInstr[] regexInstrs;
