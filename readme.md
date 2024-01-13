@@ -6,10 +6,11 @@
 String searching/matching algorithms in Java, including multi-string
 matching and searching, and regular expressions.
 
-The regular expression engine is
-[non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html), and
-spends extra effort at compile-time to give better runtime matching
-performance. Those compile-time efforts currently take a few forms:
+The regular expression compiles regular expressions to Deterministic 
+Finite Automata (DFA)FAs (meaning that the regular expressions are 
+[non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and spends extra effort at compile-time to
+give better runtime matching performance. Those compile-time efforts
+currently take a few forms:
 
   1. Bytecode compilation: creating a specialized class for an
   individual regex that specializes the code to simulate an automaton,
@@ -22,7 +23,8 @@ performance. Those compile-time efforts currently take a few forms:
   3. The automaton can look ahead for necessary characters later in
      the stream. Upon seeing `"the "` when matching `"the [Cc]rown"`, 
      the automaton will check whether `n` is found 5 characters ahead, 
-     before moving to the next state, skipping four characters in the process.
+     before moving to the next state. If the look-ahead fails, it will 
+     skip ahead and restart.
 
 ### Status
 
@@ -57,7 +59,7 @@ assertEquals(21, matchResult.end);
 
 #### Precompilation
 
-At build time:
+At build time, we can create a classfile and write it to the filesystem:
 
 ```java
 Precompile.precompile("http://.+", "OversimplifiedURLMatcher", somedirectory.getAbsolutePath());
