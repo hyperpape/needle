@@ -102,6 +102,13 @@ sam|samwise         samwise             y       0       3
 (sam|samwise)(sam|samwise)  samwisesam      y       0       10
 (sam|samwise)(sam|samwise)  samwisesamwise  y       0       10
 
+# greedy quantifiers
+(a|ab|bc)+def       abcdef              y       0       6
+(ab|a|bc)+def       abcdef              y       0       6
+(a|ab|bc)+c         abcc                y       0       4
+(a|ab|bc)+          abc                 y       0       3
+(a|ab)+(a|ab)+      abab                y       0       3
+(ab|a|bc)+          abc                 y       0       2
 
 # unicode haystacks
 a.c                 aεc                 y       0       3
