@@ -25,23 +25,21 @@ class RegexInstrBuilder {
         for (int i = 0; i < regex.size(); i++) {
             RegexInstr instr = regex.get(i);
             if (instr.opcode == JUMP) {
-                int resolvedTarget = getResolvedJump(regex, instr.target1);
+                int resolvedTarget = getResolvedJump(regex, instr.jumpTarget);
                 if (resolvedTarget != -1) {
                     regex.set(i, RegexInstr.jump(resolvedTarget));
                 }
             }
             else if (instr.opcode == SPLIT) {
-                int target1 = getResolvedJump(regex, instr.target1);
-                int target2 = getResolvedJump(regex, instr.target2);
-                if (target1 != -1 || target2 != -1) {
-                    if (target1 == -1) {
-                        target1 = instr.target1;
+                int[] resolved = new int[instr.splitTargets.length];
+                for (var j = 0; j < instr.splitTargets.length; j++) {
+                    int resolvedTarget = getResolvedJump(regex, instr.splitTargets[j]);
+                    if (resolvedTarget == -1) {
+                        resolvedTarget = instr.splitTargets[j];
                     }
-                    else if (target2 == -1) {
-                        target2 = instr.target2;
-                    }
-                    regex.set(i, RegexInstr.split(target1, target2));
+                    resolved[j] = resolvedTarget;
                 }
+                regex.set(i, RegexInstr.split(resolved));
             }
         }
     }
@@ -50,7 +48,7 @@ class RegexInstrBuilder {
         RegexInstr target = regex.get(jump);
         int resolvedTarget = -1;
         while (target.opcode == JUMP) {
-            resolvedTarget = target.target1;
+            resolvedTarget = target.jumpTarget;
             target = regex.get(resolvedTarget);
         }
         return resolvedTarget;
@@ -59,11 +57,12 @@ class RegexInstrBuilder {
     private boolean checkRep(List<RegexInstr> regex) {
         for (var instr : regex) {
             if (instr.opcode == JUMP) {
-                assert regex.get(instr.target1).opcode != JUMP;
+                assert regex.get(instr.jumpTarget).opcode != JUMP;
             }
             else if (instr.opcode == SPLIT) {
-                assert regex.get(instr.target1).opcode != JUMP;
-                assert regex.get(instr.target2).opcode != JUMP;
+                for (var i = 0; i < instr.splitTargets.length; i++) {
+                    assert regex.get(instr.splitTargets[i]).opcode != JUMP;
+                }
             }
         }
         return true;
@@ -82,7 +81,7 @@ class RegexInstrBuilder {
             createPartial(r.node, instrs);
             instrs.add(RegexInstr.jump(splitIndex));
             int postIndex = instrs.size();
-            instrs.set(splitIndex, RegexInstr.split(splitIndex + 1, postIndex));
+            instrs.set(splitIndex, RegexInstr.split(new int[] {splitIndex + 1, postIndex}));
         }
         else if (ast instanceof CountedRepetition) {
             CountedRepetition countedRepetition = (CountedRepetition) ast;
@@ -98,14 +97,16 @@ class RegexInstrBuilder {
             }
             int finalLocation = instrs.size();
             for (Integer switchLocation : switchLocations) {
-                instrs.set(switchLocation, RegexInstr.split(switchLocation + 1, finalLocation));
+                instrs.set(switchLocation, RegexInstr.split(new int[] { switchLocation + 1, finalLocation}));
             }
         }
         else if (ast instanceof Union) {
             Union a = (Union) ast;
 
             int splitIndex = instrs.size();
-            instrs.add(null);
+            if (!(a.left instanceof Union)) {
+                instrs.add(null);
+            }
             int firstSplitTarget = instrs.size();
             createPartial(a.left, instrs);
             int firstJumpIndex = instrs.size();
@@ -116,7 +117,29 @@ class RegexInstrBuilder {
             int finalJumpTarget = instrs.size();
             RegexInstr jump = RegexInstr.jump(finalJumpTarget);
             instrs.set(firstJumpIndex, jump);
-            instrs.set(splitIndex, RegexInstr.split(firstSplitTarget, secondSplitTarget));
+
+            List<Integer> splitTargets = new ArrayList<>();
+            if (instrs.get(firstSplitTarget).opcode == SPLIT) {
+                for (var i : instrs.get(firstSplitTarget).splitTargets) {
+                    splitTargets.add(i);
+                }
+            }
+            else {
+                splitTargets.add(firstSplitTarget);
+            }
+            if (secondSplitTarget < instrs.size() && instrs.get(secondSplitTarget).opcode == SPLIT) {
+                for (var i : instrs.get(secondSplitTarget).splitTargets) {
+                    splitTargets.add(i);
+                }
+            }
+            else {
+                splitTargets.add(secondSplitTarget);
+            }
+            int[] splitTargetsArray = new int[splitTargets.size()];
+            for (var i = 0; i < splitTargets.size(); i++) {
+                splitTargetsArray[i] = splitTargets.get(i);
+            }
+            instrs.set(splitIndex, RegexInstr.split(splitTargetsArray));
         }
         else if (ast instanceof CharRangeNode) {
             CharRange range = ((CharRangeNode) ast).range();

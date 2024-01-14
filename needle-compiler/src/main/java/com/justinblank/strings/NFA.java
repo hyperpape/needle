@@ -64,7 +64,7 @@ class NFA implements SearchMethod {
             int stateIndex = states.getByIndex(i);
             RegexInstr instr = regexInstrs[stateIndex];
             if (instr.opcode == JUMP) {
-                instr = regexInstrs[instr.target1];
+                instr = regexInstrs[instr.jumpTarget];
             }
             if (instr.opcode == MATCH) {
                 int successOrigin = stateOrigins[stateIndex];
@@ -74,25 +74,16 @@ class NFA implements SearchMethod {
             }
             else if (instr.opcode == SPLIT) {
                 int origin = stateOrigins[stateIndex];
-                int target1 = instr.target1;
-                if (regexInstrs[target1].opcode == MATCH) {
-                    if (origin < lastStart) {
-                        lastStart = origin;
+                for (var target : instr.splitTargets) {
+                    if (regexInstrs[target].opcode == MATCH) {
+                        if (origin < lastStart) {
+                            lastStart = origin;
+                        }
                     }
-                }
-                else {
-                    states.add(target1);
-                    stateOrigins[target1] = Math.min(origin, stateOrigins[target1]);
-                }
-                int target2 = instr.target2;
-                if (regexInstrs[target2].opcode == MATCH) {
-                    if (origin < lastStart) {
-                        lastStart = origin;
+                    else {
+                        states.add(target);
+                        stateOrigins[target] = Math.min(origin, stateOrigins[target]);
                     }
-                }
-                else {
-                    states.add(target2);
-                    stateOrigins[target2] = Math.min(origin, stateOrigins[target2]);
                 }
             }
         }
@@ -143,39 +134,30 @@ class NFA implements SearchMethod {
                     continue;
                 }
                 RegexInstr instr = this.regexInstrs[currentState];
-                int target1 = instr.target1;
                 // The only way we could have a jump here is either
                 // 1) the previous iteration left it as the result of a split--but the builder ensures a jump never
                 // follows a split
                 // 2) it followed a charrange instruction, but that block handles moving to the target of the jump
                 assert instr.opcode != JUMP;
                 if (instr.opcode == SPLIT) {
-                    activeStates.add(target1);
-                    RegexInstr target1Instr = this.regexInstrs[target1];
-                    if (target1Instr.opcode != MATCH) {
-                        if (origin < stateOrigins[target1]) {
-                            stateOrigins[target1] = origin;
-                            if (activeStates.indexOf(target1) < j) {
-                                j = activeStates.indexOf(target1) - 1;
+                    RegexInstr matchInstr = null;
+                    for (var target : instr.splitTargets) {
+                        activeStates.add(target);
+                        RegexInstr targetInstr = this.regexInstrs[target];
+                        if (targetInstr.opcode != MATCH) {
+                            if (origin < stateOrigins[target]) {
+                                stateOrigins[target] = origin;
+                                if (activeStates.indexOf(target) < j) {
+                                    j = activeStates.indexOf(target) - 1;
+                                }
                             }
                         }
-                    }
-                    int target2 = instr.target2;
-                    RegexInstr target2Instr = this.regexInstrs[target2];
-                    if (target2Instr.opcode != MATCH) {
-                        activeStates.add(target2);
-                        if (origin < stateOrigins[target2]) {
-                            stateOrigins[target2] = origin;
-                            if (activeStates.indexOf(target2) < j) {
-                                j = activeStates.indexOf(target2) - 1;
-                            }
+                        else if (matchInstr == null) {
+                            matchInstr = targetInstr;
                         }
                     }
-                    if (target1Instr.opcode == MATCH) {
-                        instr = target1Instr;
-                    }
-                    else if (target2Instr.opcode == MATCH) {
-                        instr = target2Instr;
+                    if (matchInstr != null) {
+                        instr = matchInstr;
                     }
                     else {
                         continue;
@@ -187,7 +169,7 @@ class NFA implements SearchMethod {
                         instr = this.regexInstrs[next];
                         if (instr.opcode != MATCH) {
                             if (instr.opcode == JUMP) {
-                                next = instr.target1;
+                                next = instr.jumpTarget;
                             }
                             if (this.regexInstrs[next].opcode != MATCH) {
                                 newStates.add(next);
@@ -261,17 +243,14 @@ class NFA implements SearchMethod {
             seen.add(next);
             RegexInstr instr = this.regexInstrs[next];
             if (instr.opcode == SPLIT) {
-                Integer newNext1 = instr.target1;
-                if (!seen.contains(newNext1)) {
-                    pending.add(newNext1);
-                }
-                Integer newNext2 = instr.target2;
-                if (!seen.contains(newNext2)) {
-                    pending.add(newNext2);
+                for (var target : instr.splitTargets) {
+                    if (!seen.contains(target)) {
+                        pending.add(target);
+                    }
                 }
             }
             else if (instr.opcode == JUMP) {
-                Integer newNext = instr.target1;
+                Integer newNext = instr.jumpTarget;
                 if (!seen.contains(newNext)) {
                     pending.add(newNext);
                 }
