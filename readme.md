@@ -7,7 +7,7 @@ String searching/matching algorithms in Java, including multi-string
 matching and searching, and regular expressions.
 
 The regular expression compiles regular expressions to Deterministic 
-Finite Automata (DFA)FAs (meaning that the regular expressions are 
+Finite Automata (DFA) (meaning that the regular expressions are 
 [non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and spends extra effort at compile-time to
 give better runtime matching performance. Those compile-time efforts
 currently take a few forms:
