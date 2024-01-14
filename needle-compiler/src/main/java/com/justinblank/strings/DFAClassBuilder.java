@@ -93,13 +93,9 @@ class DFAClassBuilder extends ClassBuilder {
         if (compilationPolicy.usedByteClasses || compilationPolicy.useByteClassesForAllStates) {
             addByteClasses();
             if (compilationPolicy.useByteClassesForAllStates) {
-                // The order of the next two statements is important: addTransitionsForAllSpecs populates variables like
-                // stateTransitionsForwards0, then populateByteClassArrays references them and puts them in the main
-                // array
-                // addStateTransitionsForAllSpecs();
                 populateByteClassArrays();
             }
-            // these methods depend on being called after addStateMethods()
+            // these methods depend on being called after addStateMethodTransitionStrings()
             setByteClassTransitions(forwardFindMethodSpec);
             setByteClassTransitions(containedInFindMethodSpec);
             setByteClassTransitions(reversedFindMethodSpec);
@@ -124,15 +120,6 @@ class DFAClassBuilder extends ClassBuilder {
         addConstructor();
         addFields();
     }
-
-//    private void addStateTransitionsForAllSpecs() {
-//        // temporarily leave out:  containedInFindMethodSpec
-//        for (var spec : List.of(forwardFindMethodSpec, reversedFindMethodSpec, dfaSearchFindMethodSpec)) {
-//            for (var dfaState : spec.dfa.allStates()) {
-//               prepareMethodToUseByteClasses(spec, dfaState);
-//            }
-//        }
-//    }
 
     protected void addByteClassStringMaps() {
         stateTransitions.byteClassStringMaps.put(forwardFindMethodSpec.statesConstant(), new HashSet<>());
