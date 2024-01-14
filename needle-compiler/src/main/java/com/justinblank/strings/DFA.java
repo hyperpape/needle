@@ -613,4 +613,34 @@ class DFA {
         }
         return Optional.of(dfa);
     }
+
+    /**
+     * Determine if this DFA's transitions are of a "well behaved" set, where we can easily check whether the
+     * transition's conditions are met. Examples are:
+     * - a single contiguous range of characters
+     * - a single case insensitive character, e.g. [Ss].
+     * @return whether the transition can be handled by one of a set of simple predicates. z
+     */
+    public boolean transitionIsPredicate() {
+        if (transitions.size() == 1) {
+            return true;
+        }
+        else if (transitions.size() == 2) {
+            var firstRange = transitions.get(0).getLeft();
+            var secondRange = transitions.get(1).getLeft();
+            if (firstRange.isSingleCharRange() && secondRange.isSingleCharRange()) {
+                if (Math.abs(firstRange.getStart() - secondRange.getStart()) == 32) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public DFA followingState() {
+        if (!allTransitionsLeadToSameState()) {
+            throw new IllegalArgumentException("Not allowed to call this method on a dfa that can lead to multiple states");
+        }
+        return this.transitions.get(0).getRight();
+    }
 }

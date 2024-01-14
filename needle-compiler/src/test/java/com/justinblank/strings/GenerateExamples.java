@@ -14,6 +14,8 @@ public class GenerateExamples {
         DFACompiler.compile("Sherlock", "Sherlock", debugOptions);
         // Should use indexOf to find the 'S' prefix
         DFACompiler.compile("Sherlock|Street", "SherlockStreet", debugOptions);
+        // Should do a search for S|s
+        DFACompiler.compile("[Ss]herlock", "SherlockInitialCharCaseInsensitive", debugOptions);
         // Basic regexes, no prefix, should dispatch entirely with byteClasses
         DFACompiler.compile("Sherlock|Holmes|Watson|Irene|Adler|John|Baker", "ManyNames", debugOptions);
         DFACompiler.compile("([Ss]herlock)|([Hh]olmes)", "TwoNamesCaseInsensitiveFirstChar", debugOptions);

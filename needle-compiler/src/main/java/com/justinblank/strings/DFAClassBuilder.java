@@ -292,6 +292,33 @@ class DFAClassBuilder extends ClassBuilder {
                 outerLoopBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
             }
         }
+        // TODO: could weaken the "allTransitionsLeadToSameState" condition here, but it's not obvious to me whether it
+        // would be worth it
+        // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
+        // make sense, and getting the loop correct is annoying
+        else if (spec.dfa.transitionIsPredicate() && spec.dfa.allTransitionsLeadToSameState() && !spec.dfa.isAccepting()) {
+            outerLoopBody.add(set(MatchingVars.STATE, 0));
+            outerLoopBody.add(loop(and(
+                            eq(read(MatchingVars.LAST_MATCH), -1),
+                            and(
+                                    lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
+                                    lte(read(MatchingVars.STATE), 0)
+                            )),
+                    List.of(
+                            set(MatchingVars.CHAR, call("charAt", Builtin.C,
+                                            read(MatchingVars.STRING),
+                                            read(MatchingVars.INDEX))),
+                            cond(generatePredicate(spec.dfa))
+                                    .withBody(List.of(
+                                            set(MatchingVars.STATE, spec.dfa.followingState().getStateNumber()),
+                                            set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                                            spec.dfa.followingState().isAccepting()
+                                                    ? set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : new NoOpStatement()))
+                                    .orElse(List.of(
+                                            set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                                            set(MatchingVars.STATE, -1)))
+                    )));
+        }
         else {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
@@ -343,6 +370,27 @@ class DFAClassBuilder extends ClassBuilder {
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
+    }
+
+    private Expression generatePredicate(DFA dfa) {
+        if (dfa.getTransitions().size() == 1) {
+            var range = dfa.getTransitions().get(0).getLeft();
+            if (range.isSingleCharRange()) {
+                return eq(read(MatchingVars.CHAR), (int) range.getStart());
+            }
+            else {
+                return and(
+                        gte(read(MatchingVars.CHAR), (int) range.getStart()),
+                        lte(read(MatchingVars.CHAR), (int) range.getEnd()));
+            }
+        }
+        else {
+            var char1 = dfa.getTransitions().get(0).getLeft().getStart();
+            var char2 = dfa.getTransitions().get(1).getLeft().getEnd();
+            return or(
+                    eq(read(MatchingVars.CHAR), (int) char1),
+                    eq(read(MatchingVars.CHAR), (int) char2));
+        }
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
