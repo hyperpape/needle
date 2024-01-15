@@ -9,7 +9,7 @@ public class GenerateExamples {
     @Ignore
     @Test
     public void generateExamples() {
-        var debugOptions = new DebugOptions(false, true, false, false);
+        var debugOptions = DebugOptions.writeToFsOnly();
         // Should compile to indexOf
         DFACompiler.compile("Sherlock", "Sherlock", debugOptions);
         // Should use indexOf to find the 'S' prefix

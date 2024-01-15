@@ -161,6 +161,8 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("ab").containedIn());
         assertTrue(pattern.matcher("e").containedIn());
 
+        find(pattern, "ba");
+
         QuickTheory.qt().forAll(ALPHABET, ALPHABET).check((prefix, suffix) -> {
             find(pattern, "a", prefix, suffix);
             find(pattern, "aa", prefix, suffix);

@@ -18,6 +18,10 @@ public class DebugOptions {
         return new DebugOptions(false, false, false, false);
     }
 
+    public static DebugOptions writeToFsOnly() {
+        return new DebugOptions(false, true, false, false);
+    }
+
     public boolean isDebug() {
         return printInstructions || writeClassToFs || trackStates;
     }

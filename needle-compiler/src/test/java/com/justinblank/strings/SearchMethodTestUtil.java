@@ -76,7 +76,7 @@ public class SearchMethodTestUtil {
         }
         // Property 6 -- string that matches empty substring must be anchored at zero
         if (method.matcher("").matches()) {
-            assertEquals("Method matches empty string but match was not at start of needle", result.start, start);
+            assertEquals("Method matches empty string but match was not at start of needle", start, result.start);
         }
     }
 
