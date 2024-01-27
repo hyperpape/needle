@@ -4,10 +4,30 @@ import java.util.Arrays;
 
 public class ByteClassUtil {
 
-    public static final java.util.regex.Pattern COMMA_REGEX = java.util.regex.Pattern.compile(",");
-    public static final java.util.regex.Pattern DASH_REGEX = java.util.regex.Pattern.compile("-");
+    /**
+     * We encode a byteclass transitions with [byteclass]-[targetState], e.g. 2-3.
+     */
+    public static char STATE_TRANSITION_DELINEATOR = '-';
 
-    public static final java.util.regex.Pattern COLON_REGEX = java.util.regex.Pattern.compile("\\:");
+    /**
+     * Delineator that separates two byte class transitions for the same state. e.g. 2-3,4-5
+     */
+    public static char BYTE_CLASS_DELINEATOR = ',';
+
+
+    /**
+     * Delineator between a state and its transitions, [stateNumber]:[byteClass]-[targetState],[byteClass]-[targetState]...
+     * e.g. 2:1-2,2-3
+     */
+    public static char STATE_TO_TRANSITIONS_DELINEATOR = ':';
+
+    // TODO: wait, what do we use this for? 
+    public static char STATE_DELINEATOR = ';';
+
+    public static final java.util.regex.Pattern COMMA_REGEX = java.util.regex.Pattern.compile(String.valueOf(BYTE_CLASS_DELINEATOR));
+    public static final java.util.regex.Pattern DASH_REGEX = java.util.regex.Pattern.compile(String.valueOf(STATE_TRANSITION_DELINEATOR));
+
+    public static final java.util.regex.Pattern COLON_REGEX = java.util.regex.Pattern.compile("\\" + STATE_TO_TRANSITIONS_DELINEATOR);
     public static final java.util.regex.Pattern SEMICOLON_REGEX = java.util.regex.Pattern.compile(";");
 
     public static void fillBytes(byte[] bytes, byte state, int startingIndex, int endingIndex) {

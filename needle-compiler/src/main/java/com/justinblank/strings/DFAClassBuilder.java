@@ -143,7 +143,7 @@ class DFAClassBuilder extends ClassBuilder {
                 first = true;
             }
             if (!first) {
-                sb.append(';');
+                sb.append(ByteClassUtil.STATE_DELINEATOR);
             }
             first = false;
             sb.append(entry);

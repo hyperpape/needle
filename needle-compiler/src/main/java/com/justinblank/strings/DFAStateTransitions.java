@@ -36,7 +36,7 @@ class DFAStateTransitions {
     StringBuilder buildByteClassString(DFA dfaState) {
         boolean first = true;
         StringBuilder sb = new StringBuilder();
-        sb.append(ByteClassUtil.encode(dfaState.getStateNumber())).append(':');
+        sb.append(ByteClassUtil.encode(dfaState.getStateNumber())).append(ByteClassUtil.STATE_TO_TRANSITIONS_DELINEATOR);
         Set<Byte> bytesWitnessed = new HashSet<>();
         for (var transition : dfaState.getTransitions()) {
             var largestSeenByteClass = 0;
@@ -53,10 +53,10 @@ class DFAStateTransitions {
                     if (!bytesWitnessed.contains(byteClass)) {
                         bytesWitnessed.add(byteClass);
                         if (!first) {
-                            sb.append(",");
+                            sb.append(ByteClassUtil.BYTE_CLASS_DELINEATOR);
                         }
                         first = false;
-                        sb.append(ByteClassUtil.encode(byteClass)).append('-').append(ByteClassUtil.encode(state));
+                        sb.append(ByteClassUtil.encode(byteClass)).append(ByteClassUtil.STATE_TRANSITION_DELINEATOR).append(ByteClassUtil.encode(state));
                     }
                     if (!(i > 128)) {
                         largestSeenByteClass = byteClass;
