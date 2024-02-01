@@ -14,11 +14,12 @@ class RegexInstrBuilder {
     }
 
     protected RegexInstr[] build(Node ast) {
-        List<RegexInstr> regex = createPartial(ast, new ArrayList<>());
-        regex.add(RegexInstr.match());
-        resolveJumps(regex);
-        assert checkRep(regex);
-        return regex.toArray(new RegexInstr[0]);
+        List<RegexInstr> instructions = new ArrayList<>();
+        createPartial(ast, instructions);
+        instructions.add(RegexInstr.match());
+        resolveJumps(instructions);
+        assert checkRep(instructions);
+        return instructions.toArray(new RegexInstr[0]);
     }
     
     private void resolveJumps(List<RegexInstr> regex) {
@@ -68,7 +69,7 @@ class RegexInstrBuilder {
         return true;
     }
 
-    protected List<RegexInstr> createPartial(Node ast, List<RegexInstr> instrs) {
+    protected void createPartial(Node ast, List<RegexInstr> instrs) {
         if (ast instanceof Concatenation) {
             Concatenation c = (Concatenation) ast;
             createPartial(c.head, instrs);
@@ -154,6 +155,5 @@ class RegexInstrBuilder {
         else {
             throw new IllegalStateException("Unhandled ast node type=" + ast.getClass().getSimpleName());
         }
-        return instrs;
     }
 }
