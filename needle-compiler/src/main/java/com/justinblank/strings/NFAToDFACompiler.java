@@ -33,7 +33,7 @@ class NFAToDFACompiler {
 
     DFA _compile(NFA nfa, ConversionMode mode) {
         StateSet states = new StateSet();
-        states.add(0, 0);
+        states.add(0, 0, RegexInstrBuilder.STARTING_PRIORITY);
         states = getEpsilonClosure(states);
         root = DFA.root(nfa.hasAcceptingState(states));
         states.seenAccepting = root.isAccepting();
@@ -68,7 +68,7 @@ class NFAToDFACompiler {
                 continue;
             }
             if ((mode == ConversionMode.CONTAINED_IN || (!accepting && mode == ConversionMode.DFA_SEARCH))) {
-                epsilonClosure.add(0, 0);
+                epsilonClosure.add(0, 0, RegexInstrBuilder.STARTING_PRIORITY);
             }
             List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
             for (CharRange range : ranges) {
@@ -87,7 +87,8 @@ class NFAToDFACompiler {
                         for (var state : postTransitionStates) {
                             if (nfa.isAcceptingState(state)) {
                                 var distance = postTransitionStates.getDistance(state);
-                                if (postTransitionStates.prune(state, distance)) {
+                                var priority = postTransitionStates.getPriority(state);
+                                if (postTransitionStates.prune(state, distance, priority)) {
                                     removed = true;
                                     break; // avoid ConcurrentModificationException
                                 }
@@ -96,7 +97,7 @@ class NFAToDFACompiler {
                     } while (removed);
                 }
                 if (!postTransitionStates.seenAccepting && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {
-                    postTransitionStates.add(0, 0);
+                    postTransitionStates.add(0, 0, RegexInstrBuilder.STARTING_PRIORITY);
                     // This doesn't change behavior, but it does make it easier to read the stateSets
                     postTransitionStates = getEpsilonClosure(postTransitionStates);
                 }
@@ -127,15 +128,16 @@ class NFAToDFACompiler {
     private StateSet getEpsilonClosure(StateSet states) {
         StateSet closure = new StateSet();
         for (Integer state : states) {
+            var priority = nfa.regexInstrs[state].priority;
             for (Integer epsilonTransitionState : nfa.epsilonClosure(state)) {
                 if (nfa.isAcceptingState(epsilonTransitionState)) {
                     closure.seenAccepting = true;
                 }
                 if (states.contains(epsilonTransitionState)) {
-                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState));
+                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState), priority);
                 }
                 else {
-                    closure.add(epsilonTransitionState, states.getDistance(state));
+                    closure.add(epsilonTransitionState, states.getDistance(state), priority);
                 }
             }
         }
@@ -158,8 +160,9 @@ class NFAToDFACompiler {
         StateSet transitionStates = new StateSet();
         for (Integer state : nfaStates) {
             RegexInstr instr = nfa.regexInstrs[state];
+            var priority = instr.priority;
             if (instr.opcode == CHAR_RANGE && instr.start <= c && instr.end >= c) {
-                transitionStates.add(state + 1, nfaStates.getDistance(state) + 1);
+                transitionStates.add(state + 1, nfaStates.getDistance(state) + 1, priority);
             }
         }
         return transitionStates;

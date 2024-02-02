@@ -59,14 +59,15 @@ public class SearchMethodTestUtil {
         assertTrue("violated prefix condition for prefix condition on find, prefix=" + prefix + ", string=" + s, method.matcher("").matches() && prefix.isEmpty() || !method.matcher(prefix).matches());
 
         // Property #4 -- match cannot be extended forwards
-        if (result.end < end) {
-            int maxExtension = end - result.end;
-            QuickTheory.qt().forAll(new IntegersDSL().between(1, maxExtension))
-                    .check((extension) -> {
-                        String extendedMatch = s.substring(start, result.end + extension);
-                        return !method.matcher(extendedMatch).matches();
-                    });
-        }
+        // This property is violated by the leftmost first semantics of regexes
+//        if (result.end < end) {
+//            int maxExtension = end - result.end;
+//            QuickTheory.qt().forAll(new IntegersDSL().between(1, maxExtension))
+//                    .check((extension) -> {
+//                        String extendedMatch = s.substring(start, result.end + extension);
+//                        return !method.matcher(extendedMatch).matches();
+//                    });
+//        }
         // Property #5 -- no string that starts earlier will match
         // TODO: we could also remove from end
         if (result.start > start) {

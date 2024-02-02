@@ -9,6 +9,9 @@ import static com.justinblank.strings.RegexInstr.Opcode.SPLIT;
 
 class RegexInstrBuilder {
 
+    static final int STARTING_PRIORITY = 1;
+    private int maxPriority = STARTING_PRIORITY;
+
     public static RegexInstr[] createNFA(Node ast) {
         return new RegexInstrBuilder().build(ast);
     }
@@ -16,19 +19,42 @@ class RegexInstrBuilder {
     protected RegexInstr[] build(Node ast) {
         List<RegexInstr> instructions = new ArrayList<>();
         createPartial(ast, instructions);
-        instructions.add(RegexInstr.match());
+        instructions.add(RegexInstr.match(priorityForMatch(instructions)));
         resolveJumps(instructions);
         assert checkRep(instructions);
         return instructions.toArray(new RegexInstr[0]);
     }
-    
+
+
+    private int priorityForMatch(List<RegexInstr> instructions) {
+        int matchIndex = instructions.size();
+        int priority = Integer.MAX_VALUE;
+        for (var instr : instructions) {
+            if (instr.opcode == RegexInstr.Opcode.JUMP) {
+                if (instr.jumpTarget == matchIndex) {
+                    priority = Math.min(priority, instr.priority);
+                }
+            }
+            else if (instr.opcode == RegexInstr.Opcode.SPLIT) {
+                for (var splitTarget : instr.splitTargets) {
+                    if (splitTarget == matchIndex) {
+                        priority = Math.min(priority, instr.priority);
+                        break;
+                    }
+                }
+            }
+        }
+        return priority;
+    }
+
     private void resolveJumps(List<RegexInstr> regex) {
         for (int i = 0; i < regex.size(); i++) {
             RegexInstr instr = regex.get(i);
             if (instr.opcode == JUMP) {
                 int resolvedTarget = getResolvedJump(regex, instr.jumpTarget);
+                // TODO: document...I have no recollection why this would happen
                 if (resolvedTarget != -1) {
-                    regex.set(i, RegexInstr.jump(resolvedTarget));
+                    regex.set(i, RegexInstr.jump(resolvedTarget, instr.priority));
                 }
             }
             else if (instr.opcode == SPLIT) {
@@ -40,7 +66,7 @@ class RegexInstrBuilder {
                     }
                     resolved[j] = resolvedTarget;
                 }
-                regex.set(i, RegexInstr.split(resolved));
+                regex.set(i, RegexInstr.split(resolved, instr.priority));
             }
         }
     }
@@ -80,9 +106,10 @@ class RegexInstrBuilder {
             int splitIndex = instrs.size();
             instrs.add(null);
             createPartial(r.node, instrs);
-            instrs.add(RegexInstr.jump(splitIndex));
+            instrs.add(RegexInstr.jump(splitIndex, maxPriority));
+            maxPriority++;
             int postIndex = instrs.size();
-            instrs.set(splitIndex, RegexInstr.split(new int[] {splitIndex + 1, postIndex}));
+            instrs.set(splitIndex, RegexInstr.split(new int[] {splitIndex + 1, postIndex}, maxPriority));
         }
         else if (ast instanceof CountedRepetition) {
             CountedRepetition countedRepetition = (CountedRepetition) ast;
@@ -98,7 +125,8 @@ class RegexInstrBuilder {
             }
             int finalLocation = instrs.size();
             for (Integer switchLocation : switchLocations) {
-                instrs.set(switchLocation, RegexInstr.split(new int[] { switchLocation + 1, finalLocation}));
+                RegexInstr newInstr = RegexInstr.split(new int[]{switchLocation + 1, finalLocation}, maxPriority);
+                instrs.set(switchLocation, newInstr);
             }
         }
         else if (ast instanceof Union) {
@@ -109,14 +137,19 @@ class RegexInstrBuilder {
                 instrs.add(null);
             }
             int firstSplitTarget = instrs.size();
+
+            int firstAlternativePriority = maxPriority;
             createPartial(a.left, instrs);
+            maxPriority++;
             int firstJumpIndex = instrs.size();
             instrs.add(null);
             int secondSplitTarget = instrs.size();
             createPartial(a.right, instrs);
+            maxPriority++;
 
             int finalJumpTarget = instrs.size();
-            RegexInstr jump = RegexInstr.jump(finalJumpTarget);
+            // TODO: not sure what this should be
+            RegexInstr jump = RegexInstr.jump(finalJumpTarget, firstAlternativePriority);
             instrs.set(firstJumpIndex, jump);
 
             List<Integer> splitTargets = new ArrayList<>();
@@ -140,20 +173,31 @@ class RegexInstrBuilder {
             for (var i = 0; i < splitTargets.size(); i++) {
                 splitTargetsArray[i] = splitTargets.get(i);
             }
-            instrs.set(splitIndex, RegexInstr.split(splitTargetsArray));
+            RegexInstr split = RegexInstr.split(splitTargetsArray, firstAlternativePriority);
+            instrs.set(splitIndex, split);
         }
         else if (ast instanceof CharRangeNode) {
             CharRange range = ((CharRangeNode) ast).range();
-            instrs.add(RegexInstr.charRange(range.getStart(), range.getEnd()));
+            RegexInstr newInstr = RegexInstr.charRange(range.getStart(), range.getEnd(), maxPriority);
+            instrs.add(newInstr);
         }
         else if (ast instanceof LiteralNode) {
             String s = ((LiteralNode) ast).getLiteral();
             for (int i = 0; i < s.length(); i++) {
-                instrs.add(RegexInstr.charRange(s.charAt(i), s.charAt(i)));
+                RegexInstr newInstr = RegexInstr.charRange(s.charAt(i), s.charAt(i), maxPriority);
+                instrs.add(newInstr);
             }
         }
         else {
             throw new IllegalStateException("Unhandled ast node type=" + ast.getClass().getSimpleName());
         }
+    }
+
+    int incrementPriority(int priority) {
+        priority++;
+        if (priority > maxPriority) {
+            maxPriority = priority;
+        }
+        return priority;
     }
 }

@@ -88,6 +88,21 @@ gc(g|a)*cg          gcggcgcg            y       0       6
 http://.+\.com      http://www.google.com       y   0   21
 http://.+\.com      http://www.google.co.uk     n
 
+# leftmost first semantics
+samwise|sam         samwise             y       0       7
+sam|samwise         samwise             y       0       3
+
+(sam|samwise)(sam)  samsam              y       0       6
+(sam|samwise)(sam)  samsamwise          y       0       6
+(sam|samwise)(sam)  samwisesam          y       0       10
+(sam|samwise)(sam)  samwisesamwise      y       0       10
+
+(sam|samwise)(sam|samwise)  samsam          y       0       6
+(sam|samwise)(sam|samwise)  samsamwise      y       0       6
+(sam|samwise)(sam|samwise)  samwisesam      y       0       10
+(sam|samwise)(sam|samwise)  samwisesamwise  y       0       10
+
+
 # unicode haystacks
 a.c                 aεc                 y       0       3
 [^c]                ε                   y       0       1
