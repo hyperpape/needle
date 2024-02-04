@@ -150,7 +150,7 @@ class DFAClassBuilder extends ClassBuilder {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (var entry : stateTransitions.byteClassStringMaps.get(spec.statesConstant())) {
-            if (sb.length() + 1 + entry.length() > 65536) {
+            if (sb.length() + 1 + entry.length() >= 65536) {
                 names.add(addConstantForByteClassString(spec, names, sb));
                 sb = new StringBuilder();
                 first = true;
