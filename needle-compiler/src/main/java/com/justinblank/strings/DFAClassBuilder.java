@@ -63,7 +63,6 @@ class DFAClassBuilder extends ClassBuilder {
         this.compilationPolicy = new CompilationPolicy();
         this.debugOptions = debugOptions;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
-        compilationPolicy.stateArraysUseShorts = stateArraysUseShorts();
         if (dfa.maxDistinguishedChar() <= 127) {
             // TODO: test whether it matters that the four DFAs can have different byteClasses
             ByteClasses byteClasses = dfa.byteClasses();
@@ -80,6 +79,14 @@ class DFAClassBuilder extends ClassBuilder {
     @Deprecated
     private boolean stateArraysUseShorts() {
         return forwardFindMethodSpec.statesCount() > 127;
+    }
+
+    boolean useShorts(FindMethodSpec spec) {
+        return spec.dfa.statesCount() > Byte.MAX_VALUE;
+    }
+
+    String getStateArrayType(FindMethodSpec spec) {
+        return useShorts(spec) ? "[S" : "[B";
     }
 
     List<FindMethodSpec> allSpecs() {
@@ -163,7 +170,7 @@ class DFAClassBuilder extends ClassBuilder {
     private void addCallsToFillStateTransitionArrays(FindMethodSpec spec, List<String> names) {
         Block block = addStaticBlock();
         for (var name : names) {
-            if (stateArraysUseShorts()) {
+            if (useShorts(spec)) {
                 block.readStatic(spec.statesConstant(), true, "[[S");
             }
             else {
@@ -173,7 +180,7 @@ class DFAClassBuilder extends ClassBuilder {
 
             block.readStatic(name, true, CompilerUtil.STRING_DESCRIPTOR);
 
-            if (stateArraysUseShorts()) {
+            if (useShorts(spec)) {
                 block.callStatic("fillMultipleByteClassesFromStringUsingShorts", CompilerUtil.internalName(ByteClassUtil.class), "([[SILjava/lang/String;)V");
             }
             else {
@@ -240,13 +247,13 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private void populateByteClassArrays(FindMethodSpec spec) {
-        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), "[" + compilationPolicy.getStateArrayType(), null, null));
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), "[" + getStateArrayType(spec), null, null));
         var staticBlock = addStaticBlock();
 
         // Instantiate the top level array of state transition arrays
         staticBlock.push(spec.statesCount())
-                .newArray(compilationPolicy.getStateArrayType())
-                .putStatic(spec.statesConstant(), true, "[" + compilationPolicy.getStateArrayType());
+                .newArray(getStateArrayType(spec))
+                .putStatic(spec.statesConstant(), true, "[" + getStateArrayType(spec));
     }
 
     private Method createIndexMethod(FindMethodSpec spec) {
@@ -394,7 +401,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
-        Type type = compilationPolicy.stateArraysUseShorts ? Builtin.S : Builtin.OCTET;
+        Type type = useShorts(spec) ? Builtin.S : Builtin.OCTET;
         var stateArrayRef = arrayRead(
                         getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
         // TODO: use a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
@@ -474,7 +481,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private CodeElement buildStateLookup(FindMethodSpec spec) {
-        Type type = compilationPolicy.stateArraysUseShorts ? Builtin.S : Builtin.OCTET;
+        Type type = useShorts(spec) ? Builtin.S : Builtin.OCTET;
         var stateArrayRef = arrayRead(
                 getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
@@ -691,7 +698,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
         // TODO: offsets
         if (stateTransitions.willUseByteClasses(dfaState, this)) {
-            Type stateTransitionsType = stateArraysUseShorts() ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
+            Type stateTransitionsType = useShorts(spec) ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
             method.cond(gt(read("c"), 127)).withBody(set("byteClass", catchAllByteClass)).orElse(
                 set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), byteClassesType), read("c")))

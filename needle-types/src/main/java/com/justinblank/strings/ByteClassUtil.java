@@ -104,6 +104,9 @@ public class ByteClassUtil {
             try {
                 int byteClass = decode(pieces[0]);
                 int state = decode(pieces[1]);
+                if (state > Byte.MAX_VALUE) {
+                    throw new IllegalStateException("Tried to store a state that's too large to fit in a byte. State=" + state);
+                }
                 byteClasses[byteClass] = (byte) state;
             }
             catch (NumberFormatException e) {
@@ -128,6 +131,9 @@ public class ByteClassUtil {
             try {
                 int byteClass = decode(pieces[0]);
                 int state = decode(pieces[1]);
+                if (state > Short.MAX_VALUE) {
+                    throw new IllegalStateException("Tried to store a state that's too large to fit in a short. State=" + state);
+                }
                 byteClasses[byteClass] = (short) state;
             }
             catch (NumberFormatException e) {

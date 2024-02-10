@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
 import org.junit.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -577,6 +578,22 @@ public class DFACompilerTest {
         hayStack = hayStack + hayStack; // + hayStack + hayStack;
         assertTrue(pattern.matcher(hayStack).matches());
         assertTrue(pattern.matcher(hayStack).matches());
+    }
+
+    @Test
+    public void testSameRegex_canGenerate_byteBasedDFAClasses_and_shortBasedDFAClasses() {
+        var regex = ".{0,43}A";
+        Node node = RegexParser.parse(regex);
+
+        NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
+
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, false);
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, false);
+        assertTrue(dfa.statesCount() <= Byte.MAX_VALUE);
+        assertTrue(dfaSearch.statesCount() > Byte.MAX_VALUE);
+
+        var pattern = anonymousPattern(regex);
+        compareResultsToStandardLibrary("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@A", pattern, java.util.regex.Pattern.compile(regex));
     }
 
     @Test
