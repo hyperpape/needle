@@ -581,11 +581,15 @@ class DFAClassBuilder extends ClassBuilder {
         accepting.sort(Comparator.comparingInt(DFA::getStateNumber));
 
         String methodName = spec.wasAcceptedName();
-        Method method = mkMethod(methodName, Collections.singletonList("I"), "Z", new GenericVars("state"));
+        Method method = mkMethod(methodName, Collections.singletonList("I"), "Z", new GenericVars(MatchingVars.STATE));
+
 
 
         if (accepting.size() == 1) {
-            method.returnValue(eq(accepting.get(0).getStateNumber(), read("state")));
+            if (debugOptions.trackStates) {
+                method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
+            }
+            method.returnValue(eq(accepting.get(0).getStateNumber(), read(MatchingVars.STATE)));
         }
         // TODO: implement switch for small sets and measure impact
         // TODO: alternately, implement checking bits in a bytearray or something like that
@@ -596,6 +600,8 @@ class DFAClassBuilder extends ClassBuilder {
 
             var block = method.addBlock();
 
+            block.readVar(1, "I");
+            block.callStatic("debugCallWasAccepted", CompilerUtil.internalName(DFADebugUtils.class), "(I)V");
             block.readStatic(setName, true, "Ljava/util/HashSet;");
             block.readVar(1, "I");
             block.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
@@ -931,11 +937,7 @@ class DFAClassBuilder extends ClassBuilder {
         Loop innerLoop = loop(and(
                 lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
                         neq(-1, read(MatchingVars.STATE))),
-                        List.of(
-                                debugOptions.trackStates ?
-                                        callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE))
-                                        : new NoOpStatement(),
-                                cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                        List.of(cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                         .withBody(returnValue(true)),
                                 set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
@@ -959,9 +961,6 @@ class DFAClassBuilder extends ClassBuilder {
                                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                                 ));
         outerLoopBody.add(innerLoop);
-        if (debugOptions.trackStates) {
-            method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
-        }
         method.returnValue(
                 call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
 
