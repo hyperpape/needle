@@ -1,5 +1,7 @@
 package com.justinblank.strings;
 
+import java.util.Arrays;
+
 public class DFADebugUtils {
 
     public static void debugState(int state, char c) {
@@ -25,6 +27,21 @@ public class DFADebugUtils {
     public static void failedLookAheadCheck(int index, int computedIndex) {
         System.out.println("Failed lookahead check index=" + index + ", offsetIndex=" + computedIndex);
     }
+
+    public static void debugStateArrays(String stateType, byte[][] stateArrays) {
+        System.out.println("StateTransitions, type=" + stateType);
+        for (var i = 0; i < stateArrays.length; i++) {
+            System.out.println("state" + i + ": " + Arrays.toString(stateArrays[i]));
+        }
+    }
+
+    public static void debugStateArrays(String stateType, short[][] stateArrays) {
+        System.out.println("StateTransitions, type=" + stateType);
+        for (var i = 0; i < stateArrays.length; i++) {
+            System.out.println("state" + i + ": " + Arrays.toString(stateArrays[i]));
+        }
+    }
+
 
     private static String encodeChr(char c) {
         switch (c) {

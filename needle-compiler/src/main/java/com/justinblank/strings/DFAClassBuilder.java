@@ -184,9 +184,19 @@ class DFAClassBuilder extends ClassBuilder {
 
             if (useShorts(spec)) {
                 block.callStatic("fillMultipleByteClassesFromStringUsingShorts", CompilerUtil.internalName(ByteClassUtil.class), "([[SILjava/lang/String;)V");
+                if (debugOptions.trackStates) {
+                    block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
+                    block.readStatic(spec.statesConstant(), "[[S");
+                    block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[[S)V");
+                }
             }
             else {
                 block.callStatic("fillMultipleByteClassesFromString", CompilerUtil.internalName(ByteClassUtil.class), "([[BILjava/lang/String;)V");
+                if (debugOptions.trackStates) {
+                    block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
+                    block.readStatic(spec.statesConstant(), "[[B");
+                    block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[[B)V");
+                }
             }
         }
     }
