@@ -1,16 +1,29 @@
 package com.justinblank.strings;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
-class FindMethodSpec {
+public class FindMethodSpec {
 
     final DFA dfa;
     final String name;
-    boolean forwards;
+    final boolean forwards;
 
-
+    /**
+     * The simplest method--determine if the entire string matches.
+     */
+    public static final String MATCHES = "Matches";
+    /**
+     * Determine if the needle is contained anywhere within the string
+     */
+    public static final String CONTAINEDIN = "ContainedIn";
+    /**
+     * The backwards matcher. We use this after we've found the end of a match, but need to find the beginning.
+     */
+    public static final String BACKWARDS = "Backwards";
+    /**
+     * Allows searching forwards in a string to find the endpoint of a match.
+     */
+    public static final String FORWARDS = "Forwards";
 
     public FindMethodSpec(DFA dfa, String name, boolean forwards) {
         Objects.requireNonNull(dfa, "dfa cannot be null");

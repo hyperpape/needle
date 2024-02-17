@@ -55,10 +55,10 @@ class DFAClassBuilder extends ClassBuilder {
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, "", true);
-        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, "ContainedIn", true);
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, "Backwards", false);
-        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, "Forwards", true);
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true);
+        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true);
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false);
+        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true);
         this.factorization = factorization;
         this.compilationPolicy = new CompilationPolicy();
         this.debugOptions = debugOptions;
@@ -585,8 +585,6 @@ class DFAClassBuilder extends ClassBuilder {
         String methodName = spec.wasAcceptedName();
         Method method = mkMethod(methodName, Collections.singletonList("I"), "Z", new GenericVars(MatchingVars.STATE));
 
-
-
         if (accepting.size() == 1) {
             if (debugOptions.trackStates) {
                 method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
@@ -957,7 +955,7 @@ class DFAClassBuilder extends ClassBuilder {
                                         List.of(
                                                 // TODO: see if it matters that this is emitting a call to the state method
                                                 // instead of lookup of next state via byteclass in cases where that's possible
-                                                set(MatchingVars.STATE, call("state0", Builtin.I, thisRef(), read(MatchingVars.CHAR)))
+                                                set(MatchingVars.STATE, call(stateMethodName(spec, 0), Builtin.I, thisRef(), read(MatchingVars.CHAR)))
 
                                 )),
                                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
