@@ -171,14 +171,16 @@ class DFAClassBuilder extends ClassBuilder {
         Block block = addStaticBlock();
         for (var name : names) {
             if (useShorts(spec)) {
-                block.readStatic(spec.statesConstant(), true, "[[S");
+                String field = spec.statesConstant();
+                block.readStatic(field, "[[S");
             }
             else {
-                block.readStatic(spec.statesConstant(), true, "[[B");
+                String field = spec.statesConstant();
+                block.readStatic(field, "[[B");
             }
             block.push(ByteClassUtil.maxByteClass(stateTransitions.byteClasses.ranges) + 1);
 
-            block.readStatic(name, true, CompilerUtil.STRING_DESCRIPTOR);
+            block.readStatic(name, CompilerUtil.STRING_DESCRIPTOR);
 
             if (useShorts(spec)) {
                 block.callStatic("fillMultipleByteClassesFromStringUsingShorts", CompilerUtil.internalName(ByteClassUtil.class), "([[SILjava/lang/String;)V");
@@ -208,10 +210,10 @@ class DFAClassBuilder extends ClassBuilder {
         var staticBlock = addStaticBlock();
 
         // All characters that cannot be recognized by the DFA are represented with 0
-        staticBlock.push(128)
+        Block block = staticBlock.push(128)
                 .newArray(T_BYTE)
-                .putStatic(BYTE_CLASSES_CONSTANT, true, "[B")
-                .readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
+                .putStatic(BYTE_CLASSES_CONSTANT, true, "[B");
+        block.readStatic(BYTE_CLASSES_CONSTANT, "[B")
                 .push(0)
                 .callStatic("fill", "java/util/Arrays", "([BB)V");
         int start = 0;
@@ -223,7 +225,7 @@ class DFAClassBuilder extends ClassBuilder {
         while (end < 129) {
             if (stateTransitions.byteClasses.ranges[end] != byteClass) {
                 if (byteClass != 0) {
-                    staticBlock.readStatic(BYTE_CLASSES_CONSTANT, true, "[B")
+                    staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
                             .push(byteClass)
                             .push(start)
                             .push(end - 1)
@@ -602,7 +604,7 @@ class DFAClassBuilder extends ClassBuilder {
 
             block.readVar(1, "I");
             block.callStatic("debugCallWasAccepted", CompilerUtil.internalName(DFADebugUtils.class), "(I)V");
-            block.readStatic(setName, true, "Ljava/util/HashSet;");
+            block.readStatic(setName, "Ljava/util/HashSet;");
             block.readVar(1, "I");
             block.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
             block.callInterface("contains", "java/util/Set", "(Ljava/lang/Object;)Z");
@@ -617,7 +619,7 @@ class DFAClassBuilder extends ClassBuilder {
         b.putStatic(setName, true, "Ljava/util/HashSet;");
 
         for (var state : accepting) {
-            b.readStatic(setName, true, "Ljava/util/HashSet;");
+            b.readStatic(setName, "Ljava/util/HashSet;");
             b.push(state.getStateNumber());
             b.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
             b.callInterface("add", "java/util/Set", "(Ljava/lang/Object;)Z");
