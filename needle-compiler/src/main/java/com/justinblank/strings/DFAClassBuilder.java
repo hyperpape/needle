@@ -597,8 +597,10 @@ class DFAClassBuilder extends ClassBuilder {
 
             var block = method.addBlock();
 
-            block.readVar(1, "I");
-            block.callStatic("debugCallWasAccepted", CompilerUtil.internalName(DFADebugUtils.class), "(I)V");
+            if (debugOptions.trackStates) {
+                block.readVar(1, "I");
+                block.callStatic("debugCallWasAccepted", CompilerUtil.internalName(DFADebugUtils.class), "(I)V");
+            }
             block.readStatic(setName, "Ljava/util/HashSet;");
             block.readVar(1, "I");
             block.callStatic("valueOf", "java/lang/Integer", "(I)Ljava/lang/Integer;");
