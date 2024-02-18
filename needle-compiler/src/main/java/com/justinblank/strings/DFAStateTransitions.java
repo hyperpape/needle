@@ -19,6 +19,7 @@ class DFAStateTransitions {
     protected Map<String, Set<String>> byteClassStringMaps = new HashMap<>();
 
     protected void addStateTransitionString(FindMethodSpec spec, DFA dfaState) {
+        byteClassStringMaps.computeIfAbsent(spec.statesConstant(), (s) -> new HashSet<>());
         StringBuilder sb = buildByteClassString(dfaState);
         if (sb.length() != 0) {
             byteClassStringMaps.get(spec.statesConstant()).add(sb.toString());

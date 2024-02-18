@@ -62,8 +62,10 @@ public class ByteClassUtil {
 
     public static void fillMultipleByteClassesFromStringUsingShorts(short[][] stateTransitionArrays, int length, String s) {
         for (int i = 0; i < stateTransitionArrays.length; i++) {
-            stateTransitionArrays[i] = new short[length];
-            Arrays.fill(stateTransitionArrays[i], (short) -1);
+            if (stateTransitionArrays[i] == null) {
+                stateTransitionArrays[i] = new short[length];
+                Arrays.fill(stateTransitionArrays[i], (short) -1);
+            }
         }
         String[] stateStrings = SEMICOLON_REGEX.split(s);
         for (String stateString : stateStrings) {

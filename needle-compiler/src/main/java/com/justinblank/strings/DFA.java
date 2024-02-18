@@ -584,7 +584,7 @@ class DFA {
         assert states.contains(this) : "root not included in states";
         assert states.stream().anyMatch(DFA::isAccepting) : "no accepting state found";
         assert transitions.stream().map(Pair::getRight).allMatch(dfa -> states.contains(dfa));
-        assert states.stream().filter(DFA::isAccepting).filter(dfa -> dfa.getTransitions().isEmpty()).count() < 2;
+        assert states.stream().filter(dfa -> dfa.getTransitions().isEmpty()).count() < 2;
         return true;
     }
 

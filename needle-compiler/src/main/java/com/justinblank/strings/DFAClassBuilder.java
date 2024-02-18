@@ -72,13 +72,6 @@ class DFAClassBuilder extends ClassBuilder {
         } else {
             stateTransitions.byteClasses = null;
         }
-        addByteClassStringMaps();
-    }
-
-    // TODO This isn't really a global policy, more specific to a particular type of find method
-    @Deprecated
-    private boolean stateArraysUseShorts() {
-        return forwardFindMethodSpec.statesCount() > 127;
     }
 
     boolean useShorts(FindMethodSpec spec) {
@@ -128,12 +121,6 @@ class DFAClassBuilder extends ClassBuilder {
         addFields();
     }
 
-    protected void addByteClassStringMaps() {
-        stateTransitions.byteClassStringMaps.put(forwardFindMethodSpec.statesConstant(), new HashSet<>());
-        stateTransitions.byteClassStringMaps.put(reversedFindMethodSpec.statesConstant(), new HashSet<>());
-        stateTransitions.byteClassStringMaps.put(containedInFindMethodSpec.statesConstant(), new HashSet<>());
-        stateTransitions.byteClassStringMaps.put(dfaSearchFindMethodSpec.statesConstant(), new HashSet<>());
-    }
 
     /**
      * Creates string constants representing the state transitions, then adds a static block that processes those

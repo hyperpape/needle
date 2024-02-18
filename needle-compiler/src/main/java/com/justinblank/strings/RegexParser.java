@@ -328,9 +328,9 @@ class RegexParser {
             }
         }
         catch (NumberFormatException e) {
-            throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
+            throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index) + " in regex " + regex);
         }
-        throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index));
+        throw new RegexSyntaxException("Expected number, found " + regex.substring(initialIndex, index) + " in regex " + regex);
     }
 
     private Node parseOctal() {

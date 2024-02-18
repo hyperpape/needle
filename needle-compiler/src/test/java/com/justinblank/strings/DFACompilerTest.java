@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
@@ -621,6 +622,34 @@ public class DFACompilerTest {
         checkMatchesInFileAgainstStandardLibrary("Sherlock|Street", path);
     }
 
+    @Test
+    public void test_handlingLongStateTransitionStrings() throws Exception {
+        var regex = ".{0,47}BCDFHEIJKLAMG";
+        String hayStack = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@BCDFHEIJKLAMG";
+
+        Node node = RegexParser.parse(regex);
+
+        NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
+        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true);
+        DFAStateTransitions stateTransitions = new DFAStateTransitions();
+        stateTransitions.byteClasses = dfaSearch.byteClasses();
+
+        for (var state : dfaSearch.allStates()) {
+            stateTransitions.addStateTransitionString(spec, state);
+        }
+        // This represents that the DFA will use multiple strings to encode state transitions for the forward spec
+        // This calculation and assert are pretty tied to the details of the string encoding, but copy some of the
+        // logic, which is a bit annoying.
+        // TODO: try to simplify this and make it less brittle
+        Set<String> byteTransitionStrings = stateTransitions.byteClassStringMaps.get(spec.statesConstant());
+        int totalLength = byteTransitionStrings.stream().mapToInt(String::length).sum() + byteTransitionStrings.size();
+        assertTrue(totalLength > 65535);
+
+        var pattern = anonymousPattern(regex);
+        compareResultsToStandardLibrary(hayStack, pattern, java.util.regex.Pattern.compile(regex));
+    }
+
     /**
      * Compare a regex against the JDK standard library implementation, by ensuring that the compiled DFA finds the same
      * set of (non-overlapping) matches as the stdlib. The match is performed against the contents of a file.
@@ -630,14 +659,14 @@ public class DFACompilerTest {
      * @throws IOException    if the file cannot be read
      * @throws AssertionError if the comparison fails
      */
-    private static void checkMatchesInFileAgainstStandardLibrary(String regex, Path path) throws IOException {
+    static void checkMatchesInFileAgainstStandardLibrary(String regex, Path path) throws IOException {
         String hayStack = Files.readAllLines(path).get(0);
         Pattern pattern = DFACompiler.compile(regex, "fileSearchRegex" + CLASS_NAME_COUNTER.incrementAndGet());
         java.util.regex.Pattern jdkPattern = java.util.regex.Pattern.compile(regex);
         compareResultsToStandardLibrary(hayStack, pattern, jdkPattern);
     }
 
-    private static void compareResultsToStandardLibrary(String hayStack, Pattern pattern, java.util.regex.Pattern jdkPattern) {
+    static void compareResultsToStandardLibrary(String hayStack, Pattern pattern, java.util.regex.Pattern jdkPattern) {
         Matcher matcher = pattern.matcher(hayStack);
         java.util.regex.Matcher jdkMatcher = jdkPattern.matcher(hayStack);
         int index = 0;
