@@ -588,8 +588,23 @@ class DFAClassBuilder extends ClassBuilder {
             }
             method.returnValue(eq(accepting.get(0).getStateNumber(), read(MatchingVars.STATE)));
         }
-        // TODO: implement switch for small sets and measure impact
-        // TODO: alternately, implement checking bits in a bytearray or something like that
+        // TODO: measure cutoffs between different implementations
+        // once we're beyond one state, we can do an or, a switch, testing membership in a BitSet/HashSet/boolean[].
+        else if (accepting.size() < 5) {
+            if (debugOptions.trackStates) {
+                method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
+            }
+            Expression expression = null;
+            for (var i : accepting) {
+                if (expression == null) {
+                    expression = eq(i.getStateNumber(), read(MatchingVars.STATE));
+                }
+                else {
+                    expression = or(expression, eq(i.getStateNumber(), read(MatchingVars.STATE)));
+                }
+            }
+            method.returnValue(expression);
+        }
         else {
 
             String setName = spec.wasAcceptedSetName();
