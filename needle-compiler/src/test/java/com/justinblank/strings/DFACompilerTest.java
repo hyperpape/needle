@@ -551,6 +551,11 @@ public class DFACompilerTest {
     }
 
     @Test
+    public void examineOutput() {
+        anonymousPattern("(ab|a|bcdef|g)+", true);
+    }
+
+    @Test
     public void testSomething() {
         DFACompiler.compile("[A-Za-z]+@[A-Za-z0-9]+.com", "another");
     }

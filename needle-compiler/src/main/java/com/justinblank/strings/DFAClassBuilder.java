@@ -328,13 +328,15 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
-        // TODO: sometimes emitting crap invocations of wasAccepted that can be statically known to be false
-        // see regex ad*g
+
+        // We only need to call wasAccepted at the top of our loop if matching a prefix/initial state can leave us in
+        // an accepting state. Otherwise, we can skip that check.
+        var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
         Expression loopCondition = and(neq(-1, read(MatchingVars.STATE)), loopBoundary);
         Loop innerLoop = loop(loopCondition,
                 List.of(
-                        cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
-                                .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))),
+                        innerLoopMustCallWasAccepted ? cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                                .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))) : new NoOpStatement(),
 
                         set(MatchingVars.CHAR, call("charAt", Builtin.C,
                                 read(MatchingVars.STRING),
@@ -376,6 +378,15 @@ class DFAClassBuilder extends ClassBuilder {
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
+    }
+
+    private boolean isInnerLoopMustCallWasAccepted(FindMethodSpec spec) {
+        if (spec.dfa.isAccepting()) {
+            return true;
+        } else {
+            var prefix = factorization.getSharedPrefix();
+            return shouldSeekForwards() && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
+        }
     }
 
     private Expression generatePredicate(DFA dfa) {
