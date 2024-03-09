@@ -341,14 +341,14 @@ class DFAClassBuilder extends ClassBuilder {
 
                         spec.dfa.maxChar() < Character.MAX_VALUE && compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 set(MatchingVars.STATE, -1),
-                                cond(gt(read(MatchingVars.LAST_MATCH), literal(-1))).withBody(
+                                cond(hasLastMatch()).withBody(
                                         returnValue(read(MatchingVars.LAST_MATCH))
                                 ),
                                 skip()
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
+                        cond(and(eq(-1, read(MatchingVars.STATE)), hasLastMatch())).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         cond(eq(-1, read(MatchingVars.STATE))).withBody(
                                 List.of(
@@ -465,7 +465,7 @@ class DFAClassBuilder extends ClassBuilder {
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        cond(and(eq(-1, read(MatchingVars.STATE)), neq(-1, read(MatchingVars.LAST_MATCH)))).
+                        cond(and(eq(-1, read(MatchingVars.STATE)), hasLastMatch())).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
@@ -999,6 +999,10 @@ class DFAClassBuilder extends ClassBuilder {
         return elementsToAdd;
     }
 
+    public Collection<Method> allMethods() {
+        return new ArrayList<>(super.allMethods());
+    }
+
     private static Expression inBounds() {
         return lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
     }
@@ -1009,7 +1013,7 @@ class DFAClassBuilder extends ClassBuilder {
                 read(MatchingVars.INDEX));
     }
 
-    public Collection<Method> allMethods() {
-        return new ArrayList<>(super.allMethods());
+    private Expression hasLastMatch() {
+        return gt(read(MatchingVars.LAST_MATCH), literal(-1));
     }
 }
