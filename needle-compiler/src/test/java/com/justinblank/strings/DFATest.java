@@ -45,7 +45,31 @@ class DFATest {
     }
 
     @Test
-    void calculateOffsetRepetition() {
+    public void test_canAdvanceFromAcceptingState_literalRegex() {
+        var dfa = DFA.createDFA("abc", ConversionMode.DFA_SEARCH, 0);
+        assertFalse(dfa.canAdvanceFromAcceptingState());
+    }
+
+    @Test
+    public void test_canAdvanceFromAcceptingState_optionEnding() {
+        var dfa = DFA.createDFA("ab?c?", ConversionMode.DFA_SEARCH, 0);
+        assertTrue(dfa.canAdvanceFromAcceptingState());
+    }
+
+    @Test
+    public void test_canAdvanceFromAcceptingState_literalWithRepetition() {
+        var dfa = DFA.createDFA("a*", ConversionMode.DFA_SEARCH, 0);
+        assertTrue(dfa.canAdvanceFromAcceptingState());
+    }
+
+    @Test
+    public void test_canAdvanceFromAcceptingState_repetitionBeforeAcceptingState() {
+        var dfa = DFA.createDFA("a*b", ConversionMode.DFA_SEARCH, 0);
+        assertFalse(dfa.canAdvanceFromAcceptingState());
+    }
+
+    @Test
+    public void testCalculateOffsetRepetition() {
         var dfa = DFA.createDFA("b*c");
         assertThat(dfa.calculateOffset()).isEmpty();
     }

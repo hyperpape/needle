@@ -826,5 +826,14 @@ class DFA {
         }
         return false;
     }
+
+    public boolean canAdvanceFromAcceptingState() {
+        for (var state : states) {
+            if (state.isAccepting() && !state.transitions.isEmpty()) {
+                return true;
+           }
+        }
+        return false;
+    }
 }
 
