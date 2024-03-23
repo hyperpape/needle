@@ -18,7 +18,7 @@ public class DFACompiler {
     }
 
     static Pattern compile(String regex, String className, boolean debug) {
-        var debugOptions = debug ? new DebugOptions(true, true, true, true) : DebugOptions.none();
+        var debugOptions = debug ? DebugOptions.all() : DebugOptions.none();
         return compile(regex, className, debugOptions);
     }
 
@@ -48,10 +48,10 @@ public class DFACompiler {
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed()));
 
-        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, debugOptions.isDebug());
-        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, debugOptions.isDebug());
-        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, debugOptions.isDebug());
-        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, debugOptions.isDebug());
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, debugOptions.printDFAs);
+        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, debugOptions.printDFAs);
+        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, debugOptions.printDFAs);
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, debugOptions.printDFAs);
 
         if (debugOptions.printDFAs) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
