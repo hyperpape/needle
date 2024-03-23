@@ -57,6 +57,49 @@ public class CharRangeTest {
         assertEquals(new CharRange('e', 'e'), minimized.get(2));
     }
 
+    @Test
+    public void test_coverAllChars_handlesEmptyList() {
+        var ranges = CharRange.coverAllChars(List.of());
+        assertEquals(CharRange.allChars(), ranges.get(0));
+    }
+
+    @Test
+    public void test_coverAllChars_handlesSingleRangeWithAllChars() {
+        var ranges = CharRange.coverAllChars(List.of(CharRange.allChars()));
+        assertEquals(CharRange.allChars(), ranges.get(0));
+    }
+
+    @Test
+    public void test_coverAllChars_handlesSingleRangeWithCharSubset() {
+        var ranges = CharRange.coverAllChars(List.of(new CharRange('B', 'Y')));
+        assertEquals(new CharRange(Character.MIN_VALUE, 'A'), ranges.get(0));
+        assertEquals(new CharRange('B', 'Y'), ranges.get(1));
+        assertEquals(new CharRange('Z', Character.MAX_VALUE), ranges.get(2));
+    }
+
+    @Test
+    public void test_coverAllChars_handlesMultipleContiguousRangesWithCharSubset() {
+        var ranges = CharRange.coverAllChars(List.of(new CharRange('B', 'B'), new CharRange('C', 'E')));
+        assertEquals(new CharRange(Character.MIN_VALUE, 'A'), ranges.get(0));
+        assertEquals(new CharRange('B', 'B'), ranges.get(1));
+        assertEquals(new CharRange('C', 'E'), ranges.get(2));
+        assertEquals(new CharRange('F', Character.MAX_VALUE), ranges.get(3));
+    }
+
+    @Test
+    public void test_coverAllChars_handlesMultipleRanges_withGapsAndContiguousRanges() {
+        var ranges = CharRange.coverAllChars(List.of(new CharRange('B', 'C'), new CharRange('F', 'H'), new CharRange('K', 'M'), new CharRange('P', 'S')));
+        assertEquals(new CharRange(Character.MIN_VALUE, 'A'), ranges.get(0));
+        assertEquals(new CharRange('B', 'C'), ranges.get(1));
+        assertEquals(new CharRange('D', 'E'), ranges.get(2));
+        assertEquals(new CharRange('F', 'H'), ranges.get(3));
+        assertEquals(new CharRange('I', 'J'), ranges.get(4));
+        assertEquals(new CharRange('K', 'M'), ranges.get(5));
+        assertEquals(new CharRange('N', 'O'), ranges.get(6));
+        assertEquals(new CharRange('P', 'S'), ranges.get(7));
+        assertEquals(new CharRange('T', Character.MAX_VALUE), ranges.get(8));
+    }
+
     static Gen<CharRange> charRanges() {
         var gen = new CharactersDSL().basicMultilingualPlane();
         return gen.zip(gen, (a, b) -> {

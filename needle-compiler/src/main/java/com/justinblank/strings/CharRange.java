@@ -10,6 +10,8 @@ public class CharRange implements Comparable<CharRange> {
     private final char end;
     private final boolean empty;
 
+    private static final CharRange ALL_CHARS = new CharRange(Character.MIN_VALUE, Character.MAX_VALUE);
+
     public CharRange(char start, char end) {
         this.start = start;
         this.end = end;
@@ -17,6 +19,10 @@ public class CharRange implements Comparable<CharRange> {
             throw new IllegalArgumentException("Tried to create a character range with start=" + start + " larger than end=" + end);
         }
         empty = false;
+    }
+
+    public static CharRange allChars() {
+        return ALL_CHARS;
     }
 
     public char getStart() {
@@ -54,6 +60,40 @@ public class CharRange implements Comparable<CharRange> {
                 ", end=" + end +
                 ", empty=" + empty +
                 '}';
+    }
+
+    /**
+     * Given a sorted set of non-overlapping char ranges, expand it to cover all possible characters.
+     * @param ranges
+     * @return a list of char ranges containing every character
+     */
+    static List<CharRange> coverAllChars(List<CharRange> ranges) {
+        List<CharRange> allChars = new ArrayList<>();
+        if (ranges.isEmpty()) {
+            allChars.add(ALL_CHARS);
+            return allChars;
+        }
+        CharRange current = null;
+        for (var charRange : ranges) {
+            if (current == null) {
+                current = charRange;
+                if (current.getStart() > Character.MIN_VALUE) {
+                    allChars.add(new CharRange(Character.MIN_VALUE, decr(current.getStart())));
+                }
+                allChars.add(current);
+            }
+            else {
+                if (charRange.getStart() > incr(current.getEnd())) {
+                    allChars.add(new CharRange(incr(current.getEnd()), decr(charRange.getStart())));
+                }
+                allChars.add(charRange);
+                current = charRange;
+            }
+        }
+        if (current.getEnd() < Character.MAX_VALUE) {
+            allChars.add(new CharRange(incr(current.getEnd()), Character.MAX_VALUE));
+        }
+        return allChars;
     }
 
     /**
@@ -145,6 +185,10 @@ public class CharRange implements Comparable<CharRange> {
 
     private static char incr(char c) {
         return (char) (((int) c) + 1);
+    }
+
+    private static char decr(char c) {
+        return (char) (((int) c) -1);
     }
 
     @Override
