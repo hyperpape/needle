@@ -941,9 +941,6 @@ class DFAClassBuilder extends ClassBuilder {
                         set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
                         set(MatchingVars.STATE, -1))));
             }
-            else {
-                outerLoopBody.add(set(MatchingVars.STATE, postPrefixState));
-            }
             outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
         }
         else {
