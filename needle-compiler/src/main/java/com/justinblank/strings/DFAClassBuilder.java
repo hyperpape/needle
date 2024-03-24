@@ -278,7 +278,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
-        var loopBoundary = lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
+        var loopBoundary = inBounds();
         method.loop(loopBoundary, outerLoopBody);
 
         if (shouldSeekForwards()) {
@@ -307,13 +307,11 @@ class DFAClassBuilder extends ClassBuilder {
             outerLoopBody.add(loop(and(
                             eq(read(MatchingVars.LAST_MATCH), -1),
                             and(
-                                    lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
+                                    inBounds(),
                                     lte(read(MatchingVars.STATE), 0)
                             )),
                     List.of(
-                            set(MatchingVars.CHAR, call("charAt", Builtin.C,
-                                            read(MatchingVars.STRING),
-                                            read(MatchingVars.INDEX))),
+                            set(MatchingVars.CHAR, readChar()),
                             cond(generatePredicate(spec.dfa))
                                     .withBody(List.of(
                                             set(MatchingVars.STATE, spec.dfa.followingState().getStateNumber()),
@@ -338,9 +336,7 @@ class DFAClassBuilder extends ClassBuilder {
                         innerLoopMustCallWasAccepted ? cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                                 .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))) : new NoOpStatement(),
 
-                        set(MatchingVars.CHAR, call("charAt", Builtin.C,
-                                read(MatchingVars.STRING),
-                                read(MatchingVars.INDEX))),
+                        set(MatchingVars.CHAR, readChar()),
                         set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
                         // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
                         // using non-ascii character from the haystack as our index
@@ -464,9 +460,7 @@ class DFAClassBuilder extends ClassBuilder {
         Expression loopCondition = and(neq(-1, read(MatchingVars.STATE)), loopBoundary);
         method.loop(loopCondition,
                 List.of(
-                        set(MatchingVars.CHAR, call("charAt", Builtin.C,
-                                read(MatchingVars.STRING),
-                                read(MatchingVars.INDEX))),
+                        set(MatchingVars.CHAR, readChar()),
                         // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
                         // using non-ascii character from the haystack as our index
                         // TODO: this should be ok regardless of whether we're using byteclasses?
@@ -848,9 +842,7 @@ class DFAClassBuilder extends ClassBuilder {
                                         new NoOpStatement(),
                                 returnValue(
                                         call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE))))),
-                set(MatchingVars.CHAR, call("charAt", Builtin.C,
-                        read(MatchingVars.STRING),
-                        read(MatchingVars.INDEX))),
+                set(MatchingVars.CHAR, readChar()),
                 compilationPolicy.useByteClassesForAllStates ? cond(
                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
                         returnValue(false)) : new NoOpStatement(),
@@ -930,7 +922,7 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STATE, 0);
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
-        method.loop(lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)), outerLoopBody);
+        method.loop(inBounds(), outerLoopBody);
 
         if (shouldSeekForwards()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
@@ -964,9 +956,7 @@ class DFAClassBuilder extends ClassBuilder {
                         neq(-1, read(MatchingVars.STATE))),
                         List.of(cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                         .withBody(returnValue(true)),
-                                set(MatchingVars.CHAR, call("charAt", Builtin.C,
-                                read(MatchingVars.STRING),
-                                read(MatchingVars.INDEX))),
+                                set(MatchingVars.CHAR, readChar()),
                                 compilationPolicy.useByteClassesForAllStates ? cond(
                                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
                                                 List.of(set(MatchingVars.STATE, -1),
@@ -1016,6 +1006,16 @@ class DFAClassBuilder extends ClassBuilder {
 
         elementsToAdd.add(cond(offsetCheck).withBody(onFailure));
         return elementsToAdd;
+    }
+
+    private static Expression inBounds() {
+        return lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
+    }
+
+    private static Expression readChar() {
+        return call("charAt", Builtin.C,
+                read(MatchingVars.STRING),
+                read(MatchingVars.INDEX));
     }
 
     public Collection<Method> allMethods() {
