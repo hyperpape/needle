@@ -8,8 +8,9 @@ import java.util.stream.Collectors;
 
 class DFA {
 
+    public static final int MAX_CHAR_FOR_BYTECLASSES = 127;
     private boolean accepting;
-    private final int stateNumber;
+    private int stateNumber;
     private DFA root;
     // Only populated on the root
     private List<DFA> states;
@@ -40,10 +41,14 @@ class DFA {
     }
 
     public static DFA createDFA(String regex) {
+        return createDFA(regex, ConversionMode.BASIC); // TODO: this needs revisited
+    }
+
+    static DFA createDFA(String regex, ConversionMode mode) {
         Node node = RegexParser.parse(regex);
         try {
             NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
-            return NFAToDFACompiler.compile(nfa, ConversionMode.BASIC); // TODO: this needs revisited
+            return NFAToDFACompiler.compile(nfa, mode);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create dfa from string '" + regex + "'", e);
         }
@@ -320,6 +325,16 @@ class DFA {
         return true;
     }
 
+    boolean allForwardTransitionsLeadToSameState() {
+        var forwardTransitions = getEffectiveTransitions();
+        for (var i = 0; i < forwardTransitions.size() - 1; i++) {
+            if (forwardTransitions.get(i).getRight() != forwardTransitions.get(i + 1).getRight()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected boolean isAllAscii() {
         for (var dfa : states) {
             for (var transition : dfa.transitions) {
@@ -396,13 +411,16 @@ class DFA {
                 catchAll = byteClass;
             }
             for (var range : rangeGroup.ranges) {
-                for (var c = range.getStart(); c <= Math.min(range.getEnd(), 127); c++) {
+                for (var c = range.getStart(); c <= Math.min(range.getEnd(), MAX_CHAR_FOR_BYTECLASSES); c++) {
                     ranges[c] = byteClass;
                 }
             }
             byteClass++;
         }
-        return new ByteClasses(ranges, catchAll);
+        if (catchAll == ByteClasses.CATCHALL_INVALID) {
+            catchAll = byteClass;
+        }
+        return new ByteClasses(ranges, catchAll, byteClass + 1);
     }
 
     List<RangeGroup> generateRangeGroups() {
@@ -578,7 +596,7 @@ class DFA {
     protected boolean checkRep() {
         assert allStatesReachable() : "Some state was unreachable";
         assert allStates().containsAll(states);
-        assert states.containsAll(allStates());
+        assert new HashSet<>(states).containsAll(allStates());
         assert states.stream().allMatch(dfa -> dfa.root == this);
         assert states.stream().map(DFA::getStateNumber).count() == states.size();
         assert states.contains(this) : "root not included in states";
@@ -616,32 +634,90 @@ class DFA {
     }
 
     /**
-     * Determine if this DFA's transitions are of a "well behaved" set, where we can easily check whether the
+     * Determine if this DFA's forward transitions are of a "well behaved" set, where we can easily check whether the
      * transition's conditions are met. Examples are:
      * - a single contiguous range of characters
      * - a single case insensitive character, e.g. [Ss].
-     * @return whether the transition can be handled by one of a set of simple predicates. z
+     *
+     * @return whether the forward transition can be handled by one of a set of simple predicates.
      */
-    public boolean transitionIsPredicate() {
-        if (transitions.size() == 1) {
+    public boolean forwardTransitionIsPredicate() {
+        var effectiveTransitions = getEffectiveTransitions();
+        if (effectiveTransitions.size() == 1) {
             return true;
-        }
-        else if (transitions.size() == 2) {
-            var firstRange = transitions.get(0).getLeft();
-            var secondRange = transitions.get(1).getLeft();
+        } else if (effectiveTransitions.size() == 2) {
+            var firstRange = effectiveTransitions.get(0).getLeft();
+            var secondRange = effectiveTransitions.get(1).getLeft();
             if (firstRange.isSingleCharRange() && secondRange.isSingleCharRange()) {
-                if (Math.abs(firstRange.getStart() - secondRange.getStart()) == 32) {
-                    return true;
-                }
+                return Math.abs(firstRange.getStart() - secondRange.getStart()) == 32;
             }
         }
         return false;
     }
 
-    public DFA followingState() {
-        if (!allTransitionsLeadToSameState()) {
+    List<Pair<CharRange, DFA>> getEffectiveTransitions() {
+        var effectiveTransitions = new ArrayList<Pair<CharRange, DFA>>();
+        for (var transition : transitions) {
+            if (transition.getRight().stateNumber != 0) {
+                effectiveTransitions.add(transition);
+            }
+        }
+        return effectiveTransitions;
+    }
+
+    public DFA forwardFollowingState() {
+        if (!allForwardTransitionsLeadToSameState()) {
             throw new IllegalArgumentException("Not allowed to call this method on a dfa that can lead to multiple states");
         }
-        return this.transitions.get(0).getRight();
+        return getEffectiveTransitions().get(0).getRight();
+    }
+
+    void pruneDeadStates() {
+        var liveStates = findLiveStates();
+        for (var state : states) {
+            var liveTransitions = new ArrayList<Pair<CharRange, DFA>>();
+            for (var transition : state.transitions) {
+                if (liveStates.contains(transition.getRight().stateNumber)) {
+                    liveTransitions.add(transition);
+                }
+            }
+            state.transitions = liveTransitions;
+        }
+        var newStates = new ArrayList<DFA>();
+        for (var state : states) {
+            if (liveStates.contains(state.stateNumber)) {
+                newStates.add(state);
+            }
+        }
+        states = newStates;
+        for (var i = 0; i < this.states.size(); i++) {
+            this.states.get(i).stateNumber = i;
+        }
+    }
+
+    Set<Integer> findLiveStates() {
+        Set<Integer> liveStates = new HashSet<>();
+        liveStates.add(root.stateNumber);
+        for (var state : states) {
+            if (state.isAccepting()) {
+                liveStates.add(state.stateNumber);
+            }
+        }
+        boolean changed = true;
+        // TODO: O(n^2)
+        while (changed) {
+            changed = false;
+            for (var state : states) {
+                if (!liveStates.contains(state.stateNumber)) {
+                    for (var transition : state.transitions) {
+                        if (liveStates.contains(transition.getRight().stateNumber)) {
+                            changed = true;
+                            liveStates.add(state.stateNumber);
+                        }
+                    }
+                }
+            }
+        }
+        return liveStates;
     }
 }

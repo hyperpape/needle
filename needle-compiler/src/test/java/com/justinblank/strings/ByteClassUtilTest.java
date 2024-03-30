@@ -28,23 +28,28 @@ public class ByteClassUtilTest extends TestCase {
         fail("No exception thrown");
     }
 
-    public void testFillMultipleByteClassesFromString() {
-        var byteClasses = new byte[13][];
-        ByteClassUtil.fillMultipleByteClassesFromString(byteClasses, 4, "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17");
-        assertEquals((byte) 2, byteClasses[0][1]);
-        assertEquals((byte) 3, byteClasses[1][1]);
-        assertEquals((byte) 4, byteClasses[2][1]);
-        assertEquals((byte) 13, byteClasses[12][1]);
+    @Test
+    public void testFillMultipleByteClassesFromStringUsingBytes_singleArray() {
+        var byteClasses = new byte[13 * 4];
+        ByteClassUtil.fillMultipleByteClassesFromString_singleArray(byteClasses, 4, "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17");
+        // "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17"
+        assertEquals((byte) 2, byteClasses[1]);
+        assertEquals((byte) 3, byteClasses[2]);
+        assertEquals((byte) 12, byteClasses[3]);
+        assertEquals((byte) 3, byteClasses[5]);
+        assertEquals((byte) 13, byteClasses[49]);
     }
 
     @Test
-    public void testFillMultipleByteClassesFromStringUsingShorts() {
-        var byteClasses = new short[13][];
-        ByteClassUtil.fillMultipleByteClassesFromStringUsingShorts(byteClasses, 4, "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17");
-        assertEquals((short) 2, byteClasses[0][1]);
-        assertEquals((short) 3, byteClasses[1][1]);
-        assertEquals((short) 4, byteClasses[2][1]);
-        assertEquals((short) 13, byteClasses[12][1]);
+    public void testFillMultipleByteClassesFromStringUsingShorts_singleArray() {
+        var byteClasses = new short[13 * 4];
+        ByteClassUtil.fillMultipleByteClassesFromStringUsingShorts_singleArray(byteClasses, 4, "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17");
+        // "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17"
+        assertEquals((short) 2, byteClasses[1]);
+        assertEquals((short) 3, byteClasses[2]);
+        assertEquals((short) 12, byteClasses[3]);
+        assertEquals((short) 3, byteClasses[5]);
+        assertEquals((short) 13, byteClasses[49]);
     }
 
 }

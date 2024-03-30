@@ -18,12 +18,12 @@ class NFAToDFACompiler {
     }
 
     public static DFA compile(NFA nfa, ConversionMode mode) {
-        DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa, mode);
-        return MinimizeDFA.minimizeDFA(dfa);
+        return compile(nfa, mode, false);
     }
 
     protected static DFA compile(NFA nfa, ConversionMode mode, boolean debug) {
         DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa, mode);
+        dfa.pruneDeadStates();
         if (debug) {
             System.out.println("Pre-minimization dfa");
             System.out.println(GraphViz.toGraphviz(dfa));
@@ -77,7 +77,7 @@ class NFAToDFACompiler {
                 //     epsilonClosure.add(state, initialStates.getDistance(state);
                 // }
             }
-            List<CharRange> ranges = CharRange.minimalCovering(findCharRanges(epsilonClosure));
+            List<CharRange> ranges = CharRange.coverAllChars(CharRange.minimalCovering(findCharRanges(epsilonClosure)));
             for (CharRange range : ranges) {
                 // any element of the range is equally good here, getStart()/getEnd() doesn't matter
                 StateSet postTransitionStates = getEpsilonClosure(transition(epsilonClosure, range.getStart()));

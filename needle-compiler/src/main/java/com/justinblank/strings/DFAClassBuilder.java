@@ -79,7 +79,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     String getStateArrayType(FindMethodSpec spec) {
-        return useShorts(spec) ? "[S" : "[B";
+        return useShorts(spec) ? "S" : "B";
     }
 
     List<FindMethodSpec> allSpecs() {
@@ -159,24 +159,26 @@ class DFAClassBuilder extends ClassBuilder {
         for (var name : names) {
             String field = spec.statesConstant();
             block.readStatic(field, "[" + getStateArrayType(spec));
-            block.push(ByteClassUtil.maxByteClass(stateTransitions.byteClasses.ranges) + 1);
+            // 2 in order to accomodate forced catchAll?
+            // TODO: could we shrink these if arrays if we redid our byteClasses to be 0 indexed?
+            block.push(stateTransitions.byteClasses.byteClassCount);
 
             block.readStatic(name, CompilerUtil.STRING_DESCRIPTOR);
 
             if (useShorts(spec)) {
-                block.callStatic("fillMultipleByteClassesFromStringUsingShorts", CompilerUtil.internalName(ByteClassUtil.class), "([[SILjava/lang/String;)V");
+                block.callStatic("fillMultipleByteClassesFromStringUsingShorts_singleArray", CompilerUtil.internalName(ByteClassUtil.class), "([SILjava/lang/String;)V");
                 if (debugOptions.trackStates) {
                     block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
                     block.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
-                    block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[[S)V");
+                    block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[S)V");
                 }
             }
             else {
-                block.callStatic("fillMultipleByteClassesFromString", CompilerUtil.internalName(ByteClassUtil.class), "([[BILjava/lang/String;)V");
+                block.callStatic("fillMultipleByteClassesFromString_singleArray", CompilerUtil.internalName(ByteClassUtil.class), "([BILjava/lang/String;)V");
                 if (debugOptions.trackStates) {
                     block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
                     block.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
-                    block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[[B)V");
+                    block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[B)V");
                 }
             }
         }
@@ -201,7 +203,7 @@ class DFAClassBuilder extends ClassBuilder {
         var staticBlock = addStaticBlock();
 
         // All characters that cannot be recognized by the DFA are represented with 0
-        Block block = staticBlock.push(128)
+        Block block = staticBlock.push(DFA.MAX_CHAR_FOR_BYTECLASSES + 2)
                 .newArray(T_BYTE)
                 .putStatic(BYTE_CLASSES_CONSTANT, true, "[B");
         block.readStatic(BYTE_CLASSES_CONSTANT, "[B")
@@ -227,6 +229,11 @@ class DFAClassBuilder extends ClassBuilder {
             }
             end++;
         }
+        staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
+                .push(stateTransitions.byteClasses.catchAll)
+                .push(128)
+                .push(128)
+                .callStatic("fillBytes", CompilerUtil.internalName(ByteClassUtil.class), "([BBII)V");
     }
 
     /**
@@ -240,13 +247,17 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private void populateByteClassArrays(FindMethodSpec spec) {
-        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), "[" + getStateArrayType(spec), null, null));
+        String descriptor = "[" + getStateArrayType(spec);
+        addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), descriptor, null, null));
         var staticBlock = addStaticBlock();
 
-        // Instantiate the top level array of state transition arrays
-        staticBlock.push(spec.statesCount())
-                .newArray(getStateArrayType(spec))
-                .putStatic(spec.statesConstant(), true, "[" + getStateArrayType(spec));
+        staticBlock.push(spec.statesCount() * stateTransitions.byteClasses.byteClassCount)
+                // TODO: bit of a hack--should have a proper way of generating T_SHORT/T_BYTE
+                .newArray(getStateArrayType(spec).equals("S") ? T_SHORT : T_BYTE)
+                .putStatic(spec.statesConstant(), true, descriptor);
+        staticBlock.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
+        staticBlock.push(-1);
+        staticBlock.callStatic("fill", CompilerUtil.internalName(Arrays.class), "([" + getStateArrayType(spec) + getStateArrayType(spec) + ")V");
     }
 
     private Method createIndexMethod(FindMethodSpec spec) {
@@ -272,8 +283,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
-        var loopBoundary = inBounds();
-        method.loop(loopBoundary, outerLoopBody);
+        method.loop(inBounds(), outerLoopBody);
 
         if (shouldSeekForwards()) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
@@ -292,11 +302,7 @@ class DFAClassBuilder extends ClassBuilder {
                 outerLoopBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
             }
         }
-        // TODO: could weaken the "allTransitionsLeadToSameState" condition here, but it's not obvious to me whether it
-        // would be worth it
-        // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
-        // make sense, and getting the loop correct is annoying
-        else if (spec.dfa.transitionIsPredicate() && spec.dfa.allTransitionsLeadToSameState() && !spec.dfa.isAccepting()) {
+        else if (canSeekForPredicate(spec)) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
             outerLoopBody.add(loop(and(
                             eq(read(MatchingVars.LAST_MATCH), -1),
@@ -308,9 +314,9 @@ class DFAClassBuilder extends ClassBuilder {
                             set(MatchingVars.CHAR, readChar()),
                             cond(generatePredicate(spec.dfa))
                                     .withBody(List.of(
-                                            set(MatchingVars.STATE, spec.dfa.followingState().getStateNumber()),
+                                            set(MatchingVars.STATE, spec.dfa.forwardFollowingState().getStateNumber()),
                                             set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
-                                            spec.dfa.followingState().isAccepting()
+                                            spec.dfa.forwardFollowingState().isAccepting()
                                                     ? set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : new NoOpStatement()))
                                     .orElse(List.of(
                                             set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
@@ -324,8 +330,11 @@ class DFAClassBuilder extends ClassBuilder {
         // We only need to call wasAccepted at the top of our loop if matching a prefix/initial state can leave us in
         // an accepting state. Otherwise, we can skip that check.
         var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
-        Expression loopCondition = and(neq(-1, read(MatchingVars.STATE)), loopBoundary);
-        Loop innerLoop = loop(loopCondition,
+        var innerLoopBoundary = inBounds();
+        if (shouldSeekForwards() || canSeekForPredicate(spec)) {
+            innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
+        }
+        Loop innerLoop = loop(innerLoopBoundary,
                 List.of(
                         innerLoopMustCallWasAccepted ? cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
                                 .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))) : new NoOpStatement(),
@@ -348,17 +357,7 @@ class DFAClassBuilder extends ClassBuilder {
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        cond(and(eq(-1, read(MatchingVars.STATE)), hasLastMatch())).
-                                withBody(returnValue(read(MatchingVars.LAST_MATCH))),
-                        cond(eq(-1, read(MatchingVars.STATE))).withBody(
-                                List.of(
-                                        set(MatchingVars.STATE, 0),
-                                        compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                                        compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, 0),
-                                        cond(eq(-1, read(MatchingVars.STATE))).withBody(
-                                                set(MatchingVars.STATE, 0)
-                                        )
-                                )),
+                        cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
                         )
@@ -373,15 +372,17 @@ class DFAClassBuilder extends ClassBuilder {
     private boolean isInnerLoopMustCallWasAccepted(FindMethodSpec spec) {
         if (spec.dfa.isAccepting()) {
             return true;
-        } else {
+        }
+        else {
             var prefix = factorization.getSharedPrefix();
             return shouldSeekForwards() && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
         }
     }
 
     private Expression generatePredicate(DFA dfa) {
-        if (dfa.getTransitions().size() == 1) {
-            var range = dfa.getTransitions().get(0).getLeft();
+        var forwardTransitions = dfa.getEffectiveTransitions();
+        if (forwardTransitions.size() == 1) {
+            var range = forwardTransitions.get(0).getLeft();
             if (range.isSingleCharRange()) {
                 return eq(read(MatchingVars.CHAR), (int) range.getStart());
             }
@@ -392,8 +393,8 @@ class DFAClassBuilder extends ClassBuilder {
             }
         }
         else {
-            var char1 = dfa.getTransitions().get(0).getLeft().getStart();
-            var char2 = dfa.getTransitions().get(1).getLeft().getEnd();
+            var char2 = forwardTransitions.get(1).getLeft().getEnd();
+            var char1 = forwardTransitions.get(0).getLeft().getStart();
             return or(
                     eq(read(MatchingVars.CHAR), (int) char1),
                     eq(read(MatchingVars.CHAR), (int) char2));
@@ -402,17 +403,19 @@ class DFAClassBuilder extends ClassBuilder {
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
         Type type = useShorts(spec) ? Builtin.S : Builtin.OCTET;
-        var stateArrayRef = arrayRead(
-                        getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
+        var index = plus(read(BYTE_CLASS_FIELD), mul(read(MatchingVars.STATE), stateTransitions.byteClasses.byteClassCount));
         // TODO: use a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
-        return set(MatchingVars.STATE, cast(Builtin.I, arrayRead(stateArrayRef, read(BYTE_CLASS_FIELD))));
+        return set(MatchingVars.STATE,
+                cast(Builtin.I,
+                        arrayRead(getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(type)), index)));
     }
 
     private CodeElement setByteClass() {
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
-        var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
-        return cond(gt(read(MatchingVars.CHAR), 127)).withBody(set(DFAClassBuilder.BYTE_CLASS_FIELD, catchAllByteClass)).orElse(
-            set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup));
+        var byteClassLookup = arrayRead(byteClassRef, callStatic(ReferenceType.of(Math.class), "min", Builtin.I,
+                literal(DFA.MAX_CHAR_FOR_BYTECLASSES + 1), cast(Builtin.I, read(MatchingVars.CHAR)))); // read(MatchingVars.CHAR));
+
+        return set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup);
     }
 
     private Method createIndexMethodReversed(FindMethodSpec spec) {
@@ -451,8 +454,7 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             method.set(MatchingVars.STATE, 0);
         }
-        Expression loopCondition = and(neq(-1, read(MatchingVars.STATE)), loopBoundary);
-        method.loop(loopCondition,
+        method.loop(loopBoundary,
                 List.of(
                         set(MatchingVars.CHAR, readChar()),
                         // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
@@ -546,7 +548,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         var block = method.addBlock();
         block.readThis();
-        block.call("<init>", "java/lang/Object", "()V", true); // TODO
+        block.call("<init>", "java/lang/Object", "()V", true);
         block.readThis();
         block.readVar(vars, MatchingVars.STRING, CompilerUtil.STRING_DESCRIPTOR);
         block.addOperation(Operation.mkSetField(MatchingVars.STRING, getClassName(), CompilerUtil.STRING_DESCRIPTOR));
@@ -765,6 +767,14 @@ class DFAClassBuilder extends ClassBuilder {
         return factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false);
     }
 
+    // TODO: could weaken the "allForwardTransitionsLeadToSameState" condition here, but it's not obvious to me whether
+    //  it would be worth it
+    // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
+    // make sense, and getting the loop correct is annoying
+    private static boolean canSeekForPredicate(FindMethodSpec spec) {
+        return spec.dfa.forwardTransitionIsPredicate() && spec.dfa.allForwardTransitionsLeadToSameState() && !spec.dfa.isAccepting();
+    }
+
     // TODO: measure breakeven point for offsets
     static boolean isUsefulOffset(Offset offset) {
         return offset != null && offset.length > 3;
@@ -945,25 +955,18 @@ class DFAClassBuilder extends ClassBuilder {
         Loop innerLoop = loop(and(
                 lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
                         neq(-1, read(MatchingVars.STATE))),
-                        List.of(cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
-                        .withBody(returnValue(true)),
+                        List.of(
+                                cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                                        .withBody(returnValue(true)),
                                 set(MatchingVars.CHAR, readChar()),
+
                                 compilationPolicy.useByteClassesForAllStates ? cond(
                                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
-                                                List.of(set(MatchingVars.STATE, -1),
+                                                List.of(set(MatchingVars.STATE, 0),
                                                         set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
                                                         escape())) : new NoOpStatement(),
                                 compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                                 compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-
-                                // buildStateSwitch(spec,0), // TODO: should on-failure be -1 here? does it matter?
-                                cond(eq(-1, read(MatchingVars.STATE))).withBody(
-                                        List.of(
-                                                // TODO: see if it matters that this is emitting a call to the state method
-                                                // instead of lookup of next state via byteclass in cases where that's possible
-                                                set(MatchingVars.STATE, call(stateMethodName(spec, 0), Builtin.I, thisRef(), read(MatchingVars.CHAR)))
-
-                                )),
                                 set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
                                 ));
         outerLoopBody.add(innerLoop);

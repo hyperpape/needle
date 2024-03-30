@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -39,7 +40,7 @@ public class DFATest {
 
     @Test
     public void testIsTerminal() {
-        var dfa = DFA.createDFA("abc");
+        var dfa = DFA.createDFA("abc", ConversionMode.DFA_SEARCH);
         assertFalse(dfa.isTerminal());
         assertFalse(dfa.after("a").get().isTerminal());
         assertFalse(dfa.after("ab").get().isTerminal());
@@ -186,8 +187,8 @@ public class DFATest {
         assertEquals(1, byteClasses['a']);
         assertEquals(2, byteClasses['b']);
         assertEquals(3, byteClasses['c']);
-        for (var c = 'd'; c <= 128; c++) {
-            assertEquals(0, byteClasses[c]);
+        for (var i = 'd'; i <= DFA.MAX_CHAR_FOR_BYTECLASSES; i++) {
+            assertEquals(0, byteClasses[i]);
         }
     }
 
@@ -205,7 +206,7 @@ public class DFATest {
         for (var c = 'c'; c <= 'z'; c++) {
             assertEquals(1, byteClasses[c]);
         }
-        for (var c = 'z' + 1; c < 128; c++) {
+        for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_BYTECLASSES; c++) {
             assertEquals(0, byteClasses[c]);
         }
     }
@@ -224,7 +225,7 @@ public class DFATest {
         for (var c = 'c'; c <= 'z'; c++) {
             assertEquals(2, byteClasses[c]);
         }
-        for (var c = 'z' + 1; c < 128; c++) {
+        for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_BYTECLASSES; c++) {
             assertEquals(1, byteClasses[c]);
         }
     }

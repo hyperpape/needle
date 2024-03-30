@@ -28,20 +28,13 @@ public class DFADebugUtils {
         System.out.println("Failed lookahead check index=" + index + ", offsetIndex=" + computedIndex);
     }
 
-    public static void debugStateArrays(String stateType, byte[][] stateArrays) {
-        System.out.println("StateTransitions, type=" + stateType);
-        for (var i = 0; i < stateArrays.length; i++) {
-            System.out.println("state" + i + ": " + Arrays.toString(stateArrays[i]));
-        }
+    public static void debugStateArrays(String stateType, byte[] stateTransitions) {
+        System.out.println("StateTransitions, type=" + stateType + Arrays.toString(stateTransitions));
     }
 
-    public static void debugStateArrays(String stateType, short[][] stateArrays) {
-        System.out.println("StateTransitions, type=" + stateType);
-        for (var i = 0; i < stateArrays.length; i++) {
-            System.out.println("state" + i + ": " + Arrays.toString(stateArrays[i]));
-        }
+    public static void debugStateArrays(String stateType, short[] stateTransitions) {
+        System.out.println("StateTransitions, type=" + stateType + Arrays.toString(stateTransitions));
     }
-
 
     private static String encodeChr(char c) {
         switch (c) {

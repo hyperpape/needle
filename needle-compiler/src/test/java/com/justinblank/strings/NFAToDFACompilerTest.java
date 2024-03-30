@@ -12,7 +12,7 @@ public class NFAToDFACompilerTest {
     public void compileBasic() {
         var nfa = NFA.createNFANoAhoCorasick("(AB){1,2}");
         var dfa = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.BASIC);
-        assertEquals(5, dfa.statesCount());
+        assertEquals(7, dfa.statesCount());
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("ABAB"));
         assertFalse(dfa.matches("ABABAB"));
@@ -31,6 +31,6 @@ public class NFAToDFACompilerTest {
     public void compileDFASearch() {
         var nfa = NFA.createNFANoAhoCorasick("(AB){1,2}");
         var dfa = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.DFA_SEARCH);
-        assertEquals(5, dfa.statesCount());
+        assertEquals(6, dfa.statesCount());
     }
 }

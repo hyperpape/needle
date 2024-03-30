@@ -29,5 +29,7 @@ public class GenerateExamples {
         DFACompiler.compile("ε|λ", "UnicodeUnion", debugOptions);
 
         DFACompiler.compile("[0-9]+", "DigitPlus", debugOptions);
+        // No prefix or suffix, just transitions using byteClasses
+        DFACompiler.compile("(ab|a|bcdef|g)+", "Option", debugOptions);
     }
 }

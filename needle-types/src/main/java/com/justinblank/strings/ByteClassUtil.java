@@ -46,33 +46,37 @@ public class ByteClassUtil {
         return max;
     }
 
-    /**
-     * Fill arrays mapping byteClasses to target states by parsing the transitions out of a string.
-     * <p>
-     * The string encoding consists of semicolon delimited chunks, each of which represents the transitions for a
-     * particular DFA state. The chunks have the format state:byteClass1-targetState1,byteClass2-targetState2...
-     *
-     * @param stateTransitionArrays the state transition arrays
-     * @param length                the number of byteClasses + 1
-     * @param s                     the encoded string
-     */
-    public static void fillMultipleByteClassesFromString(byte[][] stateTransitionArrays, int length, String s) {
-        for (int i = 0; i < stateTransitionArrays.length; i++) {
-            stateTransitionArrays[i] = new byte[length];
-            Arrays.fill(stateTransitionArrays[i], (byte) -1);
-        }
+    public static void fillMultipleByteClassesFromString_singleArray(byte[] stateTransitionArray, int length, String s) {
         String[] stateStrings = SEMICOLON_REGEX.split(s);
         for (String stateString : stateStrings) {
-            if (stateString.isEmpty()) {
-                continue;
-            }
             String[] stateAndTransitions = COLON_REGEX.split(stateString);
             if (stateAndTransitions.length != 2) {
                 throw new IllegalArgumentException("Malformed string, wrong number of parts. Component was: " + stateString);
             }
             try {
                 int state = decode(stateAndTransitions[0]);
-                stateTransitionArrays[state] = fillBytesFromString(length, stateAndTransitions[1]);
+                if (state > Short.MAX_VALUE) {
+                    throw new IllegalStateException("Tried to store a source state that's too large to fit in a short. State=" + state);
+                }
+                String[] components = COMMA_REGEX.split(stateAndTransitions[1]);
+                for (String component : components) {
+                    String[] pieces = DASH_REGEX.split(component);
+                    if (pieces.length != 2) {
+                        throw new IllegalArgumentException("Malformed string, wrong number of parts. Component was: " + component);
+                    }
+                    try {
+                        int byteClass = decode(pieces[0]);
+                        int targetState = decode(pieces[1]);
+                        if (targetState > Short.MAX_VALUE) {
+                            throw new IllegalStateException("Tried to store a target state that's too large to fit in a short. State=" + state);
+                        }
+                        int offset = state * length + byteClass;
+                        stateTransitionArray[offset] = (byte) targetState;
+                    }
+                    catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
+                    }
+                }
             }
             catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + stateString);
@@ -80,13 +84,7 @@ public class ByteClassUtil {
         }
     }
 
-    public static void fillMultipleByteClassesFromStringUsingShorts(short[][] stateTransitionArrays, int length, String s) {
-        for (int i = 0; i < stateTransitionArrays.length; i++) {
-            if (stateTransitionArrays[i] == null) {
-                stateTransitionArrays[i] = new short[length];
-                Arrays.fill(stateTransitionArrays[i], (short) -1);
-            }
-        }
+    public static void fillMultipleByteClassesFromStringUsingShorts_singleArray(short[] stateTransitionArray, int length, String s) {
         String[] stateStrings = SEMICOLON_REGEX.split(s);
         for (String stateString : stateStrings) {
             String[] stateAndTransitions = COLON_REGEX.split(stateString);
@@ -95,7 +93,28 @@ public class ByteClassUtil {
             }
             try {
                 int state = decode(stateAndTransitions[0]);
-                stateTransitionArrays[state] = fillBytesFromStringUsingShorts(length, stateAndTransitions[1]);
+                if (state > Short.MAX_VALUE) {
+                    throw new IllegalStateException("Tried to store a source state that's too large to fit in a short. State=" + state);
+                }
+                String[] components = COMMA_REGEX.split(stateAndTransitions[1]);
+                for (String component : components) {
+                    String[] pieces = DASH_REGEX.split(component);
+                    if (pieces.length != 2) {
+                        throw new IllegalArgumentException("Malformed string, wrong number of parts. Component was: " + component);
+                    }
+                    try {
+                        int byteClass = decode(pieces[0]);
+                        int targetState = decode(pieces[1]);
+                        if (targetState > Short.MAX_VALUE) {
+                            throw new IllegalStateException("Tried to store a target state that's too large to fit in a short. State=" + state);
+                        }
+                        int offset = state * length + byteClass;
+                        stateTransitionArray[offset] = (short) targetState;
+                    }
+                    catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
+                    }
+                }
             }
             catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + stateString);

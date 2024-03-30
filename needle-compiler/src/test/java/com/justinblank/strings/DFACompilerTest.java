@@ -176,7 +176,7 @@ public class DFACompilerTest {
 
     @Test
     public void testLiteralRepetitionLiteralRegex() {
-        Pattern pattern = DFACompiler.compile("ad*g", "literalReptitionLiteralRegex");
+        Pattern pattern = DFACompiler.compile("ad*g", "literalRepetitionLiteralRegex");
         match(pattern, "ag");
         match(pattern, "adg");
         match(pattern, "adddg");
