@@ -157,14 +157,8 @@ class DFAClassBuilder extends ClassBuilder {
     private void addCallsToFillStateTransitionArrays(FindMethodSpec spec, List<String> names) {
         Block block = addStaticBlock();
         for (var name : names) {
-            if (useShorts(spec)) {
-                String field = spec.statesConstant();
-                block.readStatic(field, "[[S");
-            }
-            else {
-                String field = spec.statesConstant();
-                block.readStatic(field, "[[B");
-            }
+            String field = spec.statesConstant();
+            block.readStatic(field, "[" + getStateArrayType(spec));
             block.push(ByteClassUtil.maxByteClass(stateTransitions.byteClasses.ranges) + 1);
 
             block.readStatic(name, CompilerUtil.STRING_DESCRIPTOR);
@@ -173,7 +167,7 @@ class DFAClassBuilder extends ClassBuilder {
                 block.callStatic("fillMultipleByteClassesFromStringUsingShorts", CompilerUtil.internalName(ByteClassUtil.class), "([[SILjava/lang/String;)V");
                 if (debugOptions.trackStates) {
                     block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
-                    block.readStatic(spec.statesConstant(), "[[S");
+                    block.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
                     block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[[S)V");
                 }
             }
@@ -181,7 +175,7 @@ class DFAClassBuilder extends ClassBuilder {
                 block.callStatic("fillMultipleByteClassesFromString", CompilerUtil.internalName(ByteClassUtil.class), "([[BILjava/lang/String;)V");
                 if (debugOptions.trackStates) {
                     block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
-                    block.readStatic(spec.statesConstant(), "[[B");
+                    block.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
                     block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[[B)V");
                 }
             }
