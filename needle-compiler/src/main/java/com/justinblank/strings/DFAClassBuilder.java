@@ -465,7 +465,7 @@ class DFAClassBuilder extends ClassBuilder {
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        cond(and(eq(-1, read(MatchingVars.STATE)), hasLastMatch())).
+                        cond(eq(-1, read(MatchingVars.STATE))).
                                 withBody(returnValue(read(MatchingVars.LAST_MATCH))),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
