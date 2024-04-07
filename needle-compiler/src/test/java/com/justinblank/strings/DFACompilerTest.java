@@ -550,16 +550,6 @@ public class DFACompilerTest {
         assertTrue(matcher.matches());
     }
 
-    @Test
-    public void examineOutput() {
-        anonymousPattern("(ab|a|bcdef|g)+", true);
-    }
-
-    @Test
-    public void testSomething() {
-        DFACompiler.compile("[A-Za-z]+@[A-Za-z0-9]+.com", "another");
-    }
-
     // Has prefix with offset
     @Test
     public void testTheCrown() {
