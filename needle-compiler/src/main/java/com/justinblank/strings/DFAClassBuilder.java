@@ -55,12 +55,12 @@ class DFAClassBuilder extends ClassBuilder {
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true);
-        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true);
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false);
-        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true);
-        this.factorization = factorization;
         this.compilationPolicy = new CompilationPolicy();
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, compilationPolicy);
+        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, compilationPolicy);
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, compilationPolicy);
+        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, compilationPolicy);
+        this.factorization = factorization;
         this.debugOptions = debugOptions;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
         if (dfa.maxDistinguishedChar() <= 127) {
@@ -380,7 +380,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Expression generatePredicate(DFA dfa) {
-        var forwardTransitions = dfa.getEffectiveTransitions();
+        var forwardTransitions = dfa.getTransitionsLeavingZeroState();
         if (forwardTransitions.size() == 1) {
             var range = forwardTransitions.get(0).getLeft();
             if (range.isSingleCharRange()) {
@@ -772,7 +772,7 @@ class DFAClassBuilder extends ClassBuilder {
     // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
     // make sense, and getting the loop correct is annoying
     private static boolean canSeekForPredicate(FindMethodSpec spec) {
-        return spec.dfa.forwardTransitionIsPredicate() && spec.dfa.allForwardTransitionsLeadToSameState() && !spec.dfa.isAccepting();
+        return spec.dfa.forwardTransitionIsPredicate(spec.compilationPolicy) && spec.dfa.allForwardTransitionsLeadToSameState() && !spec.dfa.isAccepting();
     }
 
     // TODO: measure breakeven point for offsets

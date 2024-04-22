@@ -7,6 +7,7 @@ public class FindMethodSpec {
     final DFA dfa;
     final String name;
     final boolean forwards;
+    final CompilationPolicy compilationPolicy;
 
     /**
      * The simplest method--determine if the entire string matches.
@@ -25,13 +26,15 @@ public class FindMethodSpec {
      */
     public static final String FORWARDS = "Forwards";
 
-    public FindMethodSpec(DFA dfa, String name, boolean forwards) {
+    public FindMethodSpec(DFA dfa, String name, boolean forwards, CompilationPolicy compilationPolicy) {
         Objects.requireNonNull(dfa, "dfa cannot be null");
-        Objects.requireNonNull(name, "name cannot be non-null)");
+        Objects.requireNonNull(name, "name cannot be null)");
+        Objects.requireNonNull(compilationPolicy, "compilationPolicy cannot be null");
 
         this.dfa = dfa;
         this.name = name;
         this.forwards = forwards;
+        this.compilationPolicy = compilationPolicy;
     }
 
     int statesCount() {

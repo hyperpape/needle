@@ -326,7 +326,7 @@ class DFA {
     }
 
     boolean allForwardTransitionsLeadToSameState() {
-        var forwardTransitions = getEffectiveTransitions();
+        var forwardTransitions = getTransitionsLeavingZeroState();
         for (var i = 0; i < forwardTransitions.size() - 1; i++) {
             if (forwardTransitions.get(i).getRight() != forwardTransitions.get(i + 1).getRight()) {
                 return false;
@@ -641,10 +641,12 @@ class DFA {
      *
      * @return whether the forward transition can be handled by one of a set of simple predicates.
      */
-    public boolean forwardTransitionIsPredicate() {
-        var effectiveTransitions = getEffectiveTransitions();
+    public boolean forwardTransitionIsPredicate(CompilationPolicy compilationPolicy) {
+        var effectiveTransitions = getTransitionsLeavingZeroState();
         if (effectiveTransitions.size() == 1) {
-            return true;
+            var range = effectiveTransitions.get(0).getLeft();
+            var count = 1 + (range.getEnd() - range.getStart());
+            return count <= compilationPolicy.predicateRangeSizeCutoff;
         } else if (effectiveTransitions.size() == 2) {
             var firstRange = effectiveTransitions.get(0).getLeft();
             var secondRange = effectiveTransitions.get(1).getLeft();
@@ -655,7 +657,7 @@ class DFA {
         return false;
     }
 
-    List<Pair<CharRange, DFA>> getEffectiveTransitions() {
+    List<Pair<CharRange, DFA>> getTransitionsLeavingZeroState() {
         var effectiveTransitions = new ArrayList<Pair<CharRange, DFA>>();
         for (var transition : transitions) {
             if (transition.getRight().stateNumber != 0) {
@@ -669,7 +671,7 @@ class DFA {
         if (!allForwardTransitionsLeadToSameState()) {
             throw new IllegalArgumentException("Not allowed to call this method on a dfa that can lead to multiple states");
         }
-        return getEffectiveTransitions().get(0).getRight();
+        return getTransitionsLeavingZeroState().get(0).getRight();
     }
 
     void pruneDeadStates() {

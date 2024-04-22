@@ -626,7 +626,7 @@ public class DFACompilerTest {
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
-        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true);
+        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, new CompilationPolicy());
         DFAStateTransitions stateTransitions = new DFAStateTransitions();
         stateTransitions.byteClasses = dfaSearch.byteClasses();
 
