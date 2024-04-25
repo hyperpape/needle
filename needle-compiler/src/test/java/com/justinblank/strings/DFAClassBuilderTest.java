@@ -91,7 +91,7 @@ public class DFAClassBuilderTest {
     public void testStateMethodIsCompilable() throws Exception {
         var dfa = DFA.createDFA("a");
         var builder = new DFAClassBuilder("testStateMethod",
-                dfa, dfa, dfa, dfa, null, DebugOptions.none());
+                dfa, dfa, dfa, dfa, Factorization.fromChar('a'), DebugOptions.none());
         builder.addStateMethods();
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }

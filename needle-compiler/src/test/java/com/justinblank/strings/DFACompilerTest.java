@@ -618,6 +618,12 @@ public class DFACompilerTest {
     }
 
     @Test
+    public void testUpperOrLowercaseSherlockInFile() throws Exception {
+        var path = Paths.get("src", "test", "resources", "sherlockholmes.txt");
+        checkMatchesInFileAgainstStandardLibrary("[Ss]herlock", path);
+    }
+
+    @Test
     public void test_handlingLongStateTransitionStrings() throws Exception {
         var regex = ".{0,47}BCDFHEIJKLAMG";
         String hayStack = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@BCDFHEIJKLAMG";

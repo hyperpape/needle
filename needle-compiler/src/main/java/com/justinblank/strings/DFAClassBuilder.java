@@ -31,6 +31,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String NEXT_START_FIELD = "nextStart";
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String PREFIX_CONSTANT = "PREFIX";
+    protected static final String SUFFIX_CONSTANT = "SUFFIX";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
     static final int LARGE_STATE_COUNT = 64;
@@ -55,7 +56,8 @@ class DFAClassBuilder extends ClassBuilder {
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.compilationPolicy = new CompilationPolicy();
+        this.compilationPolicy = CompilationPolicy.create(factorization);
+        this.compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);
         this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, compilationPolicy);
         this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, compilationPolicy);
         this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, compilationPolicy);
@@ -102,9 +104,14 @@ class DFAClassBuilder extends ClassBuilder {
             setByteClassTransitions(dfaSearchFindMethodSpec);
         }
 
-        if (shouldSeekForwards()) {
+        if (compilationPolicy.shouldSeekForward) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
+            });
+        }
+        if (compilationPolicy.useSuffix) {
+            factorization.getSharedSuffix().ifPresent(suffix -> {
+                addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
             });
         }
 
@@ -265,6 +272,9 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setWasAcceptedVar(6);
         vars.setLastMatchVar(7);
         vars.setByteClassVar(8);
+        if (!compilationPolicy.shouldSeekForward && compilationPolicy.useSuffix) {
+            vars.setSuffixIndexVar(9);
+        }
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
@@ -285,7 +295,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         method.loop(inBounds(), outerLoopBody);
 
-        if (shouldSeekForwards()) {
+        if (compilationPolicy.shouldSeekForward) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
@@ -301,6 +311,14 @@ class DFAClassBuilder extends ClassBuilder {
             if (postPrefixState.isAccepting()) {
                 outerLoopBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
             }
+        }
+        else if (compilationPolicy.useSuffix) {
+            outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                    getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
+            outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
+            outerLoopBody.add(set(MatchingVars.INDEX, callStatic(ReferenceType.of(Math.class), "max", Builtin.I,
+                    sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX))));
+            outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
         else if (canSeekForPredicate(spec)) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
@@ -331,7 +349,7 @@ class DFAClassBuilder extends ClassBuilder {
         // an accepting state. Otherwise, we can skip that check.
         var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
         var innerLoopBoundary = inBounds();
-        if (shouldSeekForwards() || canSeekForPredicate(spec)) {
+        if (compilationPolicy.shouldSeekForward || (!compilationPolicy.useSuffix && canSeekForPredicate(spec))) {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
         Loop innerLoop = loop(innerLoopBoundary,
@@ -358,6 +376,7 @@ class DFAClassBuilder extends ClassBuilder {
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH))),
+                        (!compilationPolicy.shouldSeekForward && compilationPolicy.useSuffix) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
                         )
@@ -375,7 +394,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
         else {
             var prefix = factorization.getSharedPrefix();
-            return shouldSeekForwards() && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
+            return compilationPolicy.shouldSeekForward && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
         }
     }
 
@@ -759,10 +778,6 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    private boolean shouldSeekForwards() {
-        return factorization.getSharedPrefix().map(StringUtils::isNotEmpty).orElse(false);
-    }
-
     private boolean shouldSeekBackwards() {
         return factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false);
     }
@@ -808,7 +823,7 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
         int offsetCheckState = 0;
-        if (shouldSeekForwards()) {
+        if (compilationPolicy.shouldSeekForward) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             offsetCheckState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
@@ -928,7 +943,7 @@ class DFAClassBuilder extends ClassBuilder {
         List<CodeElement> outerLoopBody = new ArrayList<>();
         method.loop(inBounds(), outerLoopBody);
 
-        if (shouldSeekForwards()) {
+        if (compilationPolicy.shouldSeekForward) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             int postPrefixState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 

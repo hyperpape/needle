@@ -18,6 +18,9 @@ public class GenerateExamples {
         DFACompiler.compile("[Ss]herlock", "SherlockInitialCharCaseInsensitive", debugOptions);
         // Basic regexes, no prefix, should dispatch entirely with byteClasses
         DFACompiler.compile("Sherlock|Holmes|Watson|Irene|Adler|John|Baker", "ManyNames", debugOptions);
+        // Suffix
+        DFACompiler.compile("anywhere|somewhere", "Suffix", debugOptions);
+        // Predicate
         DFACompiler.compile("([Ss]herlock)|([Hh]olmes)", "TwoNamesCaseInsensitiveFirstChar", debugOptions);
         // Dot character including unicode
         DFACompiler.compile("a.c", "aDotc", debugOptions);

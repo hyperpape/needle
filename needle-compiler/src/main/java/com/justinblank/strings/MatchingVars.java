@@ -15,6 +15,7 @@ class MatchingVars implements Vars {
     static final String LENGTH = DFAClassBuilder.LENGTH_FIELD;
     static final String LAST_MATCH = "lastMatch";
     static final String WAS_ACCEPTED = "wasAccepted";
+    static final String SUFFIX_INDEX = "suffixIndex";
     int lengthVar = -1;
     int stringVar = -1;
     int charVar = -1;
@@ -23,6 +24,7 @@ class MatchingVars implements Vars {
     int lastMatchVar = -1;
     int wasAcceptedVar = -1;
     int byteClassVar = -1;
+    int suffixIndexVar = -1;
 
     MatchingVars(int charVar, int counterVar, int stateVar, int lengthVar, int stringVar) {
         this.charVar = charVar;
@@ -52,6 +54,9 @@ class MatchingVars implements Vars {
         }
         if (byteClassVar != -1) {
             variables.add(Pair.of(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassVar));
+        }
+        if (suffixIndexVar != -1) {
+            variables.add(Pair.of(SUFFIX_INDEX, suffixIndexVar));
         }
         return variables;
     }
@@ -96,6 +101,11 @@ class MatchingVars implements Vars {
         return this;
     }
 
+    public MatchingVars setSuffixIndexVar(int suffixIndexVar) {
+        this.suffixIndexVar = suffixIndexVar;
+        return this;
+    }
+
     public int indexByName(String name) {
         switch (name) {
             case STATE:
@@ -114,6 +124,8 @@ class MatchingVars implements Vars {
                 return this.wasAcceptedVar;
             case DFAClassBuilder.BYTE_CLASS_FIELD:
                 return this.byteClassVar;
+            case SUFFIX_INDEX:
+                return this.suffixIndexVar;
             default:
                 throw new IllegalArgumentException("Illegal argument for variable lookup: " + name);
         }
@@ -141,6 +153,9 @@ class MatchingVars implements Vars {
         }
         else if (count == this.byteClassVar) {
             return DFAClassBuilder.BYTE_CLASS_FIELD;
+        }
+        else if (count == this.suffixIndexVar) {
+            return SUFFIX_INDEX;
         }
         else {
             return null;
