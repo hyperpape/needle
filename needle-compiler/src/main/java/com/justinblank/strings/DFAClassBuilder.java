@@ -273,7 +273,7 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setWasAcceptedVar(varIndex++);
         vars.setLastMatchVar(varIndex++);
         vars.setByteClassVar(varIndex++);
-        if (!compilationPolicy.shouldSeekForward && compilationPolicy.useSuffix) {
+        if (compilationPolicy.useSuffix) {
             vars.setSuffixIndexVar(varIndex++);
         }
         if (compilationPolicy.useMaxStart) {
@@ -312,6 +312,13 @@ class DFAClassBuilder extends ClassBuilder {
                     read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
                     returnValue(-1)));
+            if (compilationPolicy.useSuffix) {
+                outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                        getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
+                outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
+                outerLoopBody.add(cond(gt(sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX))).withBody(List.of(
+                        updateIndexBasedOnSuffixIndex(), skip())));
+            }
             outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
             outerLoopBody.add(set(MatchingVars.STATE, state));
             if (postPrefixState.isAccepting()) {
@@ -322,8 +329,7 @@ class DFAClassBuilder extends ClassBuilder {
             outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
-            outerLoopBody.add(set(MatchingVars.INDEX, callStatic(ReferenceType.of(Math.class), "max", Builtin.I,
-                    sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX))));
+            outerLoopBody.add(updateIndexBasedOnSuffixIndex());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
         else if (canSeekForPredicate(spec)) {
@@ -1051,5 +1057,10 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Expression hasLastMatch() {
         return gt(read(MatchingVars.LAST_MATCH), literal(-1));
+    }
+
+    private Statement updateIndexBasedOnSuffixIndex() {
+        return set(MatchingVars.INDEX, callStatic(ReferenceType.of(Math.class), "max", Builtin.I,
+                sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX)));
     }
 }
