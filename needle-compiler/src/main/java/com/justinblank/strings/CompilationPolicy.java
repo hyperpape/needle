@@ -16,6 +16,7 @@ class CompilationPolicy {
 
     boolean shouldSeekForward;
     boolean useSuffix;
+    boolean useMaxStart;
 
     public CompilationPolicy() {
     }
@@ -27,6 +28,7 @@ class CompilationPolicy {
                 factorization.getMaxLength().isPresent()
         ).orElse(false) && !factorization.getSharedSuffix().equals(factorization.getSharedPrefix());
         compilationPolicy.useSuffix = useSuffix;
+        compilationPolicy.useMaxStart = factorization.getMinLength() > 4;
         return compilationPolicy;
     }
 

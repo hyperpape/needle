@@ -6,6 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO: refactor to avoid having to specify indexes of vars we don't care about, to avoid busywork
 class MatchingVars implements Vars {
 
     static final String STATE = DFAClassBuilder.STATE_FIELD;
@@ -16,6 +17,7 @@ class MatchingVars implements Vars {
     static final String LAST_MATCH = "lastMatch";
     static final String WAS_ACCEPTED = "wasAccepted";
     static final String SUFFIX_INDEX = "suffixIndex";
+    static final String MAX_START = "maxStart";
     int lengthVar = -1;
     int stringVar = -1;
     int charVar = -1;
@@ -25,6 +27,8 @@ class MatchingVars implements Vars {
     int wasAcceptedVar = -1;
     int byteClassVar = -1;
     int suffixIndexVar = -1;
+    int maxStartVar = -1;
+    int maxVar = 0;
 
     MatchingVars(int charVar, int counterVar, int stateVar, int lengthVar, int stringVar) {
         this.charVar = charVar;
@@ -57,6 +61,9 @@ class MatchingVars implements Vars {
         }
         if (suffixIndexVar != -1) {
             variables.add(Pair.of(SUFFIX_INDEX, suffixIndexVar));
+        }
+        if (maxStartVar != -1) {
+            variables.add(Pair.of(MAX_START, maxStartVar));
         }
         return variables;
     }
@@ -106,6 +113,11 @@ class MatchingVars implements Vars {
         return this;
     }
 
+    public MatchingVars setMaxStartVar(int maxStartVar) {
+        this.maxStartVar = maxStartVar;
+        return this;
+    }
+
     public int indexByName(String name) {
         switch (name) {
             case STATE:
@@ -126,6 +138,8 @@ class MatchingVars implements Vars {
                 return this.byteClassVar;
             case SUFFIX_INDEX:
                 return this.suffixIndexVar;
+            case MAX_START:
+                return this.maxStartVar;
             default:
                 throw new IllegalArgumentException("Illegal argument for variable lookup: " + name);
         }

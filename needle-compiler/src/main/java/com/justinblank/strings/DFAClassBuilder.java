@@ -269,11 +269,15 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Method createIndexMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(4, 1, 3, 2, 5);
-        vars.setWasAcceptedVar(6);
-        vars.setLastMatchVar(7);
-        vars.setByteClassVar(8);
+        int varIndex = 6;
+        vars.setWasAcceptedVar(varIndex++);
+        vars.setLastMatchVar(varIndex++);
+        vars.setByteClassVar(varIndex++);
         if (!compilationPolicy.shouldSeekForward && compilationPolicy.useSuffix) {
-            vars.setSuffixIndexVar(9);
+            vars.setSuffixIndexVar(varIndex++);
+        }
+        if (compilationPolicy.useMaxStart) {
+            vars.setMaxStartVar(varIndex++);
         }
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
@@ -281,10 +285,8 @@ class DFAClassBuilder extends ClassBuilder {
 
         method.set(MatchingVars.LENGTH, get(MatchingVars.LENGTH, Builtin.I, thisRef()));
 
-        if (factorization.getMinLength() > 0 && factorization.getMinLength() <= Short.MAX_VALUE) {
-            method.cond(lt(read(MatchingVars.LENGTH), factorization.getMinLength())).withBody(
-                    returnValue(-1)
-            );
+        if (compilationPolicy.useMaxStart) {
+            method.set(MatchingVars.MAX_START, sub(read(MatchingVars.LENGTH), factorization.getMinLength()));
         }
 
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
@@ -293,8 +295,12 @@ class DFAClassBuilder extends ClassBuilder {
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
-        method.loop(inBounds(), outerLoopBody);
-
+        if (compilationPolicy.useMaxStart) {
+            method.loop(inBoundsForStart(), outerLoopBody);
+        }
+        else {
+            method.loop(inBounds(), outerLoopBody);
+        }
         if (compilationPolicy.shouldSeekForward) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
@@ -925,15 +931,18 @@ class DFAClassBuilder extends ClassBuilder {
 
     Method createContainedInMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
-        vars.setByteClassVar(6);
+        int varIndex = 6;
+        vars.setByteClassVar(varIndex++);
+        if (compilationPolicy.useMaxStart) {
+            vars.setMaxStartVar(varIndex++);
+        }
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 
         method.set(MatchingVars.LENGTH,
                 call("length", Builtin.I,
                         get(STRING_FIELD, ReferenceType.of(String.class), thisRef())));
-        if (factorization.getMinLength() > 0) {
-            Expression expression = gt(factorization.getMinLength(), read(MatchingVars.LENGTH));
-            method.cond(expression).withBody(returnValue(0));
+        if (compilationPolicy.useMaxStart) {
+            method.set(MatchingVars.MAX_START, sub(read(MatchingVars.LENGTH), factorization.getMinLength()));
         }
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
@@ -941,7 +950,12 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STATE, 0);
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
-        method.loop(inBounds(), outerLoopBody);
+        if (compilationPolicy.useMaxStart) {
+            method.loop(inBoundsForStart(), outerLoopBody);
+        }
+        else {
+            method.loop(inBounds(), outerLoopBody);
+        }
 
         if (compilationPolicy.shouldSeekForward) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
@@ -1023,6 +1037,10 @@ class DFAClassBuilder extends ClassBuilder {
 
     private static Expression inBounds() {
         return lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
+    }
+
+    private static Expression inBoundsForStart() {
+        return lte(read(MatchingVars.INDEX), read(MatchingVars.MAX_START));
     }
 
     private static Expression readChar() {
