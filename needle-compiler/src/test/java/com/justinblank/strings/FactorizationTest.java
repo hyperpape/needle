@@ -56,23 +56,33 @@ public class FactorizationTest {
     @Test
     public void testFactorizationSimpleConcatentation() {
         var node = RegexParser.parse("AB");
-        assertEquals(Set.of("AB"), node.bestFactors().getFactors());
+        Set<String> expected = Set.of("AB");
+        Factorization factorization = node.bestFactors();
+
+        assertEquals(expected, factorization.getFactors());
+        assertEquals(expected, factorization.getPrefixes());
+        assertEquals(expected, factorization.getSuffixes());
+        assertEquals(expected, factorization.getRequiredFactors());
+        assertEquals(expected, factorization.getAll());
     }
 
     @Test
     public void testFactorizationRepetitionAndConcatenation() {
         var node = RegexParser.parse("A*B");
         Factorization factorization = node.bestFactors();
-        assertTrue(factorization.getAll() == null || factorization.getAll().isEmpty());
+        assertNull(factorization.getAll());
         assertEquals(Set.of("B"), factorization.getSuffixes());
-        assertTrue(factorization.getPrefixes() == null || factorization.getPrefixes().isEmpty());
+        assertTrue(factorization.getPrefixes().isEmpty());
         assertEquals(Set.of("B"), factorization.getFactors());
+        assertEquals(Set.of("B"), factorization.getRequiredFactors());
     }
 
     @Test
     public void testFactorization() {
         var node = RegexParser.parse("((GA|AAA)*)(TA|AG)");
-        assertEquals(Set.of("TA", "AG"), node.bestFactors().getFactors());
+        Factorization factorization = node.bestFactors();
+        assertEquals(Set.of("TA", "AG"), factorization.getFactors());
+        assertEquals(Set.of(), factorization.getRequiredFactors());
     }
 
     @Test
@@ -84,6 +94,7 @@ public class FactorizationTest {
         assertEquals(factorSet, factorization.getSuffixes());
         assertEquals(factorSet, factorization.getFactors());
         assertEquals(factorSet, factorization.getAll());
+        assertEquals(new HashSet<>(), factorization.getRequiredFactors());
     }
 
     @Test
@@ -176,5 +187,14 @@ public class FactorizationTest {
         var node = RegexParser.parse("([Ss]herlock)");
         var factors = node.bestFactors();
         assertEquals(Optional.of(List.of('S', 's')), factors.getInitialChars());
+    }
+
+    @Test
+    public void testHolmesWithin25CharactersOfWatson() {
+        var node = RegexParser.parse("Holmes.{0,25}Watson|Watson.{0,25}Holmes");
+        var factors = node.bestFactors();
+        var requiredFactors = factors.getRequiredFactors();
+        assertTrue(requiredFactors.contains("Holmes"));
+        assertTrue(requiredFactors.contains("Watson"));
     }
 }

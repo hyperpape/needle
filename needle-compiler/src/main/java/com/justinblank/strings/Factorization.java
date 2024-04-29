@@ -21,15 +21,18 @@ public class Factorization {
     // Note: none of these sets are ever internally mutated, outside of the constructors.
 
     /**
-     * The set of all factors that can be matched by the regular expression.
+     * The set of all factors that can be matched by the regular expression. Null represents a case where the required
+     * factors cannot be computed, e.g. because of a repetition such as A*. Nullable.
      */
     private Set<String> all;
     /**
-     * The set of all suffixes that the regular expression can have.
+     * The set of computed suffixes that the regular expression can have. This set is computed using the best function,
+     * so it will not be exhaustive. Nullable.
      */
     private Set<String> suffixes;
     /**
-     * The set of all prefixes that the regular expression can have.
+     * The set of prefixes that the regular expression can have. This set is computed using the best function, so it
+     * will not be exhaustive. Nullable.
      */
     private Set<String> prefixes;
     /**
@@ -37,21 +40,25 @@ public class Factorization {
      */
     private Set<String> factors;
 
+    /**
+     * A set of factors such that all of them must be present. If non-empty, this set will be exhaustive. Always
+     * non-null.
+     */
+    private Set<String> requiredFactors;
+
     private int minLength = 0;
     private int maxLength = -1;
 
     private Factorization() {
-        all = new HashSet<>();
-        suffixes = new HashSet<>();
-        prefixes = new HashSet<>();
-        factors = new HashSet<>();
+        this(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>());
     }
 
-    private Factorization(Set<String> all, Set<String> suffixes, Set<String> prefixes, Set<String> factors) {
+    private Factorization(Set<String> all, Set<String> suffixes, Set<String> prefixes, Set<String> factors, Set<String> requiredFactors) {
         this.all = all;
         this.suffixes = suffixes;
         this.prefixes = prefixes;
         this.factors = factors;
+        this.requiredFactors = requiredFactors;
     }
 
     private Factorization(char c) {
@@ -64,6 +71,9 @@ public class Factorization {
         suffixes.add(s);
         prefixes.add(s);
         factors.add(s);
+        if (StringUtils.isNotEmpty(s)) {
+            requiredFactors.add(s);
+        }
     }
 
     public static Factorization fromChar(char c) {
@@ -82,7 +92,7 @@ public class Factorization {
             char c = (char) i;
             strings.add(String.valueOf(c));
         }
-        return new Factorization(strings, strings, strings, strings);
+        return new Factorization(strings, strings, strings, strings, new HashSet<>());
     }
 
     public static Factorization fromString(String string) {
@@ -90,11 +100,11 @@ public class Factorization {
     }
 
     public static Factorization empty() {
-        return new Factorization(null, null, null, null);
+        return new Factorization(null, null, null, null, new HashSet<>());
     }
 
     static Factorization copy(Factorization factorization) {
-        return new Factorization(factorization.all, factorization.suffixes, factorization.prefixes, factorization.factors);
+        return new Factorization(factorization.all, factorization.suffixes, factorization.prefixes, factorization.factors, factorization.requiredFactors);
     }
 
     Set<String> getAll() {
@@ -111,6 +121,17 @@ public class Factorization {
 
     Set<String> getFactors() {
         return factors;
+    }
+
+    Set<String> getRequiredFactors() {
+        return requiredFactors;
+    }
+
+    Set<String> getRequiredInfixes() {
+        var infixes = new HashSet<>(requiredFactors);
+        getSharedPrefix().ifPresent((s) -> infixes.remove(s));
+        getSharedSuffix().ifPresent((s) -> infixes.remove(s));
+        return infixes;
     }
 
     /**
@@ -151,6 +172,14 @@ public class Factorization {
             newFactors.addAll(factorization.factors);
             factors = newFactors;
         }
+        if (this.requiredFactors == null || factorization.requiredFactors == null) {
+            requiredFactors = null;
+        }
+        else {
+            Set<String> newRequiredFactors = new HashSet<>(requiredFactors);
+            newRequiredFactors.retainAll(factorization.requiredFactors);
+            requiredFactors = newRequiredFactors;
+        }
     }
 
     public void concatenate(Factorization factorization) {
@@ -169,13 +198,19 @@ public class Factorization {
         suffixes = best(factorization.suffixes, concatenateStrings(localSuffixes, factorization.all));
         var firstFactors = best(localFactors, factorization.factors);
         factors = best(firstFactors, concatenateStrings(localSuffixes, factorization.prefixes));
+        var newRequiredFactors = new HashSet<String>();
+        newRequiredFactors.addAll(requiredFactors);
+        if (factorization.requiredFactors != null) {
+            newRequiredFactors.addAll(factorization.requiredFactors);
+        }
+        requiredFactors = newRequiredFactors;
     }
 
     /**
      * Take two sets of strings, returning a new set of strings consisting of s1 + s2 where s1 is in the first set, and
      * s2 is in the second.
      *
-     * If either set is null, the other set is returned. The result may be null.
+     * If either set is empty, the other set is returned. If either set is null, the return value is empty.
      *
      * @param set1 a set of strings
      * @param set2 a set of strings
