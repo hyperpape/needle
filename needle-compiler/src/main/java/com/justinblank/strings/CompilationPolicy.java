@@ -13,9 +13,11 @@ class CompilationPolicy {
     final int predicateRangeSizeCutoff = 6;
 
     String suffix;
+    String infix;
 
     boolean usePrefix;
     boolean useSuffix;
+    // TODO: the variable name is based on the idea we may use multiple infixes in the future. For now, we aren't.
     boolean useInfixes;
     boolean useMaxStart;
 
@@ -30,11 +32,36 @@ class CompilationPolicy {
         ).orElse(false) && !factorization.getSharedSuffix().equals(factorization.getSharedPrefix());;
         compilationPolicy.useInfixes = !factorization.getRequiredInfixes().isEmpty() && factorization.getMaxLength().isPresent();
         compilationPolicy.useMaxStart = factorization.getMinLength() > 4;
+
+        if (compilationPolicy.useSuffix) {
+            compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);
+        }
+        if (compilationPolicy.useInfixes) {
+            compilationPolicy.infix = chooseInfix(factorization);
+        }
         return compilationPolicy;
+    }
+
+    private static String chooseInfix(Factorization factorization) {
+        var infixes = factorization.getRequiredInfixes();
+        String bestInfix = null;
+        for (var infix : infixes) {
+            if (bestInfix == null) {
+                bestInfix = infix;
+            }
+            else if (infix.length() > bestInfix.length()) {
+                bestInfix = infix;
+            }
+        }
+        return bestInfix;
     }
 
     public Optional<String> getSuffix() {
         return Optional.ofNullable(suffix);
+    }
+
+    public Optional<String> getInfix() {
+        return Optional.of(infix);
     }
 
 }

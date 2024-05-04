@@ -58,7 +58,6 @@ class DFAClassBuilder extends ClassBuilder {
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
         this.compilationPolicy = CompilationPolicy.create(factorization);
-        this.compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);
         this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, compilationPolicy);
         this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, compilationPolicy);
         this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, compilationPolicy);
@@ -111,12 +110,14 @@ class DFAClassBuilder extends ClassBuilder {
             });
         }
         if (compilationPolicy.useSuffix) {
-            factorization.getSharedSuffix().ifPresent(suffix -> {
+            compilationPolicy.getSuffix().ifPresent(suffix -> {
                 addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
             });
         }
         if (compilationPolicy.useInfixes) {
-            addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, factorization.getRequiredInfixes().iterator().next());
+            compilationPolicy.getInfix().ifPresent(infix -> {
+                addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, infix);
+            });
         }
 
         findMethods.add(createMatchesMethod(forwardFindMethodSpec));
