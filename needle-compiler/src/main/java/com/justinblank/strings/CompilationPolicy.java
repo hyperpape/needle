@@ -14,8 +14,9 @@ class CompilationPolicy {
 
     String suffix;
 
-    boolean shouldSeekForward;
+    boolean usePrefix;
     boolean useSuffix;
+    boolean useInfixes;
     boolean useMaxStart;
 
     public CompilationPolicy() {
@@ -23,11 +24,11 @@ class CompilationPolicy {
 
     public static CompilationPolicy create(Factorization factorization) {
         var compilationPolicy = new CompilationPolicy();
-        compilationPolicy.shouldSeekForward = factorization.getSharedPrefix().map(StringUtils::isNotEmpty).orElse(false);
-        boolean useSuffix = factorization.getSharedSuffix().map(suffix ->
+        compilationPolicy.usePrefix = factorization.getSharedPrefix().map(StringUtils::isNotEmpty).orElse(false);
+        compilationPolicy.useSuffix = factorization.getSharedSuffix().map(suffix ->
                 factorization.getMaxLength().isPresent()
-        ).orElse(false) && !factorization.getSharedSuffix().equals(factorization.getSharedPrefix());
-        compilationPolicy.useSuffix = useSuffix;
+        ).orElse(false) && !factorization.getSharedSuffix().equals(factorization.getSharedPrefix());;
+        compilationPolicy.useInfixes = !factorization.getRequiredInfixes().isEmpty() && factorization.getMaxLength().isPresent();
         compilationPolicy.useMaxStart = factorization.getMinLength() > 4;
         return compilationPolicy;
     }

@@ -32,6 +32,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String PREFIX_CONSTANT = "PREFIX";
     protected static final String SUFFIX_CONSTANT = "SUFFIX";
+    protected static final String INFIX_CONSTANT = "INFIX";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
     static final int LARGE_STATE_COUNT = 64;
@@ -104,7 +105,7 @@ class DFAClassBuilder extends ClassBuilder {
             setByteClassTransitions(dfaSearchFindMethodSpec);
         }
 
-        if (compilationPolicy.shouldSeekForward) {
+        if (compilationPolicy.usePrefix) {
             factorization.getSharedPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
             });
@@ -113,6 +114,9 @@ class DFAClassBuilder extends ClassBuilder {
             factorization.getSharedSuffix().ifPresent(suffix -> {
                 addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
             });
+        }
+        if (compilationPolicy.useInfixes) {
+            addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, factorization.getRequiredInfixes().iterator().next());
         }
 
         findMethods.add(createMatchesMethod(forwardFindMethodSpec));
@@ -273,7 +277,7 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setWasAcceptedVar(varIndex++);
         vars.setLastMatchVar(varIndex++);
         vars.setByteClassVar(varIndex++);
-        if (compilationPolicy.useSuffix) {
+        if (compilationPolicy.useSuffix || compilationPolicy.useInfixes) {
             vars.setSuffixIndexVar(varIndex++);
         }
         if (compilationPolicy.useMaxStart) {
@@ -301,7 +305,7 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             method.loop(inBounds(), outerLoopBody);
         }
-        if (compilationPolicy.shouldSeekForward) {
+        if (compilationPolicy.usePrefix) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
@@ -328,6 +332,13 @@ class DFAClassBuilder extends ClassBuilder {
         else if (compilationPolicy.useSuffix) {
             outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
+            outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
+            outerLoopBody.add(updateIndexBasedOnSuffixIndex());
+            outerLoopBody.add(set(MatchingVars.STATE, 0));
+        }
+        else if (compilationPolicy.useInfixes) {
+            outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                    getStatic(INFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
             outerLoopBody.add(updateIndexBasedOnSuffixIndex());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
@@ -361,7 +372,7 @@ class DFAClassBuilder extends ClassBuilder {
         // an accepting state. Otherwise, we can skip that check.
         var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
         var innerLoopBoundary = inBounds();
-        if (compilationPolicy.shouldSeekForward || (!compilationPolicy.useSuffix && canSeekForPredicate(spec))) {
+        if (compilationPolicy.usePrefix || (!compilationPolicy.useSuffix && canSeekForPredicate(spec))) {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
         Loop innerLoop = loop(innerLoopBoundary,
@@ -388,7 +399,7 @@ class DFAClassBuilder extends ClassBuilder {
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH))),
-                        (!compilationPolicy.shouldSeekForward && compilationPolicy.useSuffix) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
+                        (!compilationPolicy.usePrefix && (compilationPolicy.useSuffix || compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
                         cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
                         )
@@ -406,7 +417,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
         else {
             var prefix = factorization.getSharedPrefix();
-            return compilationPolicy.shouldSeekForward && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
+            return compilationPolicy.usePrefix && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
         }
     }
 
@@ -835,7 +846,7 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
         int offsetCheckState = 0;
-        if (compilationPolicy.shouldSeekForward) {
+        if (compilationPolicy.usePrefix) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             offsetCheckState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
@@ -963,7 +974,7 @@ class DFAClassBuilder extends ClassBuilder {
             method.loop(inBounds(), outerLoopBody);
         }
 
-        if (compilationPolicy.shouldSeekForward) {
+        if (compilationPolicy.usePrefix) {
             var prefix = factorization.getSharedPrefix().orElseThrow();
             int postPrefixState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
