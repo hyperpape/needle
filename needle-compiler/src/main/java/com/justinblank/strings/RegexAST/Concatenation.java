@@ -17,6 +17,24 @@ public class Concatenation extends Node {
         this.tail = tail;
     }
 
+    public static Node concatenate(Node head, Node tail) {
+        if (head instanceof LiteralNode && tail instanceof LiteralNode) {
+            var literalHead = (LiteralNode) head;
+            var literalTail = (LiteralNode) tail;
+            literalHead.append(literalTail);
+            return literalHead;
+        }
+        else if (head instanceof LiteralNode && tail instanceof Concatenation) {
+            var literalHead = (LiteralNode) head;
+            var concatendatedTail = (Concatenation) tail;
+            if (concatendatedTail.head instanceof LiteralNode) {
+                literalHead.append((LiteralNode) concatendatedTail.head);
+                return new Concatenation(literalHead, concatendatedTail.tail);
+            }
+        }
+        return new Concatenation(head, tail);
+    }
+
     public int minLength() {
         return head.minLength() + tail.minLength();
     }

@@ -131,6 +131,7 @@ class RegexParser {
                 node = concatenate(next, node);
             }
         }
+        // node = concatenateAllLiterals(node);
         return node;
     }
 
@@ -150,7 +151,7 @@ class RegexParser {
                     last = new Union(union.left, last);
                 }
                 else {
-                    last = new Concatenation(nodes.pop(), last);
+                    last = Concatenation.concatenate(nodes.pop(), last);
                 }
             }
             else if (previous instanceof LParenNode) {
@@ -171,7 +172,7 @@ class RegexParser {
             else if (previous instanceof Union) {
                 Union union = (Union) previous;
                 if (union.left != null && union.right != null) {
-                    node = new Concatenation(union, node);
+                    node = Concatenation.concatenate(union, node);
                     continue;
                 }
                 assertNonEmpty("found '|' with no preceding content");
@@ -200,7 +201,7 @@ class RegexParser {
             ((LiteralNode) next).append((LiteralNode) node);
             return next;
         }
-        return new Concatenation(next, node);
+        return Concatenation.concatenate(next, node);
     }
 
     private void assertNonEmpty(String s) {
