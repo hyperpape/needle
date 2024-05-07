@@ -3,32 +3,17 @@
 ![Badge](https://travis-ci.com/hyperpape/needle.svg?branch=main)
 ![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
-String searching/matching algorithms in Java, including multi-string
-matching and searching, and regular expressions.
-
-The regular expression compiles regular expressions to Deterministic 
+This library compiles regular expressions to Deterministic 
 Finite Automata (DFA) (meaning that the regular expressions are 
-[non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and spends extra effort at compile-time to
-give better runtime matching performance. Those compile-time efforts
-currently take a few forms:
-
-  1. Bytecode compilation: creating a specialized class for an
-  individual regex that specializes the code to simulate an automaton,
-  reducing interpretation overhead.
-
-  2. Regular expressions with a literal prefix (e.g. `http://.*`) have
-     specialized matching that seeks for a possible prefix using an
-     explicit for loop (skipping the automaton code).
-
-  3. The automaton can look ahead for necessary characters later in
-     the stream. Upon seeing `"the "` when matching `"the [Cc]rown"`, 
-     the automaton will check whether `n` is found 5 characters ahead, 
-     before moving to the next state. If the look-ahead fails, it will 
-     skip ahead and restart.
+[non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and
+then compiles them those to JVM ByteCode. Each regex becomes a 
+separate JVM class. 
 
 ### Status
 
-This project is pre version 0.1 and has no users as of yet.
+This project has no users as of yet, but should be usable. It would 
+probably be advisable to precompile a static set of regexes, test 
+them for your use cases, and verify that they perform well. 
 
 ### Usage
 
@@ -65,7 +50,7 @@ At build time, we can create a classfile and write it to the filesystem:
 Precompile.precompile("http://.+", "OversimplifiedURLMatcher", somedirectory.getAbsolutePath());
 ```
 
-At run-time:
+At run-time, we can construct our class and build a matcher:
 
 ```java
 Pattern pattern = new OversimplifiedURLMatcher();
@@ -75,11 +60,15 @@ assertTrue(matcher.matches());
 
 See `Pattern` for the supported operations.
 
-### Syntax
+### Compatibility and Syntax
 
 This library attempts to match the standard library syntax for all
-supported operations. Capturing groups are not currently
-supported. Backreferences are unlikely to ever be supported.
+supported operations. For any regex, the results of using this library should
+be the same as the standard library, or a `RegexSyntaxException` should be 
+raised during parsing. Any other discrepancies should be reported as a bug.
+
+Capturing groups are not currently supported. Backreferences are
+unlikely to ever be supported.
 
 The following character classes are supported:
 
@@ -88,9 +77,13 @@ The following character classes are supported:
 ### Unicode
 
 The library supports searching against any string, however the needles
-that we search for are currently limited to the BMP.
+that we search for are currently limited to the
+[Basic Multilingual Plane](https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane).
+Regexes containing non-ascii characters are currently likely to be much
+slower than ASCII regexes 
+(see [Issue #16](https://github.com/hyperpape/needle/issues/16)). Testing of
+non-ascii regexes and non-ascii matches is currently less comprehensive.
 
-### Building
+### Java versions
 
-The compiler requires Java 11. Builds with maven. The generated
-classes should work with Java 8.
+The compiler requires Java 11. Generated classes should work with Java 8.
