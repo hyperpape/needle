@@ -183,7 +183,13 @@ class DFA {
     }
 
     protected Set<DFA> acceptingStates() {
-        return allStates().stream().filter(DFA::isAccepting).collect(Collectors.toSet());
+        var accepting = new HashSet<DFA>();
+        for (var state : states) {
+            if (state.isAccepting()) {
+                accepting.add(state);
+            }
+        }
+        return accepting;
     }
 
     protected boolean hasSelfTransition() {
@@ -554,6 +560,14 @@ class DFA {
             chars += 1 + (int) transition.getLeft().getEnd() - (int) transition.getLeft().getStart();
         }
         return chars;
+    }
+
+    protected int charTotal() {
+        int total = 0;
+        for (var transition : transitions) {
+            total += transition.getLeft().getStart();
+        }
+        return total;
     }
 
     public int getStateNumber() {

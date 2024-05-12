@@ -322,6 +322,7 @@ public class RegexParserTest {
         assertTrue(node instanceof Concatenation);
     }
 
+    // TODO: very slow--review regex parser code
     @Test
     public void testParseLongRegexes() {
         String regexString = "a".repeat(30000);

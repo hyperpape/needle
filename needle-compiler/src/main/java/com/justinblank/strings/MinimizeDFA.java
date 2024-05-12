@@ -65,7 +65,9 @@ class MinimizeDFA {
                         changed = true;
                         for (Set<DFA> part : splitted.get()) {
                             DFAGroup dfaGroup = new DFAGroup(part);
-                            changedItems.add(dfaGroup);
+                            if (dfaGroup.size() > 1) {
+                                changedItems.add(dfaGroup);
+                            }
                             for (DFA thing : part) {
                                 partition.partition.set(thing.getStateNumber(), dfaGroup);
                             }
@@ -105,31 +107,33 @@ class MinimizeDFA {
             partition.add(null);
         }
         Set<DFA> accepting = dfa.acceptingStates();
-        Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
+        Set<DFA> nonAccepting = dfa.allStates();
         nonAccepting.removeAll(accepting);
         List<DFAGroup> dfaGroups = new ArrayList<>();
         if (!accepting.isEmpty()) {
-            dfaGroups.addAll(partitionByTransitionCount(partition, accepting));
+            dfaGroups.addAll(partitionByTransitionCountAndTransitionTotal(partition, accepting));
         }
         if (!nonAccepting.isEmpty()) {
-            dfaGroups.addAll(partitionByTransitionCount(partition, nonAccepting));
+            dfaGroups.addAll(partitionByTransitionCountAndTransitionTotal(partition, nonAccepting));
         }
         return new PartitionState(partition, new PriorityQueue<>(dfaGroups));
     }
 
-    // TODO: Better name
-    private static List<DFAGroup> partitionByTransitionCount(List<DFAGroup> partition, Set<DFA> accepting) {
-        Map<Integer, Set<DFA>> acceptingByTransitionCount = new HashMap<>();
+    private static List<DFAGroup> partitionByTransitionCountAndTransitionTotal(List<DFAGroup> partition, Set<DFA> accepting) {
+        Map<Integer, Map<Integer, Set<DFA>>> acceptingByTransitionCount = new HashMap<>();
         List<DFAGroup> dfaGroups = new ArrayList<>();
         for (DFA acceptingDFA : accepting) {
-            Set<DFA> set = acceptingByTransitionCount.computeIfAbsent(acceptingDFA.getTransitions().size(), (s) -> new HashSet<>());
+            Map<Integer, Set<DFA>> subMap = acceptingByTransitionCount.computeIfAbsent(acceptingDFA.getTransitions().size(), (s) -> new HashMap<>());
+            Set<DFA> set = subMap.computeIfAbsent(acceptingDFA.charTotal(), (t) -> new HashSet<>());
             set.add(acceptingDFA);
         }
-        for (Map.Entry<Integer, Set<DFA>> e : acceptingByTransitionCount.entrySet()) {
-            DFAGroup group = new DFAGroup(e.getValue());
-            dfaGroups.add(group);
-            for (DFA acceptingDFA : e.getValue()) {
-                partition.set(acceptingDFA.getStateNumber(), group);
+        for (Map<Integer, Set<DFA>> subMap : acceptingByTransitionCount.values()) {
+            for (Map.Entry<Integer, Set<DFA>> e : subMap.entrySet()) {
+                DFAGroup group = new DFAGroup(e.getValue());
+                dfaGroups.add(group);
+                for (DFA acceptingDFA : e.getValue()) {
+                    partition.set(acceptingDFA.getStateNumber(), group);
+                }
             }
         }
         return dfaGroups;
