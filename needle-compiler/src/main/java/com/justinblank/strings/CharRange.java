@@ -10,7 +10,14 @@ public class CharRange implements Comparable<CharRange> {
     private final char end;
     private final boolean empty;
 
-    private static final CharRange ALL_CHARS = new CharRange(Character.MIN_VALUE, Character.MAX_VALUE);
+    private static final CharRange ALL_CHARS = CharRange.of(Character.MIN_VALUE, Character.MAX_VALUE);
+    private static final CharRange[] ASCII_SINGLE_CHARS = new CharRange[128];
+
+    static {
+        for (var i = 0; i < 128; i++) {
+            ASCII_SINGLE_CHARS[i] = new CharRange((char) i, (char) i);
+        }
+    }
 
     public CharRange(char start, char end) {
         this.start = start;
@@ -19,6 +26,13 @@ public class CharRange implements Comparable<CharRange> {
             throw new IllegalArgumentException("Tried to create a character range with start=" + start + " larger than end=" + end);
         }
         empty = false;
+    }
+
+    public static CharRange of(char start, char end) {
+        if (start == end && start < 128) {
+            return ASCII_SINGLE_CHARS[start];
+        }
+        return new CharRange(start, end);
     }
 
     public static CharRange allChars() {
@@ -78,20 +92,20 @@ public class CharRange implements Comparable<CharRange> {
             if (current == null) {
                 current = charRange;
                 if (current.getStart() > Character.MIN_VALUE) {
-                    allChars.add(new CharRange(Character.MIN_VALUE, decr(current.getStart())));
+                    allChars.add(CharRange.of(Character.MIN_VALUE, decr(current.getStart())));
                 }
                 allChars.add(current);
             }
             else {
                 if (charRange.getStart() > incr(current.getEnd())) {
-                    allChars.add(new CharRange(incr(current.getEnd()), decr(charRange.getStart())));
+                    allChars.add(CharRange.of(incr(current.getEnd()), decr(charRange.getStart())));
                 }
                 allChars.add(charRange);
                 current = charRange;
             }
         }
         if (current.getEnd() < Character.MAX_VALUE) {
-            allChars.add(new CharRange(incr(current.getEnd()), Character.MAX_VALUE));
+            allChars.add(CharRange.of(incr(current.getEnd()), Character.MAX_VALUE));
         }
         return allChars;
     }
@@ -136,7 +150,7 @@ public class CharRange implements Comparable<CharRange> {
 
                 lastStart = start;
                 lastEnd = end;
-                minimized.add(new CharRange(start, end));
+                minimized.add(CharRange.of(start, end));
             }
         }
 
@@ -171,7 +185,7 @@ public class CharRange implements Comparable<CharRange> {
         for (int i = 1; i < charRanges.size(); i++) {
             CharRange next = charRanges.get(i);
             if (incr(current.getEnd()) == next.getStart()) {
-                current = new CharRange(current.getStart(), next.getEnd());
+                current = CharRange.of(current.getStart(), next.getEnd());
             }
             else {
                 ranges.add(current);

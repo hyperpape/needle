@@ -159,7 +159,7 @@ class NFAToDFACompiler {
         for (Integer state : nfas) {
             RegexInstr instr = nfa.regexInstrs[state];
             if (instr.opcode == CHAR_RANGE) {
-                ranges.add(new CharRange(instr.start, instr.end));
+                ranges.add(CharRange.of(instr.start, instr.end));
             }
         }
         return ranges;

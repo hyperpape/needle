@@ -483,7 +483,7 @@ class DFA {
             nextStart = (char) Math.max(nextStart, leftRange.getStart());
             while (nextStart <= leftRange.getEnd()) {
                 var nextEnd = getNextEnd(allTransitions, i, nextStart, leftRange);
-                derivedRanges.add(new CharRange(nextStart, nextEnd));
+                derivedRanges.add(CharRange.of(nextStart, nextEnd));
                 if (nextEnd == Character.MAX_VALUE) {
                     return derivedRanges;
                 }
@@ -552,7 +552,7 @@ class DFA {
                 end = (char) Math.min(end, secondRange.getEnd());
             }
         }
-        derivedRanges.add(new CharRange(start, end));
+        derivedRanges.add(CharRange.of(start, end));
         return end;
     }
 

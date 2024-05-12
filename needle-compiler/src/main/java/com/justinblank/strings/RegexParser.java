@@ -407,7 +407,7 @@ class RegexParser {
                         next = takeChar();
                     }
                 }
-                ranges.add(new CharRange(last, next));
+                ranges.add(CharRange.of(last, next));
                 last = null;
             } else if (c == '[') {
                 int currentIndex = index;
@@ -500,7 +500,7 @@ class RegexParser {
         List<Character> characters = new ArrayList<>(characterSet);
         Collections.sort(characters);
         List<CharRange> charRanges = new ArrayList<>(ranges);
-        characters.stream().map(c -> new CharRange(c, c)).forEach(charRanges::add);
+        characters.stream().map(c -> CharRange.of(c, c)).forEach(charRanges::add);
         return CharRange.compact(charRanges);
     }
 
