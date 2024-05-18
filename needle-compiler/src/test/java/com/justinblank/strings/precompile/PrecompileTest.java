@@ -14,7 +14,7 @@ public class PrecompileTest {
     public void testPrecompilation() throws IOException {
         File dir = Files.newTemporaryFolder();
         Precompile.precompile("a", "PrecompiledRegex", dir.getAbsolutePath());
-        var target = dir.getAbsolutePath() + "PrecompiledRegex.class";
+        var target = dir.getAbsolutePath() + "/PrecompiledRegex.class";
         var proc = Runtime.getRuntime().exec("file " + target, new String[0]);
         var output = new String(proc.getInputStream().readAllBytes());
         assertTrue(output.contains("compiled Java class data"));
