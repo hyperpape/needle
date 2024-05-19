@@ -84,7 +84,9 @@ class NFAToDFACompiler {
                 // We want to add the initial state to the state set if we're doing a search method (not match) to
                 // enable restarting when we reach an empty state
                 // but we want to avoid doing that when we've reached an accepting state
-                postTransitionStates.seenAccepting = nfa.hasAcceptingState(postTransitionStates) || epsilonClosure.seenAccepting;
+                if (!postTransitionStates.seenAccepting) {
+                    postTransitionStates.seenAccepting = epsilonClosure.seenAccepting || nfa.hasAcceptingState(postTransitionStates);
+                }
                 // TODO: Pruning should be a no-op for ConversionMode.BASIC, but in fact, removing the mode check will
                 //  cause test failures
                 if (postTransitionStates.seenAccepting && (mode == ConversionMode.CONTAINED_IN || mode == ConversionMode.DFA_SEARCH)) {

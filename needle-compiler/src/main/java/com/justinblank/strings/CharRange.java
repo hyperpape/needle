@@ -106,11 +106,10 @@ public class CharRange implements Comparable<CharRange> {
     static List<CharRange> minimalCovering(List<CharRange> ranges) {
         List<CharRange> minimized = new ArrayList<>();
         ranges = new ArrayList<>(ranges);
-        ranges.sort(Comparator.comparingInt(CharRange::getStart));
-        // ranges = withoutDominatedRanges(ranges);
         if (ranges.size() < 2) {
             return ranges;
         }
+        ranges.sort(Comparator.comparingInt(CharRange::getStart));
 
         int lastStart = -1;
         int lastEnd = -1;
@@ -128,7 +127,7 @@ public class CharRange implements Comparable<CharRange> {
                 for (int j = i + 1; j < ranges.size(); j++) {
                     CharRange next = ranges.get(j);
                     if (next.getStart() > start && next.getStart() <= end) {
-                        end = (char) (next.getStart() - 1);
+                        end = decr(next.getStart());
                     }
                     if (next.getEnd() >= start && next.getEnd() <= end) {
                         end = next.getEnd();

@@ -56,8 +56,10 @@ class DFA {
 
     protected void addTransition(CharRange charRange, DFA dfa) {
         assert !charRange.isEmpty() : "cannot add an epsilon transition to a DFA";
-        if (transitions.stream().anyMatch(t -> t.getLeft().equals(charRange))) {
-            return;
+        for (var existingTransition : transitions) {
+            if (existingTransition.getLeft().equals(charRange)) {
+                return;
+            }
         }
         transitions.add(Pair.of(charRange, dfa));
         // we trust that our character ranges don't overlap
