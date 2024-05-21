@@ -9,10 +9,13 @@ class MinimizeDFA {
 
     private int state = 1; // Account for the fact that root will be 0
     private DFA root;
-    private static int splitCalls = 0;
-    private static int successfulSplits = 0;
+    private int splitCalls = 0;
+    private int successfulSplits = 0;
 
-    protected static DFA minimizeDFA(DFA dfa) {
+    private int noMoreSplits = 0;
+    private int moreSplits = 0;
+
+    protected static DFA minimizeDFA(DFA dfa, boolean debug) {
         MinimizeDFA minimizer = new MinimizeDFA();
         Map<DFA, Set<DFA>> partition = minimizer.createPartition(dfa);
         Map<Set<DFA>, DFA> newDFAMap = new IdentityHashMap<>();
@@ -25,10 +28,12 @@ class MinimizeDFA {
             }
         }
         DFA minimal = newDFAMap.get(partition.get(dfa));
+        if (debug) {
+            System.out.println("Split calls: " + minimizer.splitCalls);
+            System.out.println("Successful splits " + minimizer.successfulSplits);
+        }
         assert minimal.statesCount() == new HashSet<>(partition.values()).size();
         assert minimal.checkRep();
-//        System.out.println("Split calls: " + splitCalls);
-//        System.out.println("Successful splits " + successfulSplits);
         return minimal;
     }
 
@@ -148,25 +153,49 @@ class MinimizeDFA {
         return true;
     }
 
-    protected static Optional<List<Set<DFA>>> split(List<DFAGroup> partition, Set<DFA> set) {
+    protected Optional<List<Set<DFA>>> split(List<DFAGroup> partition, Set<DFA> set) {
+        Optional<Set<DFA>> other = splitIfPossible(partition, set);
+        return other.map(o -> {
+            List<Set<DFA>> splitted = new ArrayList<>();
+            set.removeAll(o);
+            splitted.add(set);
+
+            while (true) {
+                successfulSplits++;
+                if (o.size() > 1) {
+                    var furtherSplit = splitIfPossible(partition, o);
+                    if (furtherSplit.isPresent()) {
+                        Set<DFA> splitAgain = furtherSplit.get();
+                        o.removeAll(splitAgain);
+                        splitted.add(o);
+                        o = splitAgain;
+                    } else {
+                        splitted.add(o);
+                        return splitted;
+                    }
+                }
+                else {
+                    splitted.add(o);
+                    return splitted;
+                }
+            }
+        });
+    }
+
+    private Optional<Set<DFA>> splitIfPossible(List<DFAGroup> partition, Set<DFA> set) {
         splitCalls++;
         Iterator<DFA> dfa = set.iterator();
         DFA first = dfa.next();
-        Set<DFA> other = new HashSet<>(set.size());
+        Set<DFA> other = null;
         for (DFA second : set) {
             if (second != first && !equivalent(partition, first, second)) {
+                if (other == null) {
+                    other = new HashSet<>();
+                }
                 other.add(second);
             }
         }
-        if (!other.isEmpty()) {
-            List<Set<DFA>> splitted = new ArrayList<>();
-            splitted.add(other);
-            set.removeAll(other);
-            splitted.add(set);
-            successfulSplits++;
-            return Optional.of(splitted);
-        }
-        return Optional.empty();
+        return Optional.ofNullable(other);
     }
 
     protected static boolean equivalent(List<DFAGroup> partition, DFA first, DFA second) {

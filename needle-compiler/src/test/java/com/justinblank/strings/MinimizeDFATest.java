@@ -38,7 +38,7 @@ public class MinimizeDFATest {
     @Test
     public void testMinimizeMinimizableFourStateDFA() {
         DFA dfa = fourStateMinimizableDFA();
-        DFA minimized = MinimizeDFA.minimizeDFA(dfa);
+        DFA minimized = MinimizeDFA.minimizeDFA(dfa, false);
         assertEquals(minimized.statesCount(), 3);
     }
 
@@ -48,28 +48,32 @@ public class MinimizeDFATest {
         DFA second = new DFA(dfa, true, 1);
         dfa.addTransition(new CharRange('a', 'a'), second);
 
-        DFA minimized = MinimizeDFA.minimizeDFA(dfa);
+        DFA minimized = MinimizeDFA.minimizeDFA(dfa, false);
         assertEquals(minimized.statesCount(), 2);
     }
 
     @Test
     public void testMinimizeDFAHandlesSingleCharLiteral() {
-        assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("a")).matches("a"));
+        DFA dfa = DFA.createDFA("a");
+        assertTrue(MinimizeDFA.minimizeDFA(dfa, false).matches("a"));
     }
 
     @Test
     public void testMinimizeDFAHandlesMultiCharLiteral() {
-        assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("ab")).matches("ab"));
+        DFA dfa = DFA.createDFA("ab");
+        assertTrue(MinimizeDFA.minimizeDFA(dfa, false).matches("ab"));
     }
 
     @Test
     public void testMinimizeDFAHandlesUnion() {
-        assertTrue(MinimizeDFA.minimizeDFA(DFA.createDFA("[0-9]")).matches("2"));
+        DFA dfa = DFA.createDFA("[0-9]");
+        assertTrue(MinimizeDFA.minimizeDFA(dfa, false).matches("2"));
     }
 
     @Test
     public void testMinimizeDFAHandlesRepetition() {
-        DFA dfa = MinimizeDFA.minimizeDFA(DFA.createDFA("a*"));
+        DFA dfa1 = DFA.createDFA("a*");
+        DFA dfa = MinimizeDFA.minimizeDFA(dfa1, false);
         assertEquals(1, dfa.statesCount());
         assertTrue(dfa.matches("a"));
     }
@@ -79,7 +83,7 @@ public class MinimizeDFATest {
         var nfa = new NFA(RegexInstrBuilder.createNFA(RegexParser.parse("1{0,2}")));
         DFA original = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.BASIC);
         assertTrue(original.matches("1"));
-        DFA dfa = MinimizeDFA.minimizeDFA(original);
+        DFA dfa = MinimizeDFA.minimizeDFA(original, false);
         assertTrue(dfa.matches("1"));
     }
 
