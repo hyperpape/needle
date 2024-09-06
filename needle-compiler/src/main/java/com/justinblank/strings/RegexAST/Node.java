@@ -14,6 +14,14 @@ public abstract class Node {
      */
     public abstract Optional<Integer> maxLength();
 
+    public boolean isFixedLength() {
+        var maxLength = maxLength();
+        if (maxLength.isPresent()) {
+            return maxLength.get().equals(minLength());
+        }
+        return false;
+    }
+
     protected abstract int height();
 
     public abstract Factorization bestFactors();

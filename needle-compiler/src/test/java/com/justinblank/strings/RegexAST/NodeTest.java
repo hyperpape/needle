@@ -1,10 +1,11 @@
 package com.justinblank.strings.RegexAST;
 
+import com.justinblank.strings.CharRange;
 import org.junit.Test;
 
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class NodeTest {
 
@@ -105,5 +106,29 @@ public class NodeTest {
 
         assertEquals(1, node.minLength());
         assertEquals(Optional.empty(), node.maxLength());
+    }
+
+    @Test
+    public void isFixedLength_handlesLiterals() {
+        var node = new LiteralNode("Abc");
+        assertTrue(node.isFixedLength());
+    }
+
+    @Test
+    public void isFixedLength_handlesUnions() {
+        var node = new Union(new LiteralNode("Abc"), new LiteralNode("def"));
+        assertTrue(node.isFixedLength());
+    }
+
+    @Test
+    public void isFixedLength_handlesVariableLengthNodes() {
+        var node = new CountedRepetition(new CharRangeNode(new CharRange('a', 'z')), 1, 5);
+        assertFalse(node.isFixedLength());
+    }
+
+    @Test
+    public void isFixedLength_handlesNodesWithNoMaxLength() {
+        var node = new Repetition(new CharRangeNode(new CharRange('a', 'z')));
+        assertFalse(node.isFixedLength());
     }
 }
