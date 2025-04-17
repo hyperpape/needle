@@ -46,4 +46,11 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
     public Node reversed() {
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "CharRangeNode{" +
+                "range=" + range +
+                '}';
+    }
 }

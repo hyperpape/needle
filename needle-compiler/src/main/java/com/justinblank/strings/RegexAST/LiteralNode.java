@@ -54,4 +54,10 @@ public class LiteralNode extends Node {
     public void append(LiteralNode node) {
         this.string.append(node.string);
     }
+
+    @Override
+    public String toString() {
+        return "LiteralNode{" + string +
+                '}';
+    }
 }
