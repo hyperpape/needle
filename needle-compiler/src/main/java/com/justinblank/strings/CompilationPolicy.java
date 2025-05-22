@@ -19,6 +19,8 @@ class CompilationPolicy {
     boolean useSuffix;
     // TODO: the variable name is based on the idea we may use multiple infixes in the future. For now, we aren't.
     boolean useInfixes;
+    // Whether to check that we have enough distance to fully match our string on each outer loop--if our regex is short
+    // This almost certainly won't be worthwhile. If our regex is long, then we can avoid looking at many characters
     boolean useMaxStart;
 
     public CompilationPolicy() {
