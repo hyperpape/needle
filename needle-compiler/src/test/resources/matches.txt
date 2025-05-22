@@ -42,6 +42,9 @@ a+a                 aaaaaaa             y       0       7
 (ab)+cd             ababcd              y       0       6
 a.c                 abc                 y       0       3
 a.c                 a.c                 y       0       3
+a.*c                ac                  y       0       2
+a.*c                axc                 y       0       3
+a.*c                axycc               y       0       5
 [^c]                c                   n       0       0
 [^c]                cd                  y       1       2
 [^c]                b                   y       0       1
@@ -109,6 +112,12 @@ sam|samwise         samwise             y       0       3
 (a|ab|bc)+          abc                 y       0       3
 (a|ab)+(a|ab)+      abab                y       0       3
 (ab|a|bc)+          abc                 y       0       2
+
+# considered special optimiztions that touch this case
+\$\{[^}]*}             ${abcdef}        y       0       9
+\$\{[^}]*}             $${abcdef}       y       1       10
+\$\{[^}]*}             a${abcdef}       y       1       10
+
 
 # unicode haystacks
 a.c                 aεc                 y       0       3
