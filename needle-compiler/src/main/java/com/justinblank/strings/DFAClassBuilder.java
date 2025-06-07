@@ -357,11 +357,11 @@ class DFAClassBuilder extends ClassBuilder {
                             cond(generatePredicate(spec.dfa))
                                     .withBody(List.of(
                                             set(MatchingVars.STATE, spec.dfa.forwardFollowingState().getStateNumber()),
-                                            set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                                            incrementIndex(),
                                             spec.dfa.forwardFollowingState().isAccepting()
                                                     ? set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : new NoOpStatement()))
                                     .orElse(List.of(
-                                            set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                                            incrementIndex(),
                                             set(MatchingVars.STATE, -1)))
                     )));
         }
@@ -382,7 +382,7 @@ class DFAClassBuilder extends ClassBuilder {
                                 .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))) : new NoOpStatement(),
 
                         set(MatchingVars.CHAR, readChar()),
-                        set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                        incrementIndex(),
                         // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
                         // using non-ascii character from the haystack as our index
                         // TODO: performing this check should be ok regardless of whether we're using byteclasses--
@@ -891,7 +891,7 @@ class DFAClassBuilder extends ClassBuilder {
                         returnValue(false)) : new NoOpStatement(),
                 compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                 compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
+                incrementIndex()
                 ));
 
         if (debugOptions.trackStates) {
@@ -989,7 +989,7 @@ class DFAClassBuilder extends ClassBuilder {
             if (usesOffsetCalculation(postPrefixState)) {
                 var offset = forwardOffsets.get(postPrefixState);
                 outerLoopBody.addAll(createOffsetCheck(offset, prefix.length(), List.of(
-                        set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                        incrementIndex(),
                         set(MatchingVars.STATE, -1))));
             }
             outerLoopBody.add(set(MatchingVars.INDEX, plus(prefix.length(), read(MatchingVars.INDEX))));
@@ -1010,11 +1010,11 @@ class DFAClassBuilder extends ClassBuilder {
                                 compilationPolicy.useByteClassesForAllStates ? cond(
                                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
                                                 List.of(set(MatchingVars.STATE, 0),
-                                                        set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1)),
+                                                        incrementIndex(),
                                                         escape())) : new NoOpStatement(),
                                 compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                                 compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                                set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1))
+                                incrementIndex()
                                 ));
         outerLoopBody.add(innerLoop);
         method.returnValue(
@@ -1061,10 +1061,14 @@ class DFAClassBuilder extends ClassBuilder {
         return lte(read(MatchingVars.INDEX), read(MatchingVars.MAX_START));
     }
 
-    private static Expression readChar() {
+    protected static Expression readChar() {
         return call("charAt", Builtin.C,
                 read(MatchingVars.STRING),
                 read(MatchingVars.INDEX));
+    }
+
+    protected static Statement incrementIndex() {
+        return set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1));
     }
 
     private Expression hasLastMatch() {
