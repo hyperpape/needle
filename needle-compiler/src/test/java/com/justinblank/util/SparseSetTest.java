@@ -1,6 +1,6 @@
 package com.justinblank.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.core.Gen;
 import org.quicktheories.generators.IntegersDSL;
 import org.quicktheories.generators.ListsDSL;
@@ -9,13 +9,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.quicktheories.QuickTheory.qt;
 
-public class SparseSetTest {
+class SparseSetTest {
 
     @Test
-    public void testSparseSetAddAndClear() {
+    void sparseSetAddAndClear() {
         SparseSet sparseSet = new SparseSet(10);
         assertEquals(10, sparseSet.capacity());
 
@@ -39,14 +39,14 @@ public class SparseSetTest {
     }
 
     @Test
-    public void testIndexOfHandlesGreaterThanMaxArguments() {
+    void indexOfHandlesGreaterThanMaxArguments() {
         SparseSet sparseSet = new SparseSet(10);
         assertEquals(-1, sparseSet.indexOf(11));
         assertEquals(-1, sparseSet.indexOf(100));
     }
 
     @Test
-    public void testOperationSequence() {
+    void operationSequence() {
         SparseSet set = new SparseSet(10);
         set.add(1);
         set.add(2);
@@ -59,7 +59,7 @@ public class SparseSetTest {
     }
 
     @Test
-    public void testAdd() {
+    void add() {
         SparseSet sparseSet = new SparseSet(100);
         qt().forAll(new IntegersDSL().between(0, 100)).check((i) -> {
             sparseSet.add(i);
@@ -68,7 +68,7 @@ public class SparseSetTest {
     }
 
     @Test
-    public void testAddAndClear() {
+    void addAndClear() {
         SparseSet sparseSet = new SparseSet(100);
         qt().forAll(new IntegersDSL().between(0, 100)).check((i) -> {
             sparseSet.add(i);
@@ -81,7 +81,7 @@ public class SparseSetTest {
     }
 
     @Test
-    public void testAddAndRemove() {
+    void addAndRemove() {
         SparseSet sparseSet = new SparseSet(100);
         qt().forAll(new IntegersDSL().between(0, 100)).check((i) -> {
             sparseSet.add(i);
@@ -94,7 +94,7 @@ public class SparseSetTest {
     }
 
     @Test
-    public void testGeneratedSequences() {
+    void generatedSequences() {
         Gen<List<Integer>> gen = new ListsDSL().of(new IntegersDSL().between(0, 301)).ofSizeBetween(0, 100);
         qt().forAll(gen).check((integers) -> {
             Set<Integer> referenceSet = new HashSet<>();
@@ -144,25 +144,27 @@ public class SparseSetTest {
     }
 
     @Test
-    public void canAddMax() {
+    void canAddMax() {
         SparseSet set = new SparseSet(10);
         set.add(10);
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void checkOutOfBoundsAdd() {
+    @Test
+    void checkOutOfBoundsAdd() {
         SparseSet set = new SparseSet(10);
-        set.add(11);
-    }
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void checkOutOfBoundsGetByIndex() {
-        SparseSet sparseSet = new SparseSet(10);
-        sparseSet.getByIndex(1);
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            set.add(11));
     }
 
     @Test
-    public void testToString() {
+    void checkOutOfBoundsGetByIndex() {
+        SparseSet sparseSet = new SparseSet(10);
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            sparseSet.getByIndex(1));
+    }
+
+    @Test
+    void testToString() {
         SparseSet set = new SparseSet(10);
         assertEquals("[]", set.toString());
         set.add(10);
@@ -175,7 +177,7 @@ public class SparseSetTest {
     }
 
     @Test
-    public void testToStringSequences() {
+    void toStringSequences() {
         Gen<List<Integer>> gen = new ListsDSL().of(new IntegersDSL().between(0, 301)).ofSizeBetween(0, 100);
         qt().forAll(gen).check((integers) -> {
             Set<Integer> referenceSet = new HashSet<>();
@@ -210,13 +212,15 @@ public class SparseSetTest {
         });
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNegativeCapacityNotAllowed() {
-        SparseSet sparseSet = new SparseSet(-1);
+    @Test
+    void negativeCapacityNotAllowed() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            SparseSet sparseSet = new SparseSet(-1);
+        });
     }
 
     @Test
-    public void testZeroArgumentsAreAllowed() {
+    void zeroArgumentsAreAllowed() {
         SparseSet sparseSet = new SparseSet(0);
         sparseSet.add(0);
     }

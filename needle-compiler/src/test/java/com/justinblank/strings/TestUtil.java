@@ -2,7 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestUtil {
 

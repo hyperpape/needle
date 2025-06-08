@@ -1,17 +1,17 @@
 package com.justinblank.strings;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class GraphVizTest {
+class GraphVizTest {
 
     @Test
-    public void testThatDFAToGraphvizRuns() {
+    void thatDFAToGraphvizRuns() {
         var dfa = DFA.createDFA("ab[cd][0-9]+");
         var string = GraphViz.toGraphviz(dfa);
-        Assert.assertNotNull(string);
+        assertNotNull(string);
         assertNotEquals("", string);
     }
 }

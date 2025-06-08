@@ -1,7 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 
@@ -15,8 +15,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DFACompilerTest {
 
@@ -39,7 +38,7 @@ public class DFACompilerTest {
     // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
     // handling prefixes, so we'll explicitly test sizes 1-4
     @Test
-    public void testSingleCharLiteralRegex() {
+    void singleCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("a", "SingleCharRegex");
         match(pattern, "a");
         fail(pattern, "b");
@@ -61,7 +60,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testMultipleFindSingleCharLiteralRegex() {
+    void multipleFindSingleCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("a", "SingleCharRegexMultipleFind");
         var matcher = pattern.matcher("aba");
         find(pattern, "ab");
@@ -74,7 +73,7 @@ public class DFACompilerTest {
 
 
     @Test
-    public void testTwoCharLiteralRegex() {
+    void twoCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("xy", "TwoCharLiteralRegex");
         match(pattern, "xy");
 
@@ -94,7 +93,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testThreeCharLiteralRegex() {
+    void threeCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("abc", "ThreeCharLiteralRegex");
         match(pattern, "abc");
 
@@ -115,7 +114,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFourCharLiteralRegex() {
+    void fourCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("abcd", "FourCharLiteralRegex");
         match(pattern, "abcd");
 
@@ -135,7 +134,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testNineCharLiteralRegex() {
+    void nineCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("abcdefghi", "NineCharLiteralRegex");
         match(pattern, "abcdefghi");
 
@@ -152,7 +151,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testLiteralRepetitionRegex() {
+    void literalRepetitionRegex() {
         Pattern pattern = DFACompiler.compile("a*", "aStarRegex");
         match(pattern, "");
         match(pattern, "a");
@@ -175,7 +174,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testLiteralRepetitionLiteralRegex() {
+    void literalRepetitionLiteralRegex() {
         Pattern pattern = DFACompiler.compile("ad*g", "literalRepetitionLiteralRegex");
         match(pattern, "ag");
         match(pattern, "adg");
@@ -193,7 +192,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testDFACompiledSimpleRegex() {
+    void dfaCompiledSimpleRegex() {
         Pattern pattern = DFACompiler.compile("[0-9A-Za-z]*", "TestName");
         match(pattern, "AB09");
 
@@ -209,7 +208,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testGroupedDFAUnion() {
+    void groupedDFAUnion() {
         Pattern pattern = DFACompiler.compile("(AB)|(BA)", "testGroupedDFAUnion");
         match(pattern, "AB");
         match(pattern, "BA");
@@ -230,7 +229,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testTwoAcceptingStateDFA() throws Exception {
+    void twoAcceptingStateDFA() throws Exception {
         Pattern pattern = DFACompiler.compile("(A+)|(B+)", "testTwoAcceptingStateDFA");
         match(pattern, "A");
         match(pattern, "B");
@@ -250,7 +249,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testDFACompiledManyStateRegex() throws Exception {
+    void dfaCompiledManyStateRegex() throws Exception {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING;
         Pattern pattern = DFACompiler.compile(regexString, "testDFACompiledManyStateRegex");
         match(pattern, "456");
@@ -268,7 +267,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetitionSingleChar() {
+    void countedRepetitionSingleChar() {
         String regexString = "A{1,2}";
         Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionSingleCharRegex");
         match(pattern, "A");
@@ -288,7 +287,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetitionTwoChar() {
+    void countedRepetitionTwoChar() {
         String regexString = "(AB){1,2}";
         Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionRegexTwoCharRegex");
         match(pattern, "AB");
@@ -308,7 +307,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetitionOfUnion() {
+    void countedRepetitionOfUnion() {
         String regexString = "((AB)|(BA)){1,2}";
         Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion");
         fail(pattern, "");
@@ -326,7 +325,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testCountedRepetitionWithLiteralSuffix() throws Exception {
+    void countedRepetitionWithLiteralSuffix() throws Exception {
         String regexString = "((AB)|(CD)){1,2}" + "AB";
         Pattern pattern = DFACompiler.compile(regexString, "GroupedRepetitionWithLiteralSuffix");
         var m = pattern.matcher("ABAB");
@@ -345,7 +344,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testTheSpaceWord() {
+    void theSpaceWord() {
         Pattern pattern = DFACompiler.compile("the\\s+\\w+", "theSpaceWord");
         find(pattern, "the a");
         find(pattern, "the art");
@@ -366,7 +365,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testManyStateRegexWithLiteralSuffix() {
+    void manyStateRegexWithLiteralSuffix() {
         String regexString = IntegrationTest.MANY_STATE_REGEX_STRING + "ab";
         Pattern pattern = DFACompiler.compile(regexString, "ManyStateRegexWithLiteralSuffix");
         match(pattern, "123ab");
@@ -381,7 +380,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testDFACompiledDigit() throws Exception {
+    void dfaCompiledDigit() throws Exception {
         Pattern pattern = DFACompiler.compile("[0-9]", "testDFACompiledDigit");
         match(pattern, "0");
 
@@ -398,7 +397,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testDFACompiledDigitPlus() throws Exception {
+    void dfaCompiledDigitPlus() throws Exception {
         Pattern pattern = DFACompiler.compile("[0-9]+", "testDFACompiledDigitPlus");
         match(pattern, "0");
 
@@ -415,14 +414,14 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testDFACompiledBMP() throws Exception {
+    void dfaCompiledBMP() throws Exception {
         Pattern pattern = DFACompiler.compile("[\u0600-\u06FF]", "testDFACompiledBMP");
         match(pattern, "\u0600");
         fail(pattern, "AB{");
     }
 
     @Test
-    public void testDFACompiledUnionOfLiterals() throws Exception {
+    void dfaCompiledUnionOfLiterals() throws Exception {
         Pattern pattern = DFACompiler.compile("A|BCD|E", "union1");
         match(pattern, "A");
         match(pattern, "BCD");
@@ -439,7 +438,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testRepeatedRangeOverlappingWithSuffix() throws Exception {
+    void repeatedRangeOverlappingWithSuffix() throws Exception {
         Pattern pattern = DFACompiler.compile("[A-Za-z]+ab", "repeatedRangeOverlappingWithSuffix");
         match(pattern, "Aab");
         match(pattern, "aab");
@@ -462,7 +461,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testRepeatedRangeWithIngSuffix() throws Exception {
+    void repeatedRangeWithIngSuffix() throws Exception {
         Pattern pattern = DFACompiler.compile("[A-Za-z]+ing", "repeatedRangeWithIngSuffix");
         match(pattern, "bing");
         match(pattern, "Bing");
@@ -471,7 +470,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testTwoLargeRangesPrefixSuffixLiteral() throws Exception {
+    void twoLargeRangesPrefixSuffixLiteral() throws Exception {
         Pattern pattern = DFACompiler.compile("[A-Za-z]+abcdef", "TwoLargeRangesPrefixWithSuffixLiteral");
         match(pattern, "Aabcdef");
         match(pattern, "aabcdef");
@@ -491,7 +490,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testPrefixLargeRangeWithSuffixLiteral() {
+    void prefixLargeRangeWithSuffixLiteral() {
         Pattern pattern = DFACompiler.compile("[A-Z]+abcdef", "PrefixLargeRangeWithSuffixLiteral");
         match(pattern, "Aabcdef");
         match(pattern, "AZDabcdef");
@@ -504,7 +503,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testLargeRangePrefixWithInfixLiteralAndLargeRangeSuffix() {
+    void largeRangePrefixWithInfixLiteralAndLargeRangeSuffix() {
         Pattern pattern = DFACompiler.compile("[A-Z]+abcdef[A-Z]+", "LargeRangePrefixWithInfixLiteralAndLargeRangeSuffix");
         match(pattern, "AabcdefZ");
         match(pattern, "AZDabcdefDZA");
@@ -517,7 +516,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testOverSimplifiedURLMatcher() {
+    void overSimplifiedURLMatcher() {
         final Pattern pattern = DFACompiler.compile("http://.+", "OverSimplifiedURLMatcher");
         Matcher matcher = pattern.matcher("http://www.google.com");
         matcher.matches();
@@ -537,14 +536,14 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testHolmesWithin25CharactersOfWatson() {
+    void holmesWithin25CharactersOfWatson() {
         final var pattern = DFACompiler.compile("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson");
         Matcher matcher = pattern.matcher("HolmesThenWatson");
         assertTrue(matcher.matches());
     }
 
     @Test
-    public void testMinimized() {
+    void minimized() {
         final var pattern = DFACompiler.compile("AB.{0,2}12|AB.{0,2}12", "minimized");
         Matcher matcher = pattern.matcher("AB+12");
         assertTrue(matcher.matches());
@@ -552,19 +551,20 @@ public class DFACompilerTest {
 
     // Has prefix with offset
     @Test
-    public void testTheCrown() {
+    void theCrown() {
         var pattern = DFACompiler.compile("the [Cc]rown", "theCrown");
         find(pattern, "the Crown");
     }
 
-    @Test(expected =  IllegalArgumentException.class)
-    public void testDFACompileFailsLargePattern() {
+    @Test
+    void dfaCompileFailsLargePattern() {
         String manyStateRegexString = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,1000}";
-        DFACompiler.compile(manyStateRegexString, "tooBig");
+        assertThrows(IllegalArgumentException.class, () ->
+            DFACompiler.compile(manyStateRegexString, "tooBig"));
     }
 
     @Test
-    public void testLargeRegex() {
+    void largeRegex() {
         String largeRegex = CORE_LARGE_REGEX_STRING + "4}";
         var pattern = DFACompiler.compile(largeRegex, "testLargeRegex4");
         var hayStack = "1232343450987";
@@ -577,7 +577,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testSameRegex_canGenerate_byteBasedDFAClasses_and_shortBasedDFAClasses() {
+    void sameRegexCanGenerateByteBasedDFAClassesAndShortBasedDFAClasses() {
         var regex = ".{0,43}A";
         Node node = RegexParser.parse(regex);
 
@@ -593,7 +593,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFindingIngWords() {
+    void findingIngWords() {
         String regexString = "[a-zA-Z]+ing";
         String hayStack = "the most perfect reasoning and observing machine that the world has seen";
         var pattern = DFACompiler.compile(regexString, "ingregex");
@@ -606,25 +606,25 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFourCharOffsetWithoutPrefix() {
+    void fourCharOffsetWithoutPrefix() {
         var pattern = DFACompiler.compile("[a-q][^u-z]{3}x", "testFourCharOffsetWithoutPrefix");
         find(pattern, "aaaax");
     }
 
     @Test
-    public void testSherlockStreetInFile() throws Exception {
+    void sherlockStreetInFile() throws Exception {
         var path = Paths.get("src", "test", "resources", "sherlockholmes.txt");
         checkMatchesInFileAgainstStandardLibrary("Sherlock|Street", path);
     }
 
     @Test
-    public void testUpperOrLowercaseSherlockInFile() throws Exception {
+    void upperOrLowercaseSherlockInFile() throws Exception {
         var path = Paths.get("src", "test", "resources", "sherlockholmes.txt");
         checkMatchesInFileAgainstStandardLibrary("[Ss]herlock", path);
     }
 
     @Test
-    public void test_handlingLongStateTransitionStrings() throws Exception {
+    void handling_long_state_transition_strings() throws Exception {
         var regex = ".{0,47}BCDFHEIJKLAMG";
         String hayStack = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@BCDFHEIJKLAMG";
 
@@ -677,8 +677,8 @@ public class DFACompilerTest {
             var jdkMatchResult = jdkMatcher.toMatchResult();
             if (matchResult.matched && jdkMatched) {
                 var comparison = "patternStart=" + matchResult.start + ", patternEnd=" + matchResult.end + ", jdkStart=" + jdkMatchResult.start() + ", jdkEnd=" + jdkMatchResult.end();
-                assertEquals("Match start was not equal at index=" + index + ", " + comparison, matchResult.start, jdkMatchResult.start());
-                assertEquals("Match end was not equal at index=" + index + ", " + comparison, matchResult.end, jdkMatchResult.end());
+                assertEquals(matchResult.start, jdkMatchResult.start(), "Match start was not equal at index=" + index + ", " + comparison);
+                assertEquals(matchResult.end, jdkMatchResult.end(), "Match end was not equal at index=" + index + ", " + comparison);
             } else if (matchResult.matched) {
                 fail("Pattern matched and standard library didn't at index=" + index + ", patternStart=" + matchResult.start + ", patternEnd=" + matchResult.end);
             } else if (jdkMatched) {
@@ -691,7 +691,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void fileBasedTests() throws Exception {
+    void fileBasedTests() throws Exception {
         var baseName = "dfaFileBasedTests";
         var counter = new AtomicInteger();
         var patterns = new HashMap<String, Pattern>();
@@ -740,7 +740,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFind_doesntBacktrackPastSpecifiedWindow() {
+    void findDoesntBacktrackPastSpecifiedWindow() {
         String regex = "a*baa";
         Pattern pattern = DFACompiler.compile(regex, "noOverbacktracking");
         String hayStack = "aaaabaa";
@@ -751,7 +751,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFind_doesntBacktrackPastSpecifiedWindow_2() {
+    void findDoesntBacktrackPastSpecifiedWindow2() {
         // Not sure if there are interesting ways to fail this but not the previous test
         String regex = "(a*tgc*|t*acg*)*(cg)(a|t)*";
         Pattern pattern = anonymousPattern(regex);
@@ -764,7 +764,7 @@ public class DFACompilerTest {
     }
 
     @Test
-    public void testFind_doesntRollOver() {
+    void findDoesntRollOver() {
         var pattern = DFACompiler.compile("a", "rolloverTestClass");
         var matcher = pattern.matcher("aa");
         assertTrue(matcher.find().matched);

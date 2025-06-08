@@ -1,30 +1,30 @@
 package com.justinblank.strings.RegexAST;
 
 import com.justinblank.strings.CharRange;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class NodeTest {
+class NodeTest {
 
     @Test
-    public void testMinMaxLengthLiteral() {
+    void minMaxLengthLiteral() {
         var node = new LiteralNode("abcdef");
         assertEquals(6, node.minLength());
         assertEquals(Optional.of(6), node.maxLength());
     }
 
     @Test
-    public void testMinMaxLengthEmptyString() {
+    void minMaxLengthEmptyString() {
         var node = new LiteralNode("");
         assertEquals(0, node.minLength());
         assertEquals(Optional.of(0), node.maxLength());
     }
 
     @Test
-    public void testMinMaxLengthCharRange() {
+    void minMaxLengthCharRange() {
         // [0-9];
         var node = new CharRangeNode('0', '9');
         assertEquals(1, node.minLength());
@@ -32,7 +32,7 @@ public class NodeTest {
     }
 
     @Test
-    public void testMinMaxLengthaSTAR_aORb_() {
+    void minMaxLengthaSTARAORb() {
         // a*(a|b);
         var rep = new Repetition(new LiteralNode("a"));
         var union = new Union(new LiteralNode("a"), new LiteralNode("b"));
@@ -43,7 +43,7 @@ public class NodeTest {
     }
 
     @Test
-    public void testMinMaxLengthCountedRepetition_() {
+    void minMaxLengthCountedRepetition() {
         //(ab){2,3};
         var node = new CountedRepetition(new LiteralNode("ab"), 2, 3);
         assertEquals(4, node.minLength());
@@ -51,7 +51,7 @@ public class NodeTest {
     }
 
     @Test
-    public void testMinMaxLengthUnionContainingRepetition() {
+    void minMaxLengthUnionContainingRepetition() {
         // (ab)|(a*);
         var node = new Union(new LiteralNode("ab"), new Repetition(new LiteralNode("a")));
         assertEquals(0, node.minLength());
@@ -59,7 +59,7 @@ public class NodeTest {
     }
 
     @Test
-    public void testMinMaxLengthUnionFollowedByChar() {
+    void minMaxLengthUnionFollowedByChar() {
         // (a|b)a
         var node = new Concatenation(new Union(new LiteralNode("a"), new LiteralNode("b")), new LiteralNode("a"));
         assertEquals(2, node.minLength());
@@ -67,7 +67,7 @@ public class NodeTest {
     }
 
     @Test
-    public void testMinMaxLengthUnionOfDifferentLengths() {
+    void minMaxLengthUnionOfDifferentLengths() {
         // (ab)|b
         Node node = new Union(new LiteralNode("ab"), new LiteralNode("b"));
         assertEquals(1, node.minLength());
@@ -75,14 +75,14 @@ public class NodeTest {
     }
 
     @Test
-    public void testConcatentionHeight_isSumOfNodesPlus1() {
+    void concatentionHeightIsSumOfNodesPlus1() {
         // (a|b)a
         var node = new Concatenation(new Union(new CharRangeNode('a', 'c'), new LiteralNode("f")), new LiteralNode("g"));
         assertEquals(2, node.height());
     }
 
     @Test
-    public void testUnionHeight_isMaxOfNodesPlus1() {
+    void unionHeightIsMaxOfNodesPlus1() {
         // (ab)|b
         Node node = new Union(new LiteralNode("ab"), new LiteralNode("b"));
         assertEquals(1, node.height());
@@ -90,7 +90,7 @@ public class NodeTest {
 
 
     @Test
-    public void test_countedRepetitionHeightIs1PlusNodeHeight() {
+    void counted_repetition_height_is1_plus_node_height() {
         //(ab){2,3};
         var node = new CountedRepetition(new LiteralNode("ab"), 2, 3);
         assertEquals(1, node.height());
@@ -98,7 +98,7 @@ public class NodeTest {
 
 
     @Test
-    public void test_repetitionHeightIs1PlusNodeHeight() {
+    void repetition_height_is1_plus_node_height() {
         // a*(a|b);
         var rep = new Repetition(new LiteralNode("a"));
         var union = new Union(new LiteralNode("a"), new LiteralNode("b"));
@@ -109,25 +109,25 @@ public class NodeTest {
     }
 
     @Test
-    public void isFixedLength_handlesLiterals() {
+    void isFixedLength_handlesLiterals() {
         var node = new LiteralNode("Abc");
         assertTrue(node.isFixedLength());
     }
 
     @Test
-    public void isFixedLength_handlesUnions() {
+    void isFixedLength_handlesUnions() {
         var node = new Union(new LiteralNode("Abc"), new LiteralNode("def"));
         assertTrue(node.isFixedLength());
     }
 
     @Test
-    public void isFixedLength_handlesVariableLengthNodes() {
+    void isFixedLength_handlesVariableLengthNodes() {
         var node = new CountedRepetition(new CharRangeNode(new CharRange('a', 'z')), 1, 5);
         assertFalse(node.isFixedLength());
     }
 
     @Test
-    public void isFixedLength_handlesNodesWithNoMaxLength() {
+    void isFixedLength_handlesNodesWithNoMaxLength() {
         var node = new Repetition(new CharRangeNode(new CharRange('a', 'z')));
         assertFalse(node.isFixedLength());
     }

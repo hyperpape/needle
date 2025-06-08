@@ -1,63 +1,63 @@
 package com.justinblank.strings;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RegexGeneratorTest {
+class RegexGeneratorTest {
 
     private static final int DUMMY = 1;
 
     @Test
-    public void testMinimalGenerationLiteral() {
+    void minimalGenerationLiteral() {
         var s = new RegexGenerator(new Random(), DUMMY).generateMinimalMatch("abcde");
         assertEquals("abcde", s);
     }
 
     @Test
-    public void testMinimalGenerationRepetition() {
+    void minimalGenerationRepetition() {
         var generator = new RegexGenerator(new Random(), DUMMY);
         var s = generator.generateMinimalMatch("a*");
         assertEquals("", s);
     }
 
     @Test
-    public void testMinimalGenerationCountedRepetition() {
+    void minimalGenerationCountedRepetition() {
         var generator = new RegexGenerator(new Random(), DUMMY);
         var s = generator.generateMinimalMatch("a{1,2}");
         assertEquals("a", s);
     }
 
     @Test
-    public void testMinimalGenerationComposite() {
+    void minimalGenerationComposite() {
         var generator = new RegexGenerator(new Random(), DUMMY);
         var s = generator.generateMinimalMatch("(a|b)a*");
         assertEquals("a", s);
     }
 
     @Test
-    public void testMaximalGenerationLiteral() {
+    void maximalGenerationLiteral() {
         var s = new RegexGenerator(new Random(), DUMMY).generateMaximalMatch("abcde");
         assertEquals(Optional.of("abcde"), s);
     }
 
     @Test
-    public void testMaximalGenerationUnion() {
+    void maximalGenerationUnion() {
         var s = new RegexGenerator(new Random(), DUMMY).generateMaximalMatch("(abc)|(def)");
         assertEquals(Optional.of("def"), s);
     }
 
     @Test
-    public void testMaximalGenerationRepetition() {
+    void maximalGenerationRepetition() {
         var s = new RegexGenerator(new Random(), DUMMY).generateMaximalMatch("a*");
         assertEquals(Optional.empty(), s);
     }
 
     @Test
-    public void testMaximalGenerationCountedRepetition() {
+    void maximalGenerationCountedRepetition() {
         var s = new RegexGenerator(new Random(), DUMMY).generateMaximalMatch("a{1,2}");
         assertEquals(Optional.of("aa"), s);
     }

@@ -1,24 +1,29 @@
 package com.justinblank.strings;
 
-import junit.framework.TestCase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ByteClassUtilTest extends TestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
-    public void testEncodeDecode() {
+class ByteClassUtilTest {
+
+    @Test
+    void encodeDecode() {
         for (int i = 0; i < 4096; i++) {
-            assertEquals("Encode/decode failure for " + i, i, ByteClassUtil.decode(ByteClassUtil.encode(i)));
+            assertEquals(i, ByteClassUtil.decode(ByteClassUtil.encode(i)), "Encode/decode failure for " + i);
         }
     }
 
-    public void testFillBytesFromString() {
+    @Test
+    void fillBytesFromString() {
         var byteClasses = ByteClassUtil.fillBytesFromString(4,"1-2,2-3,3-c");
-        assertEquals(byteClasses[1], 2);
-        assertEquals(byteClasses[2], 3);
-        assertEquals(byteClasses[3], 12);
+        assertEquals(2, byteClasses[1]);
+        assertEquals(3, byteClasses[2]);
+        assertEquals(12, byteClasses[3]);
     }
 
-    public void test_fillBytesFromString_errorsOnBadInput() {
+    @Test
+    void fill_bytes_from_string_errors_on_bad_input() {
         try {
             ByteClassUtil.fillBytesFromString(1, "1-z");
         }
@@ -29,7 +34,7 @@ public class ByteClassUtilTest extends TestCase {
     }
 
     @Test
-    public void testFillMultipleByteClassesFromStringUsingBytes_singleArray() {
+    void fillMultipleByteClassesFromStringUsingBytesSingleArray() {
         var byteClasses = new byte[13 * 4];
         ByteClassUtil.fillMultipleByteClassesFromString_singleArray(byteClasses, 4, "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17");
         // "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17"
@@ -41,7 +46,7 @@ public class ByteClassUtilTest extends TestCase {
     }
 
     @Test
-    public void testFillMultipleByteClassesFromStringUsingShorts_singleArray() {
+    void fillMultipleByteClassesFromStringUsingShortsSingleArray() {
         var byteClasses = new short[13 * 4];
         ByteClassUtil.fillMultipleByteClassesFromStringUsingShorts_singleArray(byteClasses, 4, "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17");
         // "0:1-2,2-3,3-c;1:1-3,2-4,3-13;2:1-4,2-5,3-e;c:1-d,2-e,3-17"

@@ -2,29 +2,25 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.RegexAST.NodePrinter;
-import com.justinblank.strings.RegexAST.Union;
 import com.justinblank.strings.Search.SearchMethod;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.theories.suppliers.TestedOn;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.generators.StringsDSL;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class IntegrationTest {
 
     static final String MANY_STATE_REGEX_STRING = "((123)|(234)|(345)|(456)){1,24}";
 
     @Test
-    public void testEmptyString() {
+    void emptyString() {
         SearchMethod searchMethod = NFA.createNFA("");
         find(searchMethod, "");
         find(searchMethod, "abc");
@@ -33,7 +29,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testEmptyStringUnion() {
+    void emptyStringUnion() {
         SearchMethod searchMethod = NFA.createNFA("()|(abc)");
         find(searchMethod, "", 0, 0);
         find(searchMethod, "def", 0, 0);
@@ -45,13 +41,13 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testConcatenatedRangesWithRepetition() {
+    void concatenatedRangesWithRepetition() {
         DFA dfa = DFA.createDFA("[A-Za-z][A-Za-z0-9]*");
         assertTrue(dfa.matches("ABC0123"));
     }
 
     @Test
-    public void testConcatenatedRangesWithRepetitionSearch() {
+    void concatenatedRangesWithRepetitionSearch() {
         DFA dfa = DFA.createDFA("[A-Za-z][A-Za-z0-9]*");
         MatchResult result = dfa.search("ABC0123");
         assertEquals(0, result.start);
@@ -63,7 +59,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testNonContiguousRanges() {
+    void nonContiguousRanges() {
         SearchMethod method = NFA.createNFA("[0-13-46-7]");
         assertTrue(method.matches("0"));
         assertTrue(method.matches("1"));
@@ -78,31 +74,31 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testUnionWithRepetitionDFAMatchesOneRepetition() {
+    void unionWithRepetitionDFAMatchesOneRepetition() {
         DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
         assertTrue(dfa.matches("123"));
     }
 
     @Test
-    public void testUpperAndLowerCaseRange() {
+    void upperAndLowerCaseRange() {
         var method = NFA.createNFA("[S-l]");
         match(method, "g");
     }
 
     @Test
-    public void testUpperAndLowerCaseRangeWithCountedRepetition() {
+    void upperAndLowerCaseRangeWithCountedRepetition() {
         var method = NFA.createNFA("[S-l]{0,2}");
         match(method, "g");
     }
 
     @Test
-    public void testTriplyRepeatedConcatenatedCharPlusCharRange() {
+    void triplyRepeatedConcatenatedCharPlusCharRange() {
         var method = NFA.createNFA("(((((`)([m-o]))*)*)*)(a)");
         match(method, "`ma");
     }
 
     @Test
-    public void testBackslashAsPartOfCharRange() {
+    void backslashAsPartOfCharRange() {
         SearchMethod method = NFA.createNFA("[\\\\-r]");
         match(method, "\\");
         match(method, "n");
@@ -110,13 +106,13 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testUnionWithRepetitionDFAMatchesMultipleRepetitions() {
+    void unionWithRepetitionDFAMatchesMultipleRepetitions() {
         DFA dfa = DFA.createDFA("((123)|(234)){1,24}");
         assertTrue(dfa.matches("123234234123"));
     }
 
     @Test
-    public void testRanges() {
+    void ranges() {
         DFA dfa = DFA.createDFA("[A-Za-z]");
         assertTrue(dfa.matches("C"));
         assertTrue(dfa.matches("c"));
@@ -124,7 +120,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testRangesSearch() {
+    void rangesSearch() {
         DFA dfa = DFA.createDFA("[A-Za-z]");
         assertEquals(0, dfa.search("c").start);
         assertEquals(1, dfa.search("c").end);
@@ -132,7 +128,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testNFARepetition() {
+    void nfaRepetition() {
         SearchMethod method = NFA.createNFA("C*");
         match(method, "");
         match(method, "C");
@@ -141,7 +137,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFARepetition() {
+    void dfaRepetition() {
         DFA dfa = DFA.createDFA("C*");
         assertTrue(dfa.matches(""));
         assertTrue(dfa.matches("C"));
@@ -149,7 +145,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFARepetitionSearch() {
+    void dfaRepetitionSearch() {
         DFA dfa = DFA.createDFA("C*");
         assertTrue(dfa.search("").matched);
         assertTrue(dfa.search("C").matched);
@@ -160,7 +156,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFACountedRepetitionSearch() {
+    void dfaCountedRepetitionSearch() {
         DFA dfa = DFA.createDFA("C+");
         assertTrue(dfa.search("C").matched);
         assertTrue(dfa.search("CCCCCC").matched);
@@ -170,7 +166,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAUnion() {
+    void dfaUnion() {
         DFA dfa = DFA.createDFA("A|B");
         assertTrue(dfa.matches("A"));
         assertTrue(dfa.matches("B"));
@@ -178,7 +174,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAUnionSearch() {
+    void dfaUnionSearch() {
         DFA dfa = DFA.createDFA("A|B");
         assertTrue(dfa.search("A").matched);
         assertTrue(dfa.search("B").matched);
@@ -192,13 +188,13 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAUnionThreeOptions() {
+    void dfaUnionThreeOptions() {
         DFA dfa = DFA.createDFA("A|B|C");
         assertTrue(dfa.matches("B"));
     }
 
     @Test
-    public void testGroupedDFAUnion() {
+    void groupedDFAUnion() {
         DFA dfa = DFA.createDFA("(AB)|(BA)");
         assertTrue(dfa.matches("AB"));
         assertTrue(dfa.matches("BA"));
@@ -206,19 +202,19 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAUnionThreeGroupsSameSize() {
+    void dfaUnionThreeGroupsSameSize() {
         DFA dfa = DFA.createDFA("(AB)|(BC)|(CD)");
         assertTrue(dfa.matches("BC"));
     }
 
     @Test
-    public void testDFAUnionThreeGroupsDifferentSizes() {
+    void dfaUnionThreeGroupsDifferentSizes() {
         DFA dfa = DFA.createDFA("(AB)|(BC)|(CDE)");
         assertTrue(dfa.matches("BC"));
     }
 
     @Test
-    public void testDFAUnionGroupsWithRepetition() {
+    void dfaUnionGroupsWithRepetition() {
         DFA dfa = DFA.createDFA("((AB)|(BC)){1,2}");
         assertFalse(dfa.matches(""));
         assertTrue(dfa.matches("AB"));
@@ -228,7 +224,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testGroupedDFAUnionWithDifferentSizedGroupsAndRepetitions() {
+    void groupedDFAUnionWithDifferentSizedGroupsAndRepetitions() {
         String regex = "((A)|(B)|(CD)){1,2}";
         SearchMethod method = NFA.createNFA(regex);
         find(method, "AB", 0, 1);
@@ -248,7 +244,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testGroupedDFAUnionSearch() {
+    void groupedDFAUnionSearch() {
         DFA dfa = DFA.createDFA("(AB)|(BA)");
         assertTrue(dfa.search("AB").matched);
         assertTrue(dfa.search("BA").matched);
@@ -259,7 +255,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testUnionOfUnionFollowedByLiteralWithLiteral() {
+    void unionOfUnionFollowedByLiteralWithLiteral() {
         String test = "(a|a)a|ab";
         check(test);
         var dfa = DFA.createDFA(test);
@@ -271,7 +267,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testManyStateRegex() {
+    void manyStateRegex() {
         SearchMethod nfa = NFA.createNFA(MANY_STATE_REGEX_STRING);
         find(nfa, "456", 0, 3);
         find(nfa, "234234", 0, 6);
@@ -286,7 +282,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testManyStateRegexWithLiteralSuffix() {
+    void manyStateRegexWithLiteralSuffix() {
         String regexString = MANY_STATE_REGEX_STRING + "ab";
         SearchMethod method = NFA.createNFA(regexString);
         match(method, "456ab");
@@ -299,7 +295,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testRepetitionWithLiteralSuffix() {
+    void repetitionWithLiteralSuffix() {
         String regexString = "((12)|(23)){1,2}" + "ab";
         SearchMethod method = NFA.createNFA(regexString);
         match(method, "12ab");
@@ -314,7 +310,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testManyStateDFASearch() {
+    void manyStateDFASearch() {
         String regexString = "(123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210){1,24}";
         SearchMethod method = NFA.createNFA(regexString);
         match(method, "567");
@@ -327,7 +323,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testCountedRepetitionOneChar() {
+    void countedRepetitionOneChar() {
         String regexString = "1{1,1}";
         Node node = RegexParser.parse(regexString);
         SearchMethod searchMethod = NFA.createNFA(regexString);
@@ -337,7 +333,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testZeroBoundCountedRepetition() {
+    void zeroBoundCountedRepetition() {
         String regexString = "1{0,2}";
         SearchMethod method = NFA.createNFA(regexString); // TODO: fix AsciiAhoCorasick
         match(method, "");
@@ -348,7 +344,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testCountedRepetition() {
+    void countedRepetition() {
         String regexString = "(1|2){2,3}abc";
         SearchMethod nfa = NFA.createNFA(regexString);
         match(nfa, "12abc");
@@ -367,7 +363,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void test_ab_PLUS() {
+    void ab_plus() {
         String regexString = "(ab)+";
         Node node = RegexParser.parse(regexString);
         SearchMethod nfa = NFA.createNFA(regexString);
@@ -381,7 +377,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void test_a_PLUS() {
+    void a_plus() {
         String regexString = "a+";
         SearchMethod nfa = NFA.createNFA(regexString);
         match(nfa, "a");
@@ -394,7 +390,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void test_aORbORc_PLUS() {
+    void a_orb_orc_plus() {
         String regexString = "[a-c]+";
         SearchMethod searchMethod = NFA.createNFA(regexString);
         match(searchMethod, "a");
@@ -413,7 +409,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testConcatenatedMultiRegex() {
+    void concatenatedMultiRegex() {
         String regexString = "[a-zA-Z@#]";
         SearchMethod searchMethod = NFA.createNFA(regexString);
         match(searchMethod, "a");
@@ -433,14 +429,14 @@ public class IntegrationTest {
         assertFalse(searchMethod.matches("%^"));
         assertFalse(searchMethod.matches("{}"));
     }
-    
+
     @Test
-    public void testUnionOfRepeatedRangeWithOverlappingRangeFollowedByLiteral() {
+    void unionOfRepeatedRangeWithOverlappingRangeFollowedByLiteral() {
         check("([BQ]*|[Q-x])l");
     }
 
     @Test
-    public void testPeriod() {
+    void period() {
         SearchMethod method = NFA.createNFA(".");
         match(method, "a");
         match(method, "%");
@@ -451,14 +447,14 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testGreedySearchOfOverlappingStrings() {
+    void greedySearchOfOverlappingStrings() {
         SearchMethod nfa = NFA.createNFA("(EAD)|(DEAD)");
         find(nfa, "DEAD");
         assertEquals(MatchResult.success(0, 4), nfa.find("DEAD"));
     }
 
     @Test
-    public void testTheSpaceWord() {
+    void theSpaceWord() {
         SearchMethod pattern = NFA.createNFA("the\\s+\\w+");
         find(pattern, "the a");
         find(pattern, "the art");
@@ -478,7 +474,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testDFAFailure() {
+    void dfaFailure() {
         String regex = "(([b-e]|[T-_])*)e";
         var dfa = DFA.createDFA(regex);
         assertTrue(dfa.matches("e"));
@@ -486,8 +482,8 @@ public class IntegrationTest {
 
     @Test
     // TODO: make NFAs support same behavior as DFAs
-    @Ignore
-    public void fileBasedTests() throws Exception {
+    @Disabled
+    void fileBasedTests() throws Exception {
         var patterns = new HashMap<String, SearchMethod>();
         var testSpecs = new RegexTestSpecParser().readTests();
         var correctMatches = 0;
@@ -547,7 +543,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void generativeNFAMatchingTest() {
+    void generativeNFAMatchingTest() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 24; maxSize++) {
             for (int i = 0; i < 20; i++) {
@@ -566,7 +562,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void generativeDFAMatchingTest() {
+    void generativeDFAMatchingTest() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 8; maxSize++) {
             for (int i = 0; i < 20; i++) {

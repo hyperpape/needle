@@ -4,23 +4,23 @@ import com.justinblank.classcompiler.ClassCompiler;
 import com.justinblank.classloader.MyClassLoader;
 import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.RegexAST.NodePrinter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.justinblank.strings.SearchMethodTestUtil.find;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 // Tests belong here if they're coupled to the internal structure of the classes that the DFAClassBuilder produces
-public class DFAClassBuilderTest {
+class DFAClassBuilderTest {
 
     private static final AtomicInteger CLASS_COUNTER = new AtomicInteger(0);
 
     @Test
-    public void testContainedIn() {
+    void containedIn() {
         var dfa = DFA.createDFA("abcd");
         var factorization = RegexParser.parse("abcd").bestFactors();
         var builder = new DFAClassBuilder("testContainedIn", dfa,
@@ -41,7 +41,7 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void testIndexForwards() {
+    void indexForwards() {
         try {
             var dfa = DFA.createDFA("abc");
             var node = RegexParser.parse("abc");
@@ -60,7 +60,7 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void testIndexForwardsSingleChar() {
+    void indexForwardsSingleChar() {
         try {
             var dfa = DFA.createDFA("a");
             var node = RegexParser.parse("a");
@@ -77,18 +77,18 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void testBuildPossiblyEmptyRange() {
+    void buildPossiblyEmptyRange() {
         // This triggers handling of an empty string prefix
         testCompilable("[B-i]{0,2}");
     }
 
     @Test
-    public void testRangeWithOffset() {
+    void rangeWithOffset() {
         testCompilable("[X-k]{3,6}}");
     }
 
     @Test
-    public void testStateMethodIsCompilable() throws Exception {
+    void stateMethodIsCompilable() throws Exception {
         var dfa = DFA.createDFA("a");
         var builder = new DFAClassBuilder("testStateMethod",
                 dfa, dfa, dfa, dfa, Factorization.fromChar('a'), DebugOptions.none());
@@ -97,7 +97,7 @@ public class DFAClassBuilderTest {
     }
 
     @Test
-    public void generativeDFAMatchingTest() {
+    void generativeDFAMatchingTest() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 6; maxSize++) {
             int count = 20 * (int) Math.pow(2, 6 - maxSize);

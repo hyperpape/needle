@@ -2,8 +2,8 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.precompile.Precompile;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,12 +15,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 // Generates classfiles for several regexes, and stores them in src/test/resources/snapshots.
 // Subsequent runs compare newly generated classes to the existing ones so that we can detect any drift.
 // Run record examples (it is ignored by default) to update the checked in classfiles.
-public class SnapshotTests {
+class SnapshotTests {
 
     private static final List<Pair<String, String>> EXAMPLES = new ArrayList<>();
 
@@ -54,24 +54,24 @@ public class SnapshotTests {
     }
 
     @Test
-    public void generateExamples() {
+    void generateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
         for (var pair : EXAMPLES) {
             DFACompiler.compile(pair.getLeft(), pair.getRight(), debugOptions);
         }
     }
 
-    @Ignore
+    @Disabled
     @Test
-    public void recordExamples() throws IOException {
+    void recordExamples() throws IOException {
         for (var pair : EXAMPLES) {
             Precompile.precompile(pair.getLeft(), pair.getRight(), SNAPSHOT_PATH);
         }
     }
 
-    @Ignore
+    @Disabled
     @Test
-    public void generateLargeExamples() {
+    void generateLargeExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
         for (var pair : LARGE_EXAMPLES) {
             DFACompiler.compile(pair.getLeft(), pair.getRight(), debugOptions);
@@ -79,7 +79,7 @@ public class SnapshotTests {
     }
 
     @Test
-    public void compareSnapshots() throws Exception {
+    void compareSnapshots() throws Exception {
         for (var pair : EXAMPLES) {
             compareToSnapshot(pair.getLeft(), pair.getRight(), SNAPSHOT_PATH + pair.getRight() + ".class");
         }

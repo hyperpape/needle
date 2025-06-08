@@ -1,9 +1,8 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.Search.SearchMethod;
-import com.justinblank.strings.Search.SearchMethods;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 import org.quicktheories.generators.Generate;
@@ -12,20 +11,18 @@ import org.quicktheories.generators.ListsDSL;
 import org.quicktheories.generators.StringsDSL;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static com.justinblank.strings.SearchMethodTestUtil.match;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class NFATest {
+class NFATest {
 
 
     @Test
-    public void testAsciiSingleStringMatching() {
+    void asciiSingleStringMatching() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 NFA.createNFA(s1).matches(s1));
@@ -35,7 +32,7 @@ public class NFATest {
     }
 
     @Test
-    public void testRepetition() {
+    void repetition() {
         Gen<String> s = A_THROUGH_Z.ofLength(1);
         Gen<Integer> l = new IntegersDSL().between(2, 100);
         QuickTheory.qt().forAll(s, l).check((singleChar, length) -> {
@@ -52,7 +49,7 @@ public class NFATest {
     }
 
     @Test
-    public void testCountedRepetitions() {
+    void countedRepetitions() {
         Gen<String> s = A_THROUGH_Z.ofLength(1);
         Gen<Integer> l = new IntegersDSL().between(2, 100);
         QuickTheory.qt().forAll(s, l, l, l).check((singleChar, length, min, max) -> {
@@ -82,7 +79,7 @@ public class NFATest {
     }
 
     @Test
-    public void testSingleStringMatching() {
+    void singleStringMatching() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 NFA.createNFA(s1).matches(s1));
@@ -92,21 +89,21 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiSingleStringContainedIn() {
+    void asciiSingleStringContainedIn() {
         Gen<String> strings = A_THROUGH_Z.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 NFA.createNFA(s1).containedIn(s1));
     }
 
     @Test
-    public void testSingleStringContainedIn() {
+    void singleStringContainedIn() {
         Gen<String> strings = NON_METACHAR_BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 NFA.createNFA(s1).containedIn(s1));
     }
 
     @Test
-    public void testMatching() {
+    void matching() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, new IntegersDSL().allPositive()).check((l, i) ->
@@ -119,7 +116,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiSingleStringOverlappingFalseStart() {
+    void asciiSingleStringOverlappingFalseStart() {
         String needle = "aab";
         String haystack = "aaab";
         SearchMethod nfa = NFA.createNFA(needle);
@@ -129,7 +126,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiContainedIn() {
+    void asciiContainedIn() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -148,7 +145,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiContainedInWithAffixes() {
+    void asciiContainedInWithAffixes() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<String> maybeEmpty = strings.mix(Generate.constant(() -> ""));
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, SMALL_DATA_SIZE);
@@ -169,7 +166,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiFindArbitrary() {
+    void asciiFindArbitrary() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         Gen<String> haystackStrings = SMALL_ALPHABET.ofLengthBetween(1, LARGE_DATA_SIZE);
@@ -208,7 +205,7 @@ public class NFATest {
     }
 
     @Test
-    public void testFindArbitrary() {
+    void findArbitrary() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         Gen<String> haystackStrings = SMALL_BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
@@ -237,14 +234,14 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiCollidingNeedlesInMiddleOfHaystack() {
+    void asciiCollidingNeedlesInMiddleOfHaystack() {
         List<String> strings = Arrays.asList("aa", "baaa");
         SearchMethod nfa = createNFA(strings);
         assertTrue(nfa.containedIn("abaab"));
     }
 
     @Test
-    public void testOtherHaystackCollision() {
+    void otherHaystackCollision() {
         List<String> strings = Arrays.asList("aabaa", "acaaaa", "aaaa");
         SearchMethod nfa = NFA.createNFA("(" + String.join(")|(", strings) + ")");
         assertTrue(nfa.containedIn("aabaa"));
@@ -252,7 +249,7 @@ public class NFATest {
     }
 
     @Test
-    public void testUnionOfLiterals() {
+    void unionOfLiterals() {
         SearchMethod method = NFA.createNFA("A|BCD|E");
         match(method, "A");
         match(method, "BCD");
@@ -263,7 +260,7 @@ public class NFATest {
     }
 
     @Test
-    public void testContainedIn() {
+    void containedIn() {
         Gen<String> strings = NON_METACHAR_BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().allPositive()).check((l, s, i) -> {
@@ -274,7 +271,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiFind() {
+    void asciiFind() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -305,7 +302,7 @@ public class NFATest {
     }
 
     @Test
-    public void testAsciiFindInBoundedSubstring() {
+    void asciiFindInBoundedSubstring() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -336,7 +333,7 @@ public class NFATest {
     }
 
     @Test
-    public void testFind() {
+    void testFind() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -367,7 +364,7 @@ public class NFATest {
     }
 
     @Test
-    public void testFindInBoundedSubstring() {
+    void findInBoundedSubstring() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -397,24 +394,28 @@ public class NFATest {
         });
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexStart() {
-        NFA.createNFA("a*").find("a", -1, 1);
+    @Test
+    void illegalIndexStart() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            NFA.createNFA("a*").find("a", -1, 1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexEndNegative() {
-        NFA.createNFA("a*").find("a", 0, -1);
+    @Test
+    void illegalIndexEndNegative() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            NFA.createNFA("a*").find("a", 0, -1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexEnd() {
-        NFA.createNFA("a*").find("a", 0, 3);
+    @Test
+    void illegalIndexEnd() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            NFA.createNFA("a*").find("a", 0, 3));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testStartGreaterThanEnd() {
-        NFA.createNFA("a*").find("abc", 2, 1);
+    @Test
+    void startGreaterThanEnd() {
+        assertThrows(IllegalArgumentException.class, () ->
+            NFA.createNFA("a*").find("abc", 2, 1));
     }
 
     private static String joinLiterals(List<String> strings) {
@@ -426,21 +427,21 @@ public class NFATest {
     }
 
     @Test
-    public void testEpsilonClosure_isNoOpOnCharacter() {
+    void epsilonClosureIsNoOpOnCharacter() {
         NFA nfa = NFA.createNFANoAhoCorasick("gc*g");
         var closure = nfa.epsilonClosure(0);
         assertEquals(Set.of(0), closure);
     }
 
     @Test
-    public void testEpsilonClosure_omitsSkipInstructions() {
+    void epsilonClosureOmitsSkipInstructions() {
         NFA nfa = NFA.createNFANoAhoCorasick("gc*g");
         var closure = nfa.epsilonClosure(1);
         assertEquals(Set.of(2, 4), closure);
     }
 
     @Test
-    public void testEpsilonClosure_omitsSkipInstructions_reachedFromJumps() {
+    void epsilonClosureOmitsSkipInstructionsReachedFromJumps() {
         NFA nfa = NFA.createNFANoAhoCorasick("gc*g");
         var closure = nfa.epsilonClosure(3);
         assertEquals(Set.of(2, 4), closure);

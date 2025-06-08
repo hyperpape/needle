@@ -1,15 +1,15 @@
 package com.justinblank.strings;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class NFAToDFACompilerTest {
+class NFAToDFACompilerTest {
 
     @Test
-    public void compileBasic() {
+    void compileBasic() {
         var nfa = NFA.createNFANoAhoCorasick("(AB){1,2}");
         var dfa = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.BASIC);
         assertEquals(7, dfa.statesCount());
@@ -19,7 +19,7 @@ public class NFAToDFACompilerTest {
     }
 
     @Test
-    public void compileContainedIn() {
+    void compileContainedIn() {
         var nfa = NFA.createNFANoAhoCorasick("(AB){1,2}");
         var dfa = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.CONTAINED_IN);
         assertEquals(3, dfa.statesCount());
@@ -28,7 +28,7 @@ public class NFAToDFACompilerTest {
     }
 
     @Test
-    public void compileDFASearch() {
+    void compileDFASearch() {
         var nfa = NFA.createNFANoAhoCorasick("(AB){1,2}");
         var dfa = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.DFA_SEARCH);
         assertEquals(6, dfa.statesCount());

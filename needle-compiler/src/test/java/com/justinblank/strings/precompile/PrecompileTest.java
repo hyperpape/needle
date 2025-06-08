@@ -1,17 +1,17 @@
 package com.justinblank.strings.precompile;
 
 import org.assertj.core.util.Files;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PrecompileTest {
+class PrecompileTest {
 
     @Test
-    public void testPrecompilation() throws IOException {
+    void precompilation() throws IOException {
         File dir = Files.newTemporaryFolder();
         Precompile.precompile("a", "PrecompiledRegex", dir.getAbsolutePath());
         var target = dir.getAbsolutePath() + "/PrecompiledRegex.class";

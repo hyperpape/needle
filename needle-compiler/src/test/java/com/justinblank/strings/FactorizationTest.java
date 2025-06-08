@@ -1,60 +1,58 @@
 package com.justinblank.strings;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
 import static com.justinblank.strings.Factorization.best;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class FactorizationTest {
+class FactorizationTest {
 
     @Test
-    public void testBestDifferentLengths() {
+    void bestDifferentLengths() {
         var set1 = Set.of("abc", "def", "ghi");
         var set2 = Set.of("abc", "def");
         assertEquals(set2, best(set1, set2));
     }
 
     @Test
-    public void testBestNull() {
+    void bestNull() {
         Set<String> set1 = null;
         Set<String> set2 = null;
-        assertEquals(null, best(set1, set2));
+        assertNull(best(set1, set2));
     }
 
     @Test
-    public void testBestEmpty() {
+    void bestEmpty() {
         Set<String> set1 = Collections.emptySet();
         Set<String> set2 = Collections.emptySet();
         assertEquals(set2, best(set1, set2));
     }
 
     @Test
-    public void testBest1Empty() {
+    void best1Empty() {
         Set<String> set1 = Collections.emptySet();
         Set<String> set2 = Set.of("A");
         assertEquals(set2, best(set1, set2));
     }
 
     @Test
-    public void testBestDifferentDominated() {
+    void bestDifferentDominated() {
         var set1 = Set.of("abc12", "def12", "ghi12");
         var set2 = Set.of("abc", "def");
         assertEquals(set1, best(set1, set2));
     }
 
     @Test
-    public void testBestSameLength() {
+    void bestSameLength() {
         var set1 = Set.of("abc", "def", "ghi");
         var set2 = Set.of("abc", "def", "ghi12");
         assertEquals(set2, best(set1, set2));
     }
 
     @Test
-    public void testFactorizationSimpleConcatentation() {
+    void factorizationSimpleConcatentation() {
         var node = RegexParser.parse("AB");
         Set<String> expected = Set.of("AB");
         Factorization factorization = node.bestFactors();
@@ -67,7 +65,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testFactorizationRepetitionAndConcatenation() {
+    void factorizationRepetitionAndConcatenation() {
         var node = RegexParser.parse("A*B");
         Factorization factorization = node.bestFactors();
         assertNull(factorization.getAll());
@@ -78,7 +76,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testFactorization() {
+    void factorization() {
         var node = RegexParser.parse("((GA|AAA)*)(TA|AG)");
         Factorization factorization = node.bestFactors();
         assertEquals(Set.of("TA", "AG"), factorization.getFactors());
@@ -86,7 +84,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testFactorizationCharRangeUnion() {
+    void factorizationCharRangeUnion() {
         var node = RegexParser.parse("[AB][CD]");
         var factorization = node.bestFactors();
         var factorSet = Set.of("BC", "AC", "BD", "AD");
@@ -98,14 +96,14 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testFactorizationDNAExample() {
+    void factorizationDNAExample() {
         var node = RegexParser.parse("(ABC(GA|AAA)*)(TA|AG)");
         Factorization factorization = node.bestFactors();
         assertEquals(Set.of("ABC"), factorization.getFactors());
     }
 
     @Test
-    public void testFactorizationUnionOfLiterals() {
+    void factorizationUnionOfLiterals() {
         var node = RegexParser.parse("((ABC)|(DEF))");
         var factorization = node.bestFactors();
         assertEquals(Set.of("ABC", "DEF"), factorization.getFactors());
@@ -115,7 +113,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testOneOrMoreRepetition() {
+    void oneOrMoreRepetition() {
         var node = RegexParser.parse("A?");
         var factorization = node.bestFactors();
         var factorSet = Set.of("", "A");
@@ -126,7 +124,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testOneOrMoreRepetitionCharRange() {
+    void oneOrMoreRepetitionCharRange() {
         var node = RegexParser.parse("[A-Z]*");
         var factorization = node.bestFactors();
         assertNull(factorization.getPrefixes());
@@ -136,7 +134,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testPotentiallyEmptyCountedRepetition() {
+    void potentiallyEmptyCountedRepetition() {
         var node = RegexParser.parse("(AB){0,2}");
         var factorization = node.bestFactors();
         var expectedFactors = Set.of("", "AB", "ABAB");
@@ -149,7 +147,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testPotentiallyEmptyCountedRepetitionOfRange() {
+    void potentiallyEmptyCountedRepetitionOfRange() {
         var node = RegexParser.parse("[B-i]{0,2}");
         var factorization = node.bestFactors();
         var expectedFactors = Set.of("");
@@ -162,7 +160,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testCountedRepetition() {
+    void countedRepetition() {
         var node = RegexParser.parse("(AB){1,2}");
         var factorization = node.bestFactors();
         Set<String> expectedFactors = Set.of("AB", "ABAB");
@@ -173,7 +171,7 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testPotentiallyEmptyCountedRepetitionWithLargeRange() {
+    void potentiallyEmptyCountedRepetitionWithLargeRange() {
         var node = RegexParser.parse("[A-Z]{0,2}");
         var factorization = node.bestFactors();
         assertEquals(Set.of(""), factorization.getFactors());
@@ -183,14 +181,14 @@ public class FactorizationTest {
     }
 
     @Test
-    public void testSherlock() {
+    void sherlock() {
         var node = RegexParser.parse("([Ss]herlock)");
         var factors = node.bestFactors();
         assertEquals(Optional.of(List.of('S', 's')), factors.getInitialChars());
     }
 
     @Test
-    public void testHolmesWithin25CharactersOfWatson() {
+    void holmesWithin25CharactersOfWatson() {
         var node = RegexParser.parse("Holmes.{0,25}Watson|Watson.{0,25}Holmes");
         var factors = node.bestFactors();
         var requiredFactors = factors.getRequiredFactors();

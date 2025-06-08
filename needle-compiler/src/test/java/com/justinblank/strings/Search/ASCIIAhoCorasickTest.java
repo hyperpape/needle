@@ -1,7 +1,7 @@
 package com.justinblank.strings.Search;
 
 import com.justinblank.strings.MatchResult;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 import org.quicktheories.generators.IntegersDSL;
@@ -11,16 +11,16 @@ import org.quicktheories.generators.StringsDSL;
 import java.util.List;
 
 import static com.justinblank.strings.SearchMethodTestUtil.match;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class ASCIIAhoCorasickTest {
+class ASCIIAhoCorasickTest {
 
     private static final String LITERAL_1 = "ab";
     private static final String LITERAL_2 = "bc";;
     private static final String LITERAL_3 = "cd";
 
     @Test
-    public void testSingleChar() {
+    void singleChar() {
         List<String> patterns = List.of("A");
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -31,7 +31,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testSingleStringPatternContainedIn() {
+    void singleStringPatternContainedIn() {
         List<String> patterns = List.of(LITERAL_1);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -42,7 +42,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testSingleStringPatternMatches() {
+    void singleStringPatternMatches() {
         List<String> patterns = List.of(LITERAL_1);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -53,7 +53,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testSingleStringPatternMatchResult() {
+    void singleStringPatternMatchResult() {
         List<String> patterns = List.of(LITERAL_1);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -64,7 +64,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testSingleStringPatternRepetition() {
+    void singleStringPatternRepetition() {
         List<String> patterns = List.of(LITERAL_1);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -72,7 +72,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testMultiStringPatternSingleLiteral() {
+    void multiStringPatternSingleLiteral() {
         List<String> patterns = List.of(LITERAL_1, LITERAL_2, LITERAL_3);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -83,7 +83,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testPatternsContainingEmptyString() {
+    void patternsContainingEmptyString() {
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(List.of("", "1", "11"));
         match(method, "");
         match(method, "1");
@@ -91,14 +91,14 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testRepeatedPatterns() {
+    void repeatedPatterns() {
         List<String> patterns = List.of("a", "aaa");
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
     }
 
     @Test
-    public void testMultiStringPatternIrrelevantChars() {
+    void multiStringPatternIrrelevantChars() {
         List<String> patterns = List.of(LITERAL_1, LITERAL_2, LITERAL_3);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -108,7 +108,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testMultiStringPattern() {
+    void multiStringPattern() {
         List<String> patterns = List.of(LITERAL_1, LITERAL_2, LITERAL_3);
         SearchMethod method = AsciiAhoCorasickBuilder.buildAhoCorasick(patterns);
         assertNotNull(method);
@@ -118,7 +118,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testAll() {
+    void all() {
         Gen<String> stringGen = new StringsDSL().ascii().ofLengthBetween(1, 12);
         int listSize = 100;
         Gen<List<String>> patternStrings = new ListsDSL().of(stringGen).ofSizeBetween(1, listSize);
@@ -140,7 +140,7 @@ public class ASCIIAhoCorasickTest {
     }
 
     @Test
-    public void testAllBuild() {
+    void allBuild() {
         Gen<String> stringGen = new StringsDSL().ascii().ofLengthBetween(1, 100);
         Gen<List<String>> patternStrings = new ListsDSL().of(stringGen).ofSizeBetween(1, 1);
         QuickTheory.qt().forAll(patternStrings).check((patterns) -> {

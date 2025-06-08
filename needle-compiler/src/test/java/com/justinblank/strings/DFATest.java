@@ -1,25 +1,24 @@
 package com.justinblank.strings;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class DFATest {
+class DFATest {
 
     @Test
-    public void testAfterSingleCharLiteralRegex() {
+    void afterSingleCharLiteralRegex() {
         var dfa = DFA.createDFA("a");
         assertThat(dfa.after("a")).isPresent();
         assertThat(dfa.after("b")).isEmpty();
     }
 
     @Test
-    public void testAfterMultiCharLiteralRegex() {
+    void afterMultiCharLiteralRegex() {
         var dfa = DFA.createDFA("abc");
         assertThat(dfa.after("a")).isPresent();
         assertThat(dfa.after("ab")).isPresent();
@@ -28,9 +27,8 @@ public class DFATest {
     }
 
 
-
     @Test
-    public void testAfter() {
+    void after() {
         var dfa = DFA.createDFA("ab*[0-9]c");
         assertThat(dfa.after("a")).isPresent();
         assertThat(dfa.after("ab")).isPresent();
@@ -39,7 +37,7 @@ public class DFATest {
     }
 
     @Test
-    public void testIsTerminal() {
+    void isTerminal() {
         var dfa = DFA.createDFA("abc", ConversionMode.DFA_SEARCH);
         assertFalse(dfa.isTerminal());
         assertFalse(dfa.after("a").get().isTerminal());
@@ -48,97 +46,97 @@ public class DFATest {
     }
 
     @Test
-    public void testCalculateOffsetRepetition() {
+    void calculateOffsetRepetition() {
         var dfa = DFA.createDFA("b*c");
         assertThat(dfa.calculateOffset()).isEmpty();
     }
 
     @Test
-    public void testCalculateOffsetLiteral() {
+    void calculateOffsetLiteral() {
         var dfa = DFA.createDFA("abc");
         var offset = dfa.calculateOffset();
         check(offset, 2, 'c', 'c');
     }
 
     @Test
-    public void testCalculateOffsetLiteralFollowedByRange() {
+    void calculateOffsetLiteralFollowedByRange() {
         var dfa = DFA.createDFA("ab[c-d]");
         var optOffset = dfa.calculateOffset();
         check(optOffset, 2, 'c', 'd');
     }
 
     @Test
-    public void testCalculateOffsetWithInternalCharRange() {
+    void calculateOffsetWithInternalCharRange() {
         var dfa = DFA.createDFA("a[0-9]c");
         var optOffset = dfa.calculateOffset();
         check(optOffset, 2, 'c', 'c');
     }
 
     @Test
-    public void testCalculateOffsetWithInternalUnionWithSameChild() {
+    void calculateOffsetWithInternalUnionWithSameChild() {
         var dfa = DFA.createDFA("a([0-9]|b)c");
         var optOffset = dfa.calculateOffset();
         check(optOffset, 2, 'c', 'c');
     }
 
     @Test
-    public void testCalculateOffsetWithInternalUnionWithDifferentChild() {
+    void calculateOffsetWithInternalUnionWithDifferentChild() {
         var dfa = DFA.createDFA("a(([0-9]c)|([a-z]d))");
         var optOffset = dfa.calculateOffset();
         assertThat(optOffset).isEmpty();
     }
 
     @Test
-    public void testLiteralPrefixGivesOffset() {
+    void literalPrefixGivesOffset() {
         var dfa = DFA.createDFA("abc*");
         var optOffset = dfa.calculateOffset();
         check(optOffset, 1, 'b', 'b');
     }
 
     @Test
-    public void testOffsetForCountedRepetitionWithNoOffset() {
+    void offsetForCountedRepetitionWithNoOffset() {
         var dfa = DFA.createDFA("A{0,4}");
         var optOffset = dfa.calculateOffset();
         assertThat(optOffset).isEmpty();
     }
 
     @Test
-    public void testOffsetForCountedRepetitionWithNonZeroOffset() {
+    void offsetForCountedRepetitionWithNonZeroOffset() {
         var dfa = DFA.createDFA("A{3,4}");
         var optOffset = dfa.calculateOffset();
         check(optOffset, 2, 'A', 'A');
     }
 
     @Test
-    public void testChainForCountedRepetition() {
+    void chainForCountedRepetition() {
         var dfa = DFA.createDFA("A{3,4}");
         var chain = dfa.chain();
         assertEquals(2, chain.size());
     }
 
     @Test
-    public void testChainForAlternation() {
+    void chainForAlternation() {
         var dfa = DFA.createDFA("(A|B)");
         var chain = dfa.chain();
         assertEquals(0, chain.size());
     }
 
     @Test
-    public void testChainLiteralFollowedByAlternation() {
+    void chainLiteralFollowedByAlternation() {
         var dfa = DFA.createDFA("AB(A|B)");
         var chain = dfa.chain();
         assertEquals(2, chain.size());
     }
 
     @Test
-    public void testChainLiteralFollowedByRepetition() {
+    void chainLiteralFollowedByRepetition() {
         var dfa = DFA.createDFA("ABa*");
         var chain = dfa.chain();
         assertEquals(1, chain.size());
     }
 
     @Test
-    public void testChainLiteralFollowedByRepetitionOfAlternation() {
+    void chainLiteralFollowedByRepetitionOfAlternation() {
         var dfa = DFA.createDFA("AB(a|c)*");
         var chain = dfa.chain();
         assertEquals(1, chain.size());
@@ -153,7 +151,7 @@ public class DFATest {
     }
 
     @Test
-    public void testOffsetsDiamond() {
+    void offsetsDiamond() {
         String regexString = "ab(cd|ef)ghi";
         var dfa = DFA.createDFA(regexString);
         var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
@@ -162,7 +160,7 @@ public class DFATest {
     }
 
     @Test
-    public void testOffsetsFakeFork() {
+    void offsetsFakeFork() {
         String regexString = "(a|c)efg";
         var dfa = DFA.createDFA(regexString);
         var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
@@ -170,7 +168,7 @@ public class DFATest {
     }
 
     @Test
-    public void testOffsetsFork() {
+    void offsetsFork() {
         String regexString = "(ab|cd)efg";
         var dfa = DFA.createDFA(regexString);
         var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
@@ -178,7 +176,7 @@ public class DFATest {
     }
 
     @Test
-    public void testByteClassesLiteral() {
+    void byteClassesLiteral() {
         var dfa = DFA.createDFA("abc");
         var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < 'a'; i++) {
@@ -193,7 +191,7 @@ public class DFATest {
     }
 
     @Test
-    public void testByteClassesTwoDisconnectedRangesFollowedByLiteral() {
+    void byteClassesTwoDisconnectedRangesFollowedByLiteral() {
         var dfa = DFA.createDFA("[A-Za-z]+ab");
         var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < 'A'; i++) {
@@ -212,7 +210,7 @@ public class DFATest {
     }
 
     @Test
-    public void testByteClasses_canBeFormed_fromRegexWithDot() {
+    void byteClassesCanBeFormedFromRegexWithDot() {
         var dfa = DFA.createDFA("[A-Za-z]+.b");
         var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < 'A'; i++) {
@@ -231,7 +229,7 @@ public class DFATest {
     }
 
     @Test
-    public void newTest() {
+    void newTest() {
         var dfa = DFA.createDFA("http://.+");
         var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < '/'; i++) {
@@ -245,7 +243,7 @@ public class DFATest {
     }
 
     @Test
-    public void testDistinctCharRanges_canBeFormed_fromRegexWithDot() {
+    void distinctCharRangesCanBeFormedFromRegexWithDot() {
         var dfa = DFA.createDFA("[A-Za-z]+.b");
         var distinguishedRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
         assertThat(distinguishedRanges).isNotEmpty();
@@ -253,7 +251,7 @@ public class DFATest {
     }
 
     @Test
-    public void testDistinctCharRanges_withCharRangeSplitMultipleTimes() {
+    void distinctCharRangesWithCharRangeSplitMultipleTimes() {
         // the [a-z] range gets subdivided into [a-f][g][h][i][j-m][n][o-z]
         var dfa = DFA.createDFA("[A-Za-z]+ing");
         var distinguishedRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
@@ -261,7 +259,7 @@ public class DFATest {
     }
 
     @Test
-    public void testCharRanges_forRegexWithDot() {
+    void charRangesForRegexWithDot() {
         // not isolating the behavior
         var dfa = DFA.createDFA("[A-Za-z]+.b");
         var rangeGroups = dfa.generateRangeGroups();
@@ -271,7 +269,7 @@ public class DFATest {
     }
 
     @Test
-    public void testCharRanges_forOtherRegexWithDot() {
+    void charRangesForOtherRegexWithDot() {
         // not isolating the behavior
         var dfa = DFA.createDFA("h:.+");
         var rangeGroups = dfa.generateRangeGroups();
@@ -281,7 +279,7 @@ public class DFATest {
     }
 
     @Test
-    public void testAgainAgain() {
+    void againAgain() {
         var dfa = DFA.createDFA("h:.+");
         var charRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
         assertEquals(new CharRange('\u0000', '9'), charRanges.get(0));
@@ -292,7 +290,7 @@ public class DFATest {
     }
 
     @Test
-    public void testAgainByteClasses() {
+    void againByteClasses() {
         var dfa = DFA.createDFA("h:.+");
         var byteClasses = dfa.byteClasses();
         assertEquals(1, byteClasses.ranges[0]);
@@ -303,7 +301,7 @@ public class DFATest {
     }
 
     @Test
-    public void testYetAnotherRanges() {
+    void yetAnotherRanges() {
         var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol");
         List<CharRange> distinctRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
         List<CharRange> expectedRanges = List.of(
@@ -324,7 +322,7 @@ public class DFATest {
     }
 
     @Test
-    public void testEvenMore() {
+    void evenMore() {
         var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol");
         var byteClasses = dfa.byteClasses();
         assertEquals(1, byteClasses.ranges[0]);

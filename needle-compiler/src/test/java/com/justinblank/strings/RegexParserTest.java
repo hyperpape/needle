@@ -1,25 +1,20 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.regex.PatternSyntaxException;
-import java.util.stream.Stream;
 
 import static com.justinblank.strings.TestUtil.parse;
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class RegexParserTest {
+class RegexParserTest {
 
     static final Set<Character> ESCAPED_AS_LITERAL_CHARS = Set.of('*', '(', ')', '[', '$', '^', '+', ':', '?', '{');
 
     @Test
-    public void testSingleChar() {
+    void singleChar() {
         Node node = parse("a");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
@@ -27,7 +22,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testTwoCharConcatenation() {
+    void twoCharConcatenation() {
         Node node = parse("ab");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
@@ -35,14 +30,14 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testMultipleCharConcatenation() {
+    void multipleCharConcatenation() {
         Node node = parse("abcdef");
         assertNotNull(node);
         check(node, "abcdef");
     }
 
     @Test
-    public void testSingleCharRepetition() {
+    void singleCharRepetition() {
         Node node = parse("b*");
         assertNotNull(node);
         assertTrue(node instanceof Repetition);
@@ -50,7 +45,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testCurlyRepetition() {
+    void curlyRepetition() {
         Node node = parse("b{0,1}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -61,12 +56,12 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testCountedRepetitionNoComma() {
+    void countedRepetitionNoComma() {
         parse("a{12}");
     }
 
     @Test
-    public void testQuestionMarkSimple() {
+    void questionMarkSimple() {
         Node node = parse("1?");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -77,7 +72,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testQuestionMarkGrouped() {
+    void questionMarkGrouped() {
         Node node = parse("(1|2)?");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -88,43 +83,43 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testTwoCharUnion() {
+    void twoCharUnion() {
         Node node = parse("a|b");
         assertNotNull(node);
         check(node, "a|b");
     }
 
     @Test
-    public void testGroupedRepetition() {
+    void groupedRepetition() {
         Node node = parse("(ab)*");
         assertNotNull(node);
         check(node, "(ab)*");
     }
 
     @Test
-    public void testRepetitionHasHighPrecedence() {
+    void repetitionHasHighPrecedence() {
         Node node = parse("ab*");
         check(node, "ab*");
     }
 
     @Test
-    public void testPlusHasHighPrecedence() {
+    void plusHasHighPrecedence() {
         Node node = parse("ab+");
         check(node, "abb*");
     }
 
     @Test
-    public void testBackslashInCharRange() {
+    void backslashInCharRange() {
         check(RegexParser.parse("[L-\\\\]"), "[L-\\\\]");
     }
 
     @Test
-    public void testBracesHaveHighPrecedence() {
+    void bracesHaveHighPrecedence() {
         check(parse("ab{1,2}"), "ab{1,2}");
     }
 
     @Test
-    public void testUnionHasLowPrecedence() {
+    void unionHasLowPrecedence() {
         Node node = parse("A|BCD|E");
         assertTrue(node instanceof Union);
         assertTrue(((Union) node).left instanceof Union);
@@ -133,14 +128,14 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testMultiConcatenation() {
+    void multiConcatenation() {
         Node node = parse("(ab)*a");
         assertNotNull(node);
         check(node, "(ab)*a");
     }
 
     @Test
-    public void testConcatenatedUnions() {
+    void concatenatedUnions() {
         Node node = parse("(a|b)(c|d)");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
@@ -148,19 +143,19 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testBracketsFollowedBySomething() {
+    void bracketsFollowedBySomething() {
         Node node = parse("[Ss]h");
         check(node, "(S|s)h");
     }
 
     @Test
-    public void testBracketsFollowedBySomethingWrappedInParens() {
+    void bracketsFollowedBySomethingWrappedInParens() {
         Node node = parse("([Ss]h)");
         check(node, "(S|s)h");
     }
 
     @Test
-    public void testConcatenatedLiteralsWrappedInParens() {
+    void concatenatedLiteralsWrappedInParens() {
         Node node = parse("(abcdef)");
         check(node, "abcdef");
 
@@ -169,14 +164,14 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testComplexRegex() {
+    void complexRegex() {
         Node node = parse("(ab)*a(a|b)(a|b)(a|b)");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
     }
 
     @Test
-    public void testSuperfluousParentheses() {
+    void superfluousParentheses() {
         Node node = parse("((1))");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
@@ -184,7 +179,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testCountedRepetitionOfParenthesizedUnions() {
+    void countedRepetitionOfParenthesizedUnions() {
         Node node = parse("((12)|(34)){2,3}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -192,7 +187,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testCharRange() {
+    void charRange() {
         Node node = parse("[0-9]");
         assertNotNull(node);
         assertTrue(node instanceof CharRangeNode);
@@ -200,7 +195,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testMultiCharRange() {
+    void multiCharRange() {
         Node node = parse("[0-9A-Z]");
         assertNotNull(node);
         assertTrue(node instanceof Union);
@@ -208,30 +203,30 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testSillyContiguousRanges() {
+    void sillyContiguousRanges() {
         Node node = parse("[0-12-34-56-78-9]");
         assertNotNull(node);
         check(node, "[0-9]");
     }
 
     @Test
-    public void testRepeatedCharRange() {
+    void repeatedCharRange() {
         Node node = parse("[0-9]*");
         check(node, "[0-9]*");
     }
 
     @Test
-    public void testConcatenatedCharRange() {
+    void concatenatedCharRange() {
         Node node = parse("[ab]");
         assertNotNull(node);
         CharRangeNode charRangeNode = (CharRangeNode) node;
-        assertTrue(charRangeNode.range().getStart() == 'a');
-        assertTrue(charRangeNode.range().getEnd() == 'b');
+        assertEquals('a', charRangeNode.range().getStart());
+        assertEquals('b', charRangeNode.range().getEnd());
         check(node, "[a-b]");
     }
 
     @Test
-    public void testConcatenatedParensWithRepetition() {
+    void concatenatedParensWithRepetition() {
         Node node = parse("(AB)(CD)*");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
@@ -239,7 +234,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testUnionOfGroups() {
+    void unionOfGroups() {
         String s = "(AB)|(BC)";
         Node node = parse(s);
         assertNotNull(node);
@@ -248,7 +243,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testUnionOfSingleCharsWithCountedRepetition() {
+    void unionOfSingleCharsWithCountedRepetition() {
         Node node = parse("(A|B){1,2}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -256,7 +251,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testUnionOfMultipleCharsWithCountedRepetition() {
+    void unionOfMultipleCharsWithCountedRepetition() {
         Node node = parse("(A|(BC)){1,2}");
         assertNotNull(node);
         assertTrue(node instanceof CountedRepetition);
@@ -264,7 +259,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testUnionWithExtraneousParens() {
+    void unionWithExtraneousParens() {
         Node node = parse("((A)|(BC))");
         assertNotNull(node);
         assertTrue(node instanceof Union);
@@ -275,7 +270,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testUnionOfUnions() {
+    void unionOfUnions() {
         Node node = parse("(A|B)|(A|B)");
         assertNotNull(node);
         assertTrue(node instanceof Union);
@@ -283,14 +278,14 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testLiteralBeforeUnionOfLiteralAndUnion() {
+    void literalBeforeUnionOfLiteralAndUnion() {
         Node node = parse("A(BA|(A|BB))");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
     }
 
     @Test
-    public void testCountedRepetitionOfParenthesizedUnionOfLiterals() {
+    void countedRepetitionOfParenthesizedUnionOfLiterals() {
         String regex = "((A)|(B)|(CD)){1,2}";
         Node node = parse(regex);
         assertNotNull(node);
@@ -303,12 +298,12 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testParseUnionWithCompositeLeftSide() {
+    void parseUnionWithCompositeLeftSide() {
         check("(a*tc*|t*ag*)*", "((a*tc*)|(t*ag*))*");
     }
 
     @Test
-    public void testConcatenatedParens() {
+    void concatenatedParens() {
         Node node = parse("(AB)(CD)");
         assertNotNull(node);
         assertTrue(node instanceof LiteralNode);
@@ -316,7 +311,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testConcatenatedRanges() {
+    void concatenatedRanges() {
         Node node = parse("[A-Za-z][A-Za-z0-9]*");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
@@ -324,7 +319,7 @@ public class RegexParserTest {
 
     // TODO: very slow--review regex parser code
     @Test
-    public void testParseLongRegexes() {
+    void parseLongRegexes() {
         String regexString = "a".repeat(30000);
         Node node = parse(regexString);
         assertNotNull(node);
@@ -333,7 +328,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testConcatenationAfterCountedReptition() {
+    void concatenationAfterCountedReptition() {
         Node node = parse("(1|2){2,3}abc");
         assertNotNull(node);
         assertTrue(node instanceof Concatenation);
@@ -345,52 +340,52 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testDuplicateQuestionMark() {
+    void duplicateQuestionMark() {
         // This is allowed by the Java regex library
         check(parse("a??"), "(a?)?");
     }
 
     @Test
-    public void testSingleBracketElement() {
+    void singleBracketElement() {
         check( RegexParser.parse("[a]"), "a");
     }
 
     @Test
-    public void testEmptyString() {
+    void emptyString() {
         check(parse(""), "");
     }
 
     @Test
-    public void testEmptyParens() {
+    void emptyParens() {
         check(parse("()"), "");
         check(parse("(())"), "");
     }
 
     @Test
-    public void testEscapedLiterals() {
+    void escapedLiterals() {
         for (Character c : ESCAPED_AS_LITERAL_CHARS) {
             check(parse("\\" + c), "\\" + c);
         }
     }
 
     @Test
-    public void testTrivialNestedBrackets() {
+    void trivialNestedBrackets() {
         check(parse("[[sa]]"), "a|s");
         check(parse("[[[sa]]]"), "a|s");
     }
 
     @Test
-    public void testEscapedNestedBrackets() {
+    void escapedNestedBrackets() {
         check(parse("[\\[a]"), "\\[|a");
     }
 
     @Test
-    public void testEscapedBracket() {
+    void escapedBracket() {
         check("\\[", "\\[");
     }
 
     @Test
-    public void testEscapedBracketInCharRange() {
+    void escapedBracketInCharRange() {
         check("[A-\\[]", "[A-\\[]");
     }
 
@@ -405,62 +400,62 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testBellInBrackets() {
+    void bellInBrackets() {
         parse("[\\a]");
     }
 
     @Test
-    public void testDoubleCharEscapeInBrackets() {
+    void doubleCharEscapeInBrackets() {
         parse("[\\a\\d]");
     }
 
     @Test
-    public void testTripleCharEscapeInBrackets() {
+    void tripleCharEscapeInBrackets() {
         parse("[\\a\\d\\D]");
     }
 
     @Test
-    public void testLParenInBrackets() {
+    void lParenInBrackets() {
         parse("[(]");
     }
 
     @Test
-    public void testRParensInBrackets() {
+    void rParensInBrackets() {
         parse("[)]");
     }
 
     @Test
-    public void testUnbalancedRightBrace() {
+    void unbalancedRightBrace() {
         parse("}");
     }
 
     @Test
-    public void testLeadingDashInCharClass() {
+    void leadingDashInCharClass() {
         parse("[-]");
     }
 
     @Test
-    public void testRightUnbalancedBrackets() {
+    void rightUnbalancedBrackets() {
         parse("[]]");
     }
 
     @Test
-    public void testPeriod() {
+    void period() {
         parse(".");
     }
 
     @Test
-    public void testParseEscapedPeriod() {
+    void parseEscapedPeriod() {
         parse("\\.");
     }
 
     @Test
-    public void testRightMismatchedBracket() {
+    void rightMismatchedBracket() {
         parse("]");
     }
 
     @Test
-    public void generativeParsingTest() {
+    void generativeParsingTest() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 24; maxSize++) {
             for (int i = 0; i < 1000; i++) {
@@ -484,7 +479,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testParsingHasFixedPoint() {
+    void parsingHasFixedPoint() {
         Random random = new Random();
         for (int maxSize = 1; maxSize < 24; maxSize++) {
             for (int i = 0; i < 100; i++) {
@@ -510,7 +505,7 @@ public class RegexParserTest {
     }
 
     @Test
-    public void testUnionOfUnionFollowedByLiteralWithLiteral() {
+    void unionOfUnionFollowedByLiteralWithLiteral() {
         String test = "(a|a)a|a";
         var node = RegexParser.parse(test);
         assertTrue(node instanceof Union);

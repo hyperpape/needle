@@ -1,7 +1,7 @@
 package com.justinblank.strings.Search;
 
 import com.justinblank.strings.MatchResult;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 import org.quicktheories.generators.IntegersDSL;
@@ -13,12 +13,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 
-public class SearchMethodsTest {
+class SearchMethodsTest {
 
     /**
      * Using a small alphabet seems to be more effective at finding bugs, but also provides more readable output and
@@ -33,7 +31,7 @@ public class SearchMethodsTest {
     private static final int LARGE_DATA_SIZE = 64;
 
     @Test
-    public void testAsciiSingleStringMatching() {
+    void asciiSingleStringMatching() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 SearchMethods.makeSearchMethod(Collections.singletonList(s1)).matches(s1));
@@ -43,7 +41,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testSingleStringMatching() {
+    void singleStringMatching() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 SearchMethods.makeSearchMethod(Collections.singletonList(s1)).matches(s1));
@@ -53,21 +51,21 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiSingleStringContainedIn() {
+    void asciiSingleStringContainedIn() {
         Gen<String> strings = new StringsDSL().ascii().ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 SearchMethods.makeSearchMethod(Collections.singletonList(s1)).containedIn(s1));
     }
 
     @Test
-    public void testSingleStringContainedIn() {
+    void singleStringContainedIn() {
         Gen<String> strings = BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(strings).check((s1) ->
                 SearchMethods.makeSearchMethod(Collections.singletonList(s1)).containedIn(s1));
     }
 
     @Test
-    public void testAsciiMatching() {
+    void asciiMatching() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, new IntegersDSL().allPositive()).check((l, i) ->
@@ -80,7 +78,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testMatching() {
+    void matching() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, new IntegersDSL().allPositive()).check((l, i) ->
@@ -93,7 +91,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiSingleStringOverlappingFalseStart() {
+    void asciiSingleStringOverlappingFalseStart() {
         String needle = "aab";
         String haystack = "aaab";
         SearchMethod searchMethod = SearchMethods.makeSearchMethod(Collections.singletonList(needle));
@@ -103,7 +101,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiContainedIn() {
+    void asciiContainedIn() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -122,7 +120,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiContainedInWithPrefix() {
+    void asciiContainedInWithPrefix() {
         Gen<String> strings = new StringsDSL().ascii().ofLengthBetween(1, LARGE_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().withFixedSeed(1119727800924974L).forAll(manyStrings, strings, new IntegersDSL().allPositive()).check((l, s, i) -> {
@@ -133,7 +131,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiContainedInWithSuffix() {
+    void asciiContainedInWithSuffix() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -152,7 +150,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiContainedInWithPrefixAndSuffix() {
+    void asciiContainedInWithPrefixAndSuffix() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, SMALL_DATA_SIZE);
         QuickTheory.qt().withFixedSeed(1119727800924974L).forAll(manyStrings, strings, new IntegersDSL().allPositive()).check((l, s, i) -> {
@@ -171,7 +169,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiFindArbitrary() {
+    void asciiFindArbitrary() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         Gen<String> haystackStrings = SMALL_ALPHABET.ofLengthBetween(1, LARGE_DATA_SIZE);
@@ -200,7 +198,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testFindArbitrary() {
+    void findArbitrary() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         Gen<String> haystackStrings = SMALL_BMP.ofLengthBetween(1, LARGE_DATA_SIZE);
@@ -229,14 +227,14 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiCollidingNeedlesInMiddleOfHaystack() {
+    void asciiCollidingNeedlesInMiddleOfHaystack() {
         List<String> strings = Arrays.asList("aa", "baaa");
         SearchMethod method = SearchMethods.makeSearchMethod(strings);
         assertTrue(method.containedIn("abaab"));
     }
 
     @Test
-    public void testOtherHaystackCollision() {
+    void otherHaystackCollision() {
         List<String> strings = Arrays.asList("aabaa", "acaaaa", "aaaa");
         SearchMethod method = SearchMethods.makeSearchMethod(strings);
         assertTrue(method.containedIn("aabaa"));
@@ -244,7 +242,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testContainedIn() {
+    void containedIn() {
         Gen<String> strings = new StringsDSL().betweenCodePoints(1, 256 * 256).ofLengthBetween(1, LARGE_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(1, LARGE_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().allPositive()).check((l, s, i) -> {
@@ -255,7 +253,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiFind() {
+    void asciiFind() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -287,7 +285,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testAsciiFindInBoundedSubstring() {
+    void asciiFindInBoundedSubstring() {
         Gen<String> strings = SMALL_ALPHABET.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -318,7 +316,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testFind() {
+    void find() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -349,7 +347,7 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testFindInBoundedSubstring() {
+    void findInBoundedSubstring() {
         Gen<String> strings = SMALL_BMP.ofLengthBetween(1, SMALL_DATA_SIZE);
         Gen<List<String>> manyStrings = new ListsDSL().of(strings).ofSizeBetween(2, SMALL_DATA_SIZE);
         QuickTheory.qt().forAll(manyStrings, strings, new IntegersDSL().between(0, SMALL_DATA_SIZE)).check((l, s, i) -> {
@@ -380,49 +378,57 @@ public class SearchMethodsTest {
     }
 
     @Test
-    public void testSearchMethodMatchesStringContainingNonBMPCharacters() {
+    void searchMethodMatchesStringContainingNonBMPCharacters() {
         String s = "\uD83D\uDE02abcdef";
         SearchMethod method = SearchMethods.makeSearchMethod(Set.of("abc"));
         assertTrue(method.containedIn(s));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexStartAscii() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", -1, 1);
+    @Test
+    void illegalIndexStartAscii() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", -1, 1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexEndNegativeAscii() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", 0, -1);
+    @Test
+    void illegalIndexEndNegativeAscii() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", 0, -1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexEndAscii() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", 0, 3);
+    @Test
+    void illegalIndexEndAscii() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("a", 0, 3));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testStartGreaterThanEndAscii() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("abc", 2, 1);
+    @Test
+    void startGreaterThanEndAscii() {
+        assertThrows(IllegalArgumentException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("a")).find("abc", 2, 1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexStart() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", -1, 1);
+    @Test
+    void illegalIndexStart() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", -1, 1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexEndNegative() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", 0, -1);
+    @Test
+    void illegalIndexEndNegative() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", 0, -1));
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testIllegalIndexEnd() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", 0, 3);
+    @Test
+    void illegalIndexEnd() {
+        assertThrows(IndexOutOfBoundsException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("a", 0, 3));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testStartGreaterThanEnd() {
-        SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("abc", 2, 1);
+    @Test
+    void startGreaterThanEnd() {
+        assertThrows(IllegalArgumentException.class, () ->
+            SearchMethods.makeSearchMethod(Collections.singletonList("א")).find("abc", 2, 1));
     }
 }

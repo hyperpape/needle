@@ -1,29 +1,29 @@
 package com.justinblank.strings;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class ThompsonRegexInstrBuilderTest {
+class ThompsonRegexInstrBuilderTest {
 
     @Test
-    public void testCompilesRange() {
+    void compilesRange() {
         assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("[A-Z]")));
     }
 
     @Test
-    public void testCompilesMultiRange() {
+    void compilesMultiRange() {
         assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("[A-Za-z]")));
     }
 
     @Test
-    public void testCompilesUnions() {
+    void compilesUnions() {
         assertNotNull(RegexInstrBuilder.createNFA(RegexParser.parse("(123)|(234){0,1}")));
     }
 
     @Test
-    public void testPrioritiesUnionOfLiterals() {
+    void prioritiesUnionOfLiterals() {
         var instrs = RegexInstrBuilder.createNFA(RegexParser.parse("Sam|Samwise"));
         assertEquals(1, instrs[0].priority); // split instr
         assertEquals(1, instrs[1].priority); // S in first alternation
@@ -31,7 +31,7 @@ public class ThompsonRegexInstrBuilderTest {
     }
 
     @Test
-    public void testPrioritiesAplusA() {
+    void prioritiesAplusA() {
         var instrs = RegexInstrBuilder.createNFA(RegexParser.parse("a+a"));
         assertEquals(1, instrs[0].priority);
 

@@ -1,18 +1,16 @@
 package com.justinblank.strings;
 
-import org.junit.Test;
-import org.quicktheories.QuickTheory;
-import org.quicktheories.generators.IntegersDSL;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MatchResultTest {
+class MatchResultTest {
 
     @Test
-    public void testCompareTo() {
+    void compareTo() {
         assertEquals(0, MatchResult.failure().compareTo(MatchResult.failure()));
         assertEquals(0, MatchResult.success(0, 1).compareTo(MatchResult.success(0, 1)));
         assertEquals(-1, MatchResult.success(0, 1).compareTo(MatchResult.success(0, 2)));
@@ -22,7 +20,7 @@ public class MatchResultTest {
     }
 
     @Test
-    public void testHashCode() {
+    void testHashCode() {
         Set<MatchResult> results = new HashSet<>();
         results.add(MatchResult.success(0, 1));
         results.add(MatchResult.success(0, 1));

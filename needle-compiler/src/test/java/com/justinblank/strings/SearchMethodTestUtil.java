@@ -5,7 +5,7 @@ import org.quicktheories.QuickTheory;
 import org.quicktheories.generators.IntegersDSL;
 import org.quicktheories.generators.StringsDSL;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class SearchMethodTestUtil {
 
@@ -46,17 +46,17 @@ public class SearchMethodTestUtil {
      * </ol>
      */
     public static void find(Pattern method, String s, int start, int end) {
-        assertTrue("Wrong result for containedIn on string=\"" + s + "\"", method.matcher(s).containedIn());
+        assertTrue(method.matcher(s).containedIn(), "Wrong result for containedIn on string=\"" + s + "\"");
         MatchResult result = method.matcher(s).find(start, end);
         // Property #1 -- we'll find substring using the find method
-        assertTrue("Failed to find in string=\"" + s + "\", start=" + start + ",end=" + end, result.matched);
+        assertTrue(result.matched, "Failed to find in string=\"" + s + "\", start=" + start + ",end=" + end);
         // Property #2 -- that substring will match using the matches method
-        assertTrue("Failed to match substring of string=\"" + s + "\", start=" + result.start + ",end=" + result.end,
-                method.matcher(s.substring(result.start, result.end)).matches());
+        assertTrue(method.matcher(s.substring(result.start, result.end)).matches(),
+                "Failed to match substring of string=\"" + s + "\", start=" + result.start + ",end=" + result.end);
 
         var prefix = s.substring(start, result.start);
         // Property #3
-        assertTrue("violated prefix condition for prefix condition on find, prefix=" + prefix + ", string=" + s, method.matcher("").matches() && prefix.isEmpty() || !method.matcher(prefix).matches());
+        assertTrue(method.matcher("").matches() && prefix.isEmpty() || !method.matcher(prefix).matches(), "violated prefix condition for prefix condition on find, prefix=" + prefix + ", string=" + s);
 
         // Property #4 -- match cannot be extended forwards
         // This property is violated by the leftmost first semantics of regexes
@@ -77,7 +77,7 @@ public class SearchMethodTestUtil {
         }
         // Property 6 -- string that matches empty substring must be anchored at zero
         if (method.matcher("").matches()) {
-            assertEquals("Method matches empty string but match was not at start of needle", start, result.start);
+            assertEquals(start, result.start, "Method matches empty string but match was not at start of needle");
         }
     }
 
@@ -108,9 +108,9 @@ public class SearchMethodTestUtil {
     }
 
     public static void match(Pattern method, String s) {
-        assertTrue("Failed match for string=\"" + s + "\"", method.matcher(s).matches());
-        assertTrue("Failed match for string=\"" + s + "\"", method.matcher(s).matches());
-        assertEquals("Failed find for string='" + s + "'", MatchResult.success(0, s.length()), method.matcher(s).find());
+        assertTrue(method.matcher(s).matches(), "Failed match for string=\"" + s + "\"");
+        assertTrue(method.matcher(s).matches(), "Failed match for string=\"" + s + "\"");
+        assertEquals(MatchResult.success(0, s.length()), method.matcher(s).find(), "Failed find for string='" + s + "'");
         find(method, s);
     }
 }

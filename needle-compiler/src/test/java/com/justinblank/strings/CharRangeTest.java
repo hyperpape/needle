@@ -1,6 +1,6 @@
 package com.justinblank.strings;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 import org.quicktheories.generators.CharactersDSL;
@@ -8,12 +8,12 @@ import org.quicktheories.generators.CharactersDSL;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class CharRangeTest {
+class CharRangeTest {
 
     @Test
-    public void testMinimizeOneRange() {
+    void minimizeOneRange() {
         List<CharRange> ranges = new ArrayList<>();
         ranges.add(new CharRange('a', 'e'));
 
@@ -22,7 +22,7 @@ public class CharRangeTest {
     }
 
     @Test
-    public void testMinimizeTwoRanges() {
+    void minimizeTwoRanges() {
         List<CharRange> ranges = new ArrayList<>();
         ranges.add(new CharRange('a', 'e'));
         ranges.add(new CharRange('b', 'd'));
@@ -34,7 +34,7 @@ public class CharRangeTest {
     }
 
     @Test
-    public void testMinimizeMultipleRanges() {
+    void minimizeMultipleRanges() {
         List<CharRange> ranges = new ArrayList<>();
         ranges.add(new CharRange('a', 'e'));
         ranges.add(new CharRange('b', 'd'));
@@ -49,7 +49,7 @@ public class CharRangeTest {
     }
 
     @Test
-    public void testThreeRangesWithOneCharRangeContainedInOtherRange() {
+    void threeRangesWithOneCharRangeContainedInOtherRange() {
         var ranges = List.of(new CharRange('T', '_'), new CharRange('b', 'e'), new CharRange('e', 'e'));
         var minimized = CharRange.minimalCovering(ranges);
         assertEquals(new CharRange('T', '_'), minimized.get(0));
@@ -58,19 +58,19 @@ public class CharRangeTest {
     }
 
     @Test
-    public void test_coverAllChars_handlesEmptyList() {
+    void cover_all_chars_handles_empty_list() {
         var ranges = CharRange.coverAllChars(List.of());
         assertEquals(CharRange.allChars(), ranges.get(0));
     }
 
     @Test
-    public void test_coverAllChars_handlesSingleRangeWithAllChars() {
+    void cover_all_chars_handles_single_range_with_all_chars() {
         var ranges = CharRange.coverAllChars(List.of(CharRange.allChars()));
         assertEquals(CharRange.allChars(), ranges.get(0));
     }
 
     @Test
-    public void test_coverAllChars_handlesSingleRangeWithCharSubset() {
+    void cover_all_chars_handles_single_range_with_char_subset() {
         var ranges = CharRange.coverAllChars(List.of(new CharRange('B', 'Y')));
         assertEquals(new CharRange(Character.MIN_VALUE, 'A'), ranges.get(0));
         assertEquals(new CharRange('B', 'Y'), ranges.get(1));
@@ -78,7 +78,7 @@ public class CharRangeTest {
     }
 
     @Test
-    public void test_coverAllChars_handlesMultipleContiguousRangesWithCharSubset() {
+    void cover_all_chars_handles_multiple_contiguous_ranges_with_char_subset() {
         var ranges = CharRange.coverAllChars(List.of(new CharRange('B', 'B'), new CharRange('C', 'E')));
         assertEquals(new CharRange(Character.MIN_VALUE, 'A'), ranges.get(0));
         assertEquals(new CharRange('B', 'B'), ranges.get(1));
@@ -87,7 +87,7 @@ public class CharRangeTest {
     }
 
     @Test
-    public void test_coverAllChars_handlesMultipleRanges_withGapsAndContiguousRanges() {
+    void cover_all_chars_handles_multiple_ranges_with_gaps_and_contiguous_ranges() {
         var ranges = CharRange.coverAllChars(List.of(new CharRange('B', 'C'), new CharRange('F', 'H'), new CharRange('K', 'M'), new CharRange('P', 'S')));
         assertEquals(new CharRange(Character.MIN_VALUE, 'A'), ranges.get(0));
         assertEquals(new CharRange('B', 'C'), ranges.get(1));
@@ -113,17 +113,17 @@ public class CharRangeTest {
     }
 
     @Test
-    public void testOverlapIsReflexive() {
+    void overlapIsReflexive() {
         QuickTheory.qt().forAll(charRanges()).check((a) -> a.overlaps(a));
     }
 
     @Test
-    public void testOverlapIsSymmetric() {
+    void overlapIsSymmetric() {
         QuickTheory.qt().forAll(charRanges(), charRanges()).check((a, b) -> a.overlaps(b) == b.overlaps(a));
     }
 
     @Test
-    public void testOverlap() {
+    void overlap() {
         assertTrue(new CharRange('b', 'd').overlaps(new CharRange('b', 'b')));
         assertTrue(new CharRange('b', 'd').overlaps(new CharRange('c', 'c')));
         assertTrue(new CharRange('b', 'd').overlaps(new CharRange('d', 'd')));

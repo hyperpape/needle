@@ -1,24 +1,24 @@
 package com.justinblank.strings;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // TODO: fixup tests/impl after benchmark
-@Ignore
-public class MinimizeDFATest {
+@Disabled
+class MinimizeDFATest {
 
     @Test
-    public void testPartition() {
+    void partition() {
         DFA dfa = fourStateMinimizableDFA();
         Map<DFA, Set<DFA>> partition = new MinimizeDFA().createPartition(dfa);
-        assertEquals(new HashSet<>(partition.values()).size(), 3);
+        assertEquals(3, new HashSet<>(partition.values()).size());
     }
 
     private DFA fourStateMinimizableDFA() {
@@ -36,42 +36,42 @@ public class MinimizeDFATest {
     }
 
     @Test
-    public void testMinimizeMinimizableFourStateDFA() {
+    void minimizeMinimizableFourStateDFA() {
         DFA dfa = fourStateMinimizableDFA();
         DFA minimized = MinimizeDFA.minimizeDFA(dfa, false);
-        assertEquals(minimized.statesCount(), 3);
+        assertEquals(3, minimized.statesCount());
     }
 
     @Test
-    public void testMinimizeMinimalDFA() {
+    void minimizeMinimalDFA() {
         DFA dfa = DFA.root(false);
         DFA second = new DFA(dfa, true, 1);
         dfa.addTransition(new CharRange('a', 'a'), second);
 
         DFA minimized = MinimizeDFA.minimizeDFA(dfa, false);
-        assertEquals(minimized.statesCount(), 2);
+        assertEquals(2, minimized.statesCount());
     }
 
     @Test
-    public void testMinimizeDFAHandlesSingleCharLiteral() {
+    void minimizeDFAHandlesSingleCharLiteral() {
         DFA dfa = DFA.createDFA("a");
         assertTrue(MinimizeDFA.minimizeDFA(dfa, false).matches("a"));
     }
 
     @Test
-    public void testMinimizeDFAHandlesMultiCharLiteral() {
+    void minimizeDFAHandlesMultiCharLiteral() {
         DFA dfa = DFA.createDFA("ab");
         assertTrue(MinimizeDFA.minimizeDFA(dfa, false).matches("ab"));
     }
 
     @Test
-    public void testMinimizeDFAHandlesUnion() {
+    void minimizeDFAHandlesUnion() {
         DFA dfa = DFA.createDFA("[0-9]");
         assertTrue(MinimizeDFA.minimizeDFA(dfa, false).matches("2"));
     }
 
     @Test
-    public void testMinimizeDFAHandlesRepetition() {
+    void minimizeDFAHandlesRepetition() {
         DFA dfa1 = DFA.createDFA("a*");
         DFA dfa = MinimizeDFA.minimizeDFA(dfa1, false);
         assertEquals(1, dfa.statesCount());
@@ -79,7 +79,7 @@ public class MinimizeDFATest {
     }
 
     @Test
-    public void testCountedRepetition() {
+    void countedRepetition() {
         var nfa = new NFA(RegexInstrBuilder.createNFA(RegexParser.parse("1{0,2}")));
         DFA original = new NFAToDFACompiler(nfa)._compile(nfa, ConversionMode.BASIC);
         assertTrue(original.matches("1"));
@@ -88,7 +88,7 @@ public class MinimizeDFATest {
     }
 
     @Test
-    public void testMinimizeRange() {
+    void minimizeRange() {
         var dfa = DFA.createDFA("(a|b)");
         assertEquals(2, dfa.statesCount());
 
