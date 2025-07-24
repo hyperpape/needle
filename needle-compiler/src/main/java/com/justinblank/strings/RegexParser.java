@@ -9,24 +9,26 @@ class RegexParser {
 
     private int index = 0;
     private int charRangeDepth = 1;
+    private boolean dotAll;
     private String regex;
     private Stack<Node> nodes = new Stack<>();
 
-    protected RegexParser(String regex) {
+    protected RegexParser(String regex, boolean dotAll) {
         this.regex = regex;
+        this.dotAll = dotAll;
     }
 
     public static Node parse(String regex) {
         Objects.requireNonNull(regex, "regex string cannot be null");
         try {
-            return new RegexParser(regex)._parse();
+            return new RegexParser(regex, true)._parse();
         }
         catch (RegexSyntaxException e) {
             throw e;
         }
         catch (Exception e) {
             // Any other exception is a bug, wrap and rethrow
-            throw new RegexSyntaxException("Unexpected error while parsing regex '" + regex + "' ", e);
+            throw new RegexSyntaxException("Unknown error while parsing regex '" + regex + "' ", e);
         }
     }
 
@@ -36,7 +38,12 @@ class RegexParser {
 
             switch (c) {
                 case '.':
-                    nodes.push(new CharRangeNode((char) 0, (char) 65535));
+                    if (dotAll) {
+                        nodes.push(new CharRangeNode(CharRange.ALL_CHARS));
+                    }
+                    else {
+                        nodes.push(new Union(new CharRangeNode((char) 0, '\u0009'), new CharRangeNode('\u000B', '\uFFFF')));
+                    }
                     break;
                 case '^':
                     throw new RegexSyntaxException("'^' not supported yet");

@@ -10,7 +10,7 @@ public class CharRange implements Comparable<CharRange> {
     private final char end;
     private final boolean empty;
 
-    private static final CharRange ALL_CHARS = CharRange.of(Character.MIN_VALUE, Character.MAX_VALUE);
+    protected static final CharRange ALL_CHARS = CharRange.of(Character.MIN_VALUE, Character.MAX_VALUE);
     private static final CharRange[] ASCII_SINGLE_CHARS = new CharRange[128];
 
     static {
