@@ -32,7 +32,7 @@ public class DFACompilerTest {
     }
 
     public static Pattern anonymousPattern(String regex, boolean debug) {
-        return DFACompiler.compile(regex, "Pattern" + CLASS_NAME_COUNTER.incrementAndGet(), debug);
+        return DFACompiler.compile(regex, "Pattern" + CLASS_NAME_COUNTER.incrementAndGet(), 0, debug);
     }
 
     // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
@@ -579,7 +579,7 @@ public class DFACompilerTest {
     @Test
     void sameRegexCanGenerateByteBasedDFAClassesAndShortBasedDFAClasses() {
         var regex = ".{0,43}A";
-        Node node = RegexParser.parse(regex);
+        Node node = RegexParser.parse(regex, 0);
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
 
@@ -628,7 +628,7 @@ public class DFACompilerTest {
         var regex = ".{0,47}BCDFHEIJKLAMG";
         String hayStack = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@BCDFHEIJKLAMG";
 
-        Node node = RegexParser.parse(regex);
+        Node node = RegexParser.parse(regex, 0);
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
@@ -769,8 +769,20 @@ public class DFACompilerTest {
         var matcher = pattern.matcher("aa");
         assertTrue(matcher.find().matched);
         assertTrue(matcher.find().matched);
+        // Question: is it arbitrary I did three failing matches?
         assertFalse(matcher.find().matched);
         assertFalse(matcher.find().matched);
         assertFalse(matcher.find().matched);
+    }
+
+    @Test
+    void dotAll() {
+        var pattern = DFACompiler.compile("a.*c", "aDotStarc");
+        assertTrue(pattern.matcher("abc").matches());
+        assertEquals(MatchResult.success(0, 3), pattern.matcher("abc\nc").find());
+
+        pattern = DFACompiler.compile("a.*c", "aDotStarc_DOTALL", Pattern.DOTALL, false);
+        assertTrue(pattern.matcher("abc").matches());
+        assertEquals(MatchResult.success(0, 5), pattern.matcher("abc\nc").find());
     }
 }

@@ -38,7 +38,7 @@ class DFATest {
 
     @Test
     void isTerminal() {
-        var dfa = DFA.createDFA("abc", ConversionMode.DFA_SEARCH);
+        var dfa = DFA.createDFA("abc", ConversionMode.DFA_SEARCH, 0);
         assertFalse(dfa.isTerminal());
         assertFalse(dfa.after("a").get().isTerminal());
         assertFalse(dfa.after("ab").get().isTerminal());
@@ -154,7 +154,7 @@ class DFATest {
     void offsetsDiamond() {
         String regexString = "ab(cd|ef)ghi";
         var dfa = DFA.createDFA(regexString);
-        var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
+        var offsets = dfa.calculateOffsets(RegexParser.parse(regexString, 0).bestFactors());
         // offsets before 'a', 'c', 'e'
         assertEquals(3, offsets.size());
     }
@@ -211,7 +211,7 @@ class DFATest {
 
     @Test
     void byteClassesCanBeFormedFromRegexWithDot() {
-        var dfa = DFA.createDFA("[A-Za-z]+.b");
+        var dfa = DFA.createDFA("[A-Za-z]+.b", ConversionMode.BASIC, Pattern.DOTALL);
         var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < 'A'; i++) {
             assertEquals(1, byteClasses[i]);
@@ -230,7 +230,7 @@ class DFATest {
 
     @Test
     void newTest() {
-        var dfa = DFA.createDFA("http://.+");
+        var dfa = DFA.createDFA("http://.+", ConversionMode.BASIC, Pattern.DOTALL);
         var byteClasses = dfa.byteClasses().ranges;
         for (var i = 0; i < '/'; i++) {
             assertEquals(1, byteClasses[i]);
@@ -244,10 +244,15 @@ class DFATest {
 
     @Test
     void distinctCharRangesCanBeFormedFromRegexWithDot() {
-        var dfa = DFA.createDFA("[A-Za-z]+.b");
+        var dfa = DFA.createDFA("[A-Za-z]+.b", ConversionMode.BASIC, Pattern.DOTALL);
         var distinguishedRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
         assertThat(distinguishedRanges).isNotEmpty();
         assertEquals(new CharRange('\u0000', '@'), distinguishedRanges.get(0));
+        assertEquals(new CharRange('A', 'Z'), distinguishedRanges.get(1));
+        assertEquals(new CharRange('[', '`'), distinguishedRanges.get(2));
+        assertEquals(new CharRange('a', 'a'), distinguishedRanges.get(3));
+        assertEquals(new CharRange('b', 'b'), distinguishedRanges.get(4));
+        assertEquals(new CharRange('c', 'z'), distinguishedRanges.get(5));
     }
 
     @Test
@@ -259,28 +264,27 @@ class DFATest {
     }
 
     @Test
-    void charRangesForRegexWithDot() {
-        // not isolating the behavior
-        var dfa = DFA.createDFA("[A-Za-z]+.b");
+    void charRangesForRegexUsing_DOTALL() {
+        var dfa = DFA.createDFA("[A-Za-z]+.b", ConversionMode.BASIC, Pattern.DOTALL);
         var rangeGroups = dfa.generateRangeGroups();
         var rangeGroup = rangeGroups.get(0);
         assertEquals(new CharRange('\u0000', '@'), rangeGroup.ranges.get(0));
-        // TODO: fill out test case
+        assertEquals(new CharRange('[', '`'), rangeGroup.ranges.get(1));
+        assertEquals(new CharRange('{', '\uFFFF'), rangeGroup.ranges.get(2));
+
+        rangeGroup = rangeGroups.get(1);
+        assertEquals(new CharRange('A', 'Z'), rangeGroup.ranges.get(0));
+        assertEquals(new CharRange('a', 'a'), rangeGroup.ranges.get(1));
+        assertEquals(new CharRange('c', 'z'), rangeGroup.ranges.get(2));
+
+        rangeGroup = rangeGroups.get(2);
+        assertEquals(new CharRange('b', 'b'), rangeGroup.ranges.get(0));
+
     }
 
     @Test
     void charRangesForOtherRegexWithDot() {
-        // not isolating the behavior
-        var dfa = DFA.createDFA("h:.+");
-        var rangeGroups = dfa.generateRangeGroups();
-        var rangeGroup = rangeGroups.get(0);
-        assertEquals(new CharRange('\u0000', '9'), rangeGroup.ranges.get(0));
-        // TODO: fill out test case
-    }
-
-    @Test
-    void againAgain() {
-        var dfa = DFA.createDFA("h:.+");
+        var dfa = DFA.createDFA("h:.+", ConversionMode.BASIC, Pattern.DOTALL);
         var charRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
         assertEquals(new CharRange('\u0000', '9'), charRanges.get(0));
         assertEquals(new CharRange(':', ':'), charRanges.get(1));
@@ -302,7 +306,7 @@ class DFATest {
 
     @Test
     void yetAnotherRanges() {
-        var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol");
+        var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol", ConversionMode.BASIC, Pattern.DOTALL);
         List<CharRange> distinctRanges = dfa.getDistinctCharRanges(dfa.getSortedTransitions());
         List<CharRange> expectedRanges = List.of(
                 new CharRange('\u0000', 'G'),

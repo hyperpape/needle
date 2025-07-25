@@ -27,7 +27,7 @@ class NFA implements SearchMethod {
     }
 
     public static SearchMethod createNFA(String regex) {
-        Node parse = RegexParser.parse(regex);
+        Node parse = RegexParser.parse(regex, 0);
         var factors = parse.bestFactors();
         if (factors.isComplete()) {
             return SearchMethods.makeSearchMethod(factors.getAll());
@@ -42,12 +42,12 @@ class NFA implements SearchMethod {
      * @return an NFA
      */
     static NFA createNFANoAhoCorasick(String regex) {
-        Node parse = RegexParser.parse(regex);
+        Node parse = RegexParser.parse(regex, 0);
         return new NFA(RegexInstrBuilder.createNFA(parse));
     }
 
     static NFA createReversedNFANoAhoCorasick(String regex) {
-        Node reversed = RegexParser.parse(regex).reversed();
+        Node reversed = RegexParser.parse(regex, 0).reversed();
         return new NFA(RegexInstrBuilder.createNFA(reversed));
     }
 

@@ -57,7 +57,7 @@ class SnapshotTests {
     void generateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
         for (var pair : EXAMPLES) {
-            DFACompiler.compile(pair.getLeft(), pair.getRight(), debugOptions);
+            DFACompiler.compile(pair.getLeft(), pair.getRight(), Pattern.DOTALL, debugOptions);
         }
     }
 
@@ -74,7 +74,7 @@ class SnapshotTests {
     void generateLargeExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
         for (var pair : LARGE_EXAMPLES) {
-            DFACompiler.compile(pair.getLeft(), pair.getRight(), debugOptions);
+            DFACompiler.compile(pair.getLeft(), pair.getRight(), Pattern.DOTALL, debugOptions);
         }
     }
 
@@ -90,7 +90,7 @@ class SnapshotTests {
         String compiled = null;
         try {
             tempDir = org.assertj.core.util.Files.newTemporaryFolder();
-            compiled = Precompile.precompile(regex, className, tempDir);
+            compiled = Precompile.precompile(regex, className, tempDir, 0);
             boolean equal = equalContents(priorVersion, compiled);
             if (!equal) {
                 var output = computeDiff(priorVersion, compiled);

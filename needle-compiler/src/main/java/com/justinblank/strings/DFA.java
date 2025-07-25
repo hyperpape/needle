@@ -41,11 +41,11 @@ class DFA {
     }
 
     public static DFA createDFA(String regex) {
-        return createDFA(regex, ConversionMode.BASIC); // TODO: this needs revisited
+        return createDFA(regex, ConversionMode.BASIC, 0); // TODO: this needs revisited
     }
 
-    static DFA createDFA(String regex, ConversionMode mode) {
-        Node node = RegexParser.parse(regex);
+    static DFA createDFA(String regex, ConversionMode mode, int flags) {
+        Node node = RegexParser.parse(regex, flags);
         try {
             NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
             return NFAToDFACompiler.compile(nfa, mode);

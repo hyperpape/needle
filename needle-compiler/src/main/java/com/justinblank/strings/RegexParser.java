@@ -13,15 +13,19 @@ class RegexParser {
     private String regex;
     private Stack<Node> nodes = new Stack<>();
 
-    protected RegexParser(String regex, boolean dotAll) {
+    protected RegexParser(String regex, int flags) {
         this.regex = regex;
-        this.dotAll = dotAll;
+        this.dotAll = (flags & Pattern.DOTALL) != 0;
     }
 
     public static Node parse(String regex) {
+        return parse(regex, 0);
+    }
+
+    public static Node parse(String regex, int flags) {
         Objects.requireNonNull(regex, "regex string cannot be null");
         try {
-            return new RegexParser(regex, true)._parse();
+            return new RegexParser(regex, flags)._parse();
         }
         catch (RegexSyntaxException e) {
             throw e;

@@ -22,7 +22,7 @@ class DFAClassBuilderTest {
     @Test
     void containedIn() {
         var dfa = DFA.createDFA("abcd");
-        var factorization = RegexParser.parse("abcd").bestFactors();
+        var factorization = RegexParser.parse("abcd", 0).bestFactors();
         var builder = new DFAClassBuilder("testContainedIn", dfa,
                 dfa, dfa, dfa, factorization, DebugOptions.none());
         builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true, new CompilationPolicy())));
@@ -44,7 +44,7 @@ class DFAClassBuilderTest {
     void indexForwards() {
         try {
             var dfa = DFA.createDFA("abc");
-            var node = RegexParser.parse("abc");
+            var node = RegexParser.parse("abc", 0);
             var dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())),
                     ConversionMode.BASIC);
             var builder = new DFAClassBuilder("indexForwards",
@@ -63,7 +63,7 @@ class DFAClassBuilderTest {
     void indexForwardsSingleChar() {
         try {
             var dfa = DFA.createDFA("a");
-            var node = RegexParser.parse("a");
+            var node = RegexParser.parse("a", 0);
             var builder = new DFAClassBuilder("indexForwardsSingleChar",
                     dfa, dfa, dfa, dfa, node.bestFactors(), DebugOptions.none());
             builder. initMethods();

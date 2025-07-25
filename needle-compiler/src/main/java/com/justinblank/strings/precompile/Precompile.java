@@ -16,7 +16,7 @@ public class Precompile {
      * @throws IOException in case the file cannot be written
      */
     public static void precompile(String regex, String className, String directory) throws IOException {
-        precompile(regex, className, new File(directory));
+        precompile(regex, className, new File(directory), 0);
     }
 
     /**
@@ -26,8 +26,8 @@ public class Precompile {
      * @param directory the directory where the file should be written
      * @throws IOException in case the file cannot be written
      */
-    public static String precompile(String regex, String className, File directory) throws IOException {
-        var bytes = DFACompiler.compileToBytes(regex, className);
+    public static String precompile(String regex, String className, File directory, int flags) throws IOException {
+        var bytes = DFACompiler.compileToBytes(regex, className, flags);
         var target = directory.getAbsolutePath() + "/" + className + ".class";
         try (var fos = new FileOutputStream(target)) {
             fos.write(bytes);

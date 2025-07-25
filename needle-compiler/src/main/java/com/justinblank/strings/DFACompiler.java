@@ -14,19 +14,19 @@ import static org.objectweb.asm.Opcodes.*;
 public class DFACompiler {
 
     public static Pattern compile(String regex, String className) {
-        return compile(regex, className, false);
+        return compile(regex, className, 0,false);
     }
 
-    static Pattern compile(String regex, String className, boolean debug) {
+    static Pattern compile(String regex, String className, int flags, boolean debug) {
         var debugOptions = debug ? DebugOptions.all() : DebugOptions.none();
-        return compile(regex, className, debugOptions);
+        return compile(regex, className, flags, debugOptions);
     }
 
-    static Pattern compile(String regex, String className, DebugOptions debugOptions) {
+    static Pattern compile(String regex, String className, int flags, DebugOptions debugOptions) {
         if (debugOptions.isDebug()) {
             System.out.println("Compiling " + className + "(" + regex + ")");
         }
-        byte[] classBytes = compileToBytes(regex, className, debugOptions);
+        byte[] classBytes = compileToBytes(regex, className, debugOptions, flags);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
         Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
         try {
@@ -36,13 +36,13 @@ public class DFACompiler {
         }
     }
 
-    public static byte[] compileToBytes(String regex, String className) {
-        return compileToBytes(regex, className, DebugOptions.none());
+    public static byte[] compileToBytes(String regex, String className, int flags) {
+        return compileToBytes(regex, className, DebugOptions.none(), flags);
     }
 
-    static byte[] compileToBytes(String regex, String className, DebugOptions debugOptions) {
+    static byte[] compileToBytes(String regex, String className, DebugOptions debugOptions, int flags) {
         Objects.requireNonNull(className, "name cannot be null");
-        Node node = RegexParser.parse(regex);
+        Node node = RegexParser.parse(regex, flags);
         Factorization factorization = buildFactorization(node);
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
