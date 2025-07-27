@@ -1,6 +1,5 @@
 # Needle
 
-![Badge](https://travis-ci.com/hyperpape/needle.svg?branch=main)
 ![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
 This library compiles regular expressions to Deterministic 
