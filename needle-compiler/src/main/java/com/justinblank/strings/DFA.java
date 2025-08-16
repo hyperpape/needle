@@ -673,6 +673,31 @@ class DFA {
         return false;
     }
 
+    // TODO: sort of a bad name
+    public Optional<boolean[]> initialAsciiBytes() {
+        boolean[] initialBytes = new boolean[129];
+        for (Pair<CharRange, DFA> transition : transitions) {
+            if (transition.getRight().stateNumber == 0) {
+                continue;
+            }
+            CharRange range = transition.getLeft();
+            if ((int) range.getEnd() < 128) {
+                for (int i = range.getStart(); i <= range.getEnd(); i++) {
+                    initialBytes[i] = true;
+                }
+            }
+            else {
+                if ((int) range.getStart() == 128 && range.getEnd() == '\uFFFF') {
+                    initialBytes[128] = true;
+                }
+                else {
+                    return Optional.empty();
+                }
+            }
+        }
+        return Optional.of(initialBytes);
+    }
+
     List<Pair<CharRange, DFA>> getTransitionsLeavingZeroState() {
         var effectiveTransitions = new ArrayList<Pair<CharRange, DFA>>();
         for (var transition : transitions) {

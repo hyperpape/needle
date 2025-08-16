@@ -33,6 +33,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String PREFIX_CONSTANT = "PREFIX";
     protected static final String SUFFIX_CONSTANT = "SUFFIX";
     protected static final String INFIX_CONSTANT = "INFIX";
+    protected static final String FIRST_BYTE_MASK = "FIRST_BYTE_MASK";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
     private final FindMethodSpec forwardFindMethodSpec;
@@ -117,6 +118,12 @@ class DFAClassBuilder extends ClassBuilder {
                 addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, infix);
             });
         }
+        // TODO: refactor to use compilation policy
+        forwardFindMethodSpec.dfa.initialAsciiBytes().ifPresent(bytes -> {
+            if (!(forwardFindMethodSpec.compilationPolicy.usePrefix || forwardFindMethodSpec.compilationPolicy.useSuffix || forwardFindMethodSpec.compilationPolicy.useInfixes)) {
+                addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, bytes);
+            }
+        });
 
         findMethods.add(createMatchesMethod(forwardFindMethodSpec));
         findMethods.add(createContainedInMethod(containedInFindMethodSpec));
@@ -380,6 +387,14 @@ class DFAClassBuilder extends ClassBuilder {
                                             set(MatchingVars.STATE, -1)))
                     )));
         }
+        else if (spec.dfa.initialAsciiBytes().isPresent() && !spec.dfa.isAccepting()) {
+            outerLoopBody.add(set(MatchingVars.STATE, 0));
+            outerLoopBody.add(loop(and(eq(read(MatchingVars.LAST_MATCH), -1),
+                            and(inBounds(),
+                                    lte(read(MatchingVars.STATE), 0)))
+                    , List.of(set(MatchingVars.CHAR, readChar()),
+                            cond(matchDFAInitialByte()).withBody(List.of(escape())).orElse(List.of(incrementIndex())))));
+        }
         else {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
@@ -415,6 +430,7 @@ class DFAClassBuilder extends ClassBuilder {
                         spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         returnLastMatchIfDeadState(),
+                        spec.doByteCheckForFirstCharacter() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
                         (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
                         setLastMatchIfAccepted(wasAcceptedMethod)
                 ));
@@ -454,6 +470,11 @@ class DFAClassBuilder extends ClassBuilder {
                     eq(read(MatchingVars.CHAR), (int) char1),
                     eq(read(MatchingVars.CHAR), (int) char2));
         }
+    }
+
+    private Expression matchDFAInitialByte() {
+        return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
+                callStatic(ReferenceType.of(Math.class), "min", Builtin.I, cast(Builtin.I, read(MatchingVars.CHAR)), literal(128)));
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
@@ -1087,4 +1108,6 @@ class DFAClassBuilder extends ClassBuilder {
         return set(MatchingVars.INDEX, callStatic(ReferenceType.of(Math.class), "max", Builtin.I,
                 sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX)));
     }
+
+
 }

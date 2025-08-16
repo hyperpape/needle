@@ -90,4 +90,12 @@ public class FindMethodSpec {
                 ", forwards=" + forwards +
                 '}';
     }
+
+    public boolean doByteCheckForFirstCharacter() {
+        var hasFirstChar = dfa.initialAsciiBytes().isPresent() && !dfa.isAccepting();
+        if (hasFirstChar) {
+            return !(compilationPolicy.usePrefix || compilationPolicy.useInfixes || compilationPolicy.useSuffix || canSeekForPredicate());
+        }
+        return false;
+    }
 }

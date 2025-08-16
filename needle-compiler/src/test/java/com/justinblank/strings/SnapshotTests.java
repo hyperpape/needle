@@ -53,6 +53,7 @@ class SnapshotTests {
         LARGE_EXAMPLES.add(Pair.of("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson"));
     }
 
+    @Disabled
     @Test
     void generateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();

@@ -342,4 +342,20 @@ class DFATest {
         assertEquals(1, byteClasses.ranges['p']);
         assertEquals(7, byteClasses.ranges['t']);
     }
+
+
+    @Test
+    void initialBytes() {
+        var dfa = DFA.createDFA("Sherlock|Holmes|Adler|Watson");
+        boolean[] initialBytes = dfa.initialAsciiBytes().get();
+        for (int i = 0; i < initialBytes.length; i++) {
+            DFA target = dfa.transition((char) i);
+            if (initialBytes[i]) {
+                assertNotEquals(0, target.getStateNumber());
+            }
+            else {
+                assertNull(target);
+            }
+        }
+    }
 }
