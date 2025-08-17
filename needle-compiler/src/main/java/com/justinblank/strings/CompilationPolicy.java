@@ -23,7 +23,8 @@ class CompilationPolicy {
     // byteclasses.
     boolean usedByteClasses = false;
     boolean useByteClassesForAllStates = false;
-
+    
+    String prefix;
     String suffix;
     String infix;
 
@@ -32,10 +33,10 @@ class CompilationPolicy {
     // the variable name is based on the idea we may use multiple infixes in the future. For now, we aren't.
     boolean useInfixes;
     // Whether to check that we have enough distance to fully match our string on each outer loop--if our regex is short
-    // This almost certainly won't be worthwhile. If our regex is long, then we can avoid looking at many characters
+    // this almost certainly won't be worthwhile. If our regex is long, then we can avoid looking at many characters
     boolean useMaxStart;
 
-    public CompilationPolicy() {
+    protected CompilationPolicy() {
     }
 
     public static CompilationPolicy create(Factorization factorization) {
@@ -47,13 +48,14 @@ class CompilationPolicy {
         compilationPolicy.useInfixes = !factorization.getRequiredInfixes().isEmpty() && factorization.getMaxLength().isPresent();
         compilationPolicy.useMaxStart = factorization.getMinLength() > THRESHOLD_FOR_CALCULATING_MAX_START;
 
-        if (compilationPolicy.useSuffix) {
-            compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);
-        }
-        if (compilationPolicy.useInfixes) {
-            compilationPolicy.infix = chooseInfix(factorization);
-        }
+        compilationPolicy.prefix = factorization.getSharedPrefix().orElse(null);
+        compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);
+        compilationPolicy.infix = chooseInfix(factorization);
         return compilationPolicy;
+    }
+
+    public boolean requiresByteClasses() {
+        return usedByteClasses || useByteClassesForAllStates;
     }
 
     private static String chooseInfix(Factorization factorization) {
@@ -70,6 +72,10 @@ class CompilationPolicy {
         return bestInfix;
     }
 
+    public Optional<String> getPrefix() {
+        return Optional.ofNullable(prefix);
+    }
+
     public Optional<String> getSuffix() {
         return Optional.ofNullable(suffix);
     }
@@ -77,5 +83,4 @@ class CompilationPolicy {
     public Optional<String> getInfix() {
         return Optional.of(infix);
     }
-
 }

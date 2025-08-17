@@ -25,7 +25,7 @@ class DFAClassBuilderTest {
         var factorization = RegexParser.parse("abcd", 0).bestFactors();
         var builder = new DFAClassBuilder("testContainedIn", dfa,
                 dfa, dfa, dfa, factorization, DebugOptions.none());
-        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true, new CompilationPolicy())));
+        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true, factorization)));
         builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);

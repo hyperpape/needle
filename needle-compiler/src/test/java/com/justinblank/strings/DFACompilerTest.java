@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -632,7 +633,7 @@ public class DFACompilerTest {
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
-        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, new CompilationPolicy());
+        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, Factorization.empty());
         DFAStateTransitions stateTransitions = new DFAStateTransitions();
         stateTransitions.byteClasses = dfaSearch.byteClasses();
 

@@ -40,7 +40,6 @@ class DFAClassBuilder extends ClassBuilder {
     private final FindMethodSpec containedInFindMethodSpec;
     private final FindMethodSpec dfaSearchFindMethodSpec;
     private final Factorization factorization;
-    private final CompilationPolicy compilationPolicy;
     private final Map<Integer, Offset> forwardOffsets;
 
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
@@ -55,11 +54,10 @@ class DFAClassBuilder extends ClassBuilder {
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
                     Factorization factorization, DebugOptions debugOptions) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.compilationPolicy = CompilationPolicy.create(factorization);
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, compilationPolicy);
-        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, compilationPolicy);
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, compilationPolicy);
-        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, compilationPolicy);
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization);
+        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization);
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, factorization);
+        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization);
         this.factorization = factorization;
         this.debugOptions = debugOptions;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
@@ -67,7 +65,9 @@ class DFAClassBuilder extends ClassBuilder {
             // TODO: test whether it matters that the four DFAs can have different byteClasses
             ByteClasses byteClasses = dfa.byteClasses();
             stateTransitions.byteClasses = byteClasses;
-            compilationPolicy.useByteClassesForAllStates = true;
+            for (var spec : allSpecs()) {
+                spec.compilationPolicy.useByteClassesForAllStates = true;
+            }
             catchAllByteClass = byteClasses.catchAll;
         } else {
             stateTransitions.byteClasses = null;
@@ -89,10 +89,9 @@ class DFAClassBuilder extends ClassBuilder {
     void initMethods() {
         addStateTransitionStrings();
         addStateMethods();
-        // TODO: why both?
-        if (compilationPolicy.usedByteClasses || compilationPolicy.useByteClassesForAllStates) {
+        if (shouldInitByteClasses()) {
             addByteClasses();
-            if (compilationPolicy.useByteClassesForAllStates) {
+            if (shouldPopulateByteClassArrays()) {
                 populateByteClassArrays();
             }
             // these methods depend on being called after addStateMethodTransitionStrings()
@@ -102,18 +101,19 @@ class DFAClassBuilder extends ClassBuilder {
             setByteClassTransitions(dfaSearchFindMethodSpec);
         }
 
-        if (compilationPolicy.usePrefix) {
-            factorization.getSharedPrefix().ifPresent(prefix -> {
+        // Although we have a separate compilationPolicy for each spec, they share prefix/suffix/infix
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.usePrefix)) {
+            allSpecs().get(0).compilationPolicy.getPrefix().ifPresent(prefix -> {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
             });
         }
-        if (compilationPolicy.useSuffix) {
-            compilationPolicy.getSuffix().ifPresent(suffix -> {
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useSuffix)) {
+            allSpecs().get(0).compilationPolicy.getSuffix().ifPresent(suffix -> {
                 addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
             });
         }
-        if (compilationPolicy.useInfixes) {
-            compilationPolicy.getInfix().ifPresent(infix -> {
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useInfixes)) {
+            allSpecs().get(0).compilationPolicy.getInfix().ifPresent(infix -> {
                 addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, infix);
             });
         }
@@ -131,6 +131,23 @@ class DFAClassBuilder extends ClassBuilder {
         addFields();
     }
 
+    private boolean shouldPopulateByteClassArrays() {
+        for (var spec : allSpecs()) {
+            if (spec.compilationPolicy.useByteClassesForAllStates) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean shouldInitByteClasses() {
+        for (var spec : allSpecs()) {
+            if (spec.compilationPolicy.requiresByteClasses()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Creates string constants representing the state transitions, then adds a static block that processes those
@@ -276,10 +293,10 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setWasAcceptedVar(varIndex++);
         vars.setLastMatchVar(varIndex++);
         vars.setByteClassVar(varIndex++);
-        if (compilationPolicy.useSuffix || compilationPolicy.useInfixes) {
+        if (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes) {
             vars.setSuffixIndexVar(varIndex++);
         }
-        if (compilationPolicy.useMaxStart) {
+        if (spec.compilationPolicy.useMaxStart) {
             vars.setMaxStartVar(varIndex++);
         }
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
@@ -288,7 +305,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         method.set(MatchingVars.LENGTH, get(MatchingVars.LENGTH, Builtin.I, thisRef()));
 
-        if (compilationPolicy.useMaxStart) {
+        if (spec.compilationPolicy.useMaxStart) {
             method.set(MatchingVars.MAX_START, sub(read(MatchingVars.LENGTH), factorization.getMinLength()));
         }
 
@@ -298,14 +315,14 @@ class DFAClassBuilder extends ClassBuilder {
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
-        if (compilationPolicy.useMaxStart) {
+        if (spec.compilationPolicy.useMaxStart) {
             method.loop(inBoundsForStart(), outerLoopBody);
         }
         else {
             method.loop(inBounds(), outerLoopBody);
         }
-        if (compilationPolicy.usePrefix) {
-            var prefix = factorization.getSharedPrefix().orElseThrow();
+        if (spec.compilationPolicy.usePrefix) {
+            var prefix = spec.compilationPolicy.getPrefix().orElseThrow();
             var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
             int state = postPrefixState.getStateNumber();
@@ -315,7 +332,7 @@ class DFAClassBuilder extends ClassBuilder {
                     read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
                     returnValue(-1)));
-            if (compilationPolicy.useSuffix) {
+            if (spec.compilationPolicy.useSuffix) {
                 outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                         getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
                 outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
@@ -328,21 +345,21 @@ class DFAClassBuilder extends ClassBuilder {
                 outerLoopBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
             }
         }
-        else if (compilationPolicy.useSuffix) {
+        else if (spec.compilationPolicy.useSuffix) {
             outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
             outerLoopBody.add(updateIndexBasedOnSuffixIndex());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
-        else if (compilationPolicy.useInfixes) {
+        else if (spec.compilationPolicy.useInfixes) {
             outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(INFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
             outerLoopBody.add(updateIndexBasedOnSuffixIndex());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
-        else if (canSeekForPredicate(spec)) {
+        else if (spec.canSeekForPredicate()) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
             outerLoopBody.add(loop(and(
                             eq(read(MatchingVars.LAST_MATCH), -1),
@@ -371,7 +388,7 @@ class DFAClassBuilder extends ClassBuilder {
         // an accepting state. Otherwise, we can skip that check.
         var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
         var innerLoopBoundary = inBounds();
-        if (compilationPolicy.usePrefix || (!compilationPolicy.useSuffix && canSeekForPredicate(spec))) {
+        if (spec.compilationPolicy.usePrefix || (!spec.compilationPolicy.useSuffix && spec.canSeekForPredicate())) {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
         Loop innerLoop = loop(innerLoopBoundary,
@@ -387,17 +404,18 @@ class DFAClassBuilder extends ClassBuilder {
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
 
-                        spec.dfa.maxChar() < Character.MAX_VALUE && compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                        spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 set(MatchingVars.STATE, -1),
                                 cond(hasLastMatch()).withBody(
                                         returnValue(read(MatchingVars.LAST_MATCH))
                                 ),
                                 skip()
                         )) : new NoOpStatement(),
-                        compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                        compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+
+                        spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                        spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         returnLastMatchIfDeadState(),
-                        (!compilationPolicy.usePrefix && (compilationPolicy.useSuffix || compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
+                        (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
                         setLastMatchIfAccepted(wasAcceptedMethod)
                 ));
         outerLoopBody.add(innerLoop);
@@ -412,8 +430,7 @@ class DFAClassBuilder extends ClassBuilder {
             return true;
         }
         else {
-            var prefix = factorization.getSharedPrefix();
-            return compilationPolicy.usePrefix && prefix.flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
+            return spec.compilationPolicy.getPrefix().flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
         }
     }
 
@@ -477,8 +494,8 @@ class DFAClassBuilder extends ClassBuilder {
 
         var loopBoundary = gte(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
 
-        if (shouldSeekBackwards()) {
-            var suffix = factorization.getSharedSuffix().orElseThrow();
+        if (shouldSeekBackwards(spec)) {
+            var suffix = spec.compilationPolicy.getSuffix().get();
             var postSuffixState = spec.dfa.after(StringUtils.reverse(suffix)).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming suffix. This should be impossible"));
             int state = postSuffixState.getStateNumber();
@@ -500,11 +517,11 @@ class DFAClassBuilder extends ClassBuilder {
                         // TODO: this should be ok regardless of whether we're using byteclasses?
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
-                        spec.dfa.maxChar() < Character.MAX_VALUE && compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                        spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 returnValue(read(MatchingVars.LAST_MATCH))
                         )) : new NoOpStatement(),
-                        compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                        compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                        spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                        spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         returnLastMatchIfDeadState(),
                         setLastMatchIfAccepted(wasAcceptedMethod),
                         set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
@@ -675,7 +692,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     void addStateMethods() {
-        if (!compilationPolicy.useByteClassesForAllStates) {
+        if (!allSpecs().stream().allMatch(spec -> spec.compilationPolicy.useByteClassesForAllStates)) {
             for (var spec : allSpecs()) {
                 for (DFA dfaState : spec.dfa.allStates()) {
                     addStateMethod(dfaState, spec);
@@ -696,7 +713,7 @@ class DFAClassBuilder extends ClassBuilder {
             for (var dfaState : spec.dfa.allStates()) {
                 if (stateTransitions.willUseByteClasses()) {
                     stateTransitions.addStateTransitionString(spec, dfaState);
-                    compilationPolicy.usedByteClasses = true;
+                    spec.compilationPolicy.usedByteClasses = true;
                 }
             }
         }
@@ -790,16 +807,10 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    private boolean shouldSeekBackwards() {
-        return factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false);
-    }
-
-    // TODO: could weaken the "allForwardTransitionsLeadToSameState" condition here, but it's not obvious to me whether
-    //  it would be worth it
-    // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
-    // make sense, and getting the loop correct is annoying
-    private static boolean canSeekForPredicate(FindMethodSpec spec) {
-        return spec.dfa.forwardTransitionIsPredicate(spec.compilationPolicy) && spec.dfa.allForwardTransitionsLeadToSameState() && !spec.dfa.isAccepting();
+    private boolean shouldSeekBackwards(FindMethodSpec spec) {
+        // Note that we don't use "useSuffix()" here, the policy may say not to use a suffix because the string is
+        // unbounded, or we prefer a prefix, but we can still search backwards with one
+        return spec.compilationPolicy.getSuffix().map(StringUtils::isNotEmpty).orElse(false);
     }
 
     static boolean isUsefulOffset(Offset offset) {
@@ -834,8 +845,8 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
         int offsetCheckState = 0;
-        if (compilationPolicy.usePrefix) {
-            var prefix = factorization.getSharedPrefix().orElseThrow();
+        if (spec.compilationPolicy.usePrefix) {
+            var prefix = spec.compilationPolicy.getPrefix().orElseThrow();
             offsetCheckState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
             method.cond(not(call("startsWith", Builtin.BOOL, read(MatchingVars.STRING),
@@ -873,11 +884,11 @@ class DFAClassBuilder extends ClassBuilder {
                                 returnValue(
                                         call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE))))),
                 set(MatchingVars.CHAR, readChar()),
-                compilationPolicy.useByteClassesForAllStates ? cond(
+                spec.compilationPolicy.useByteClassesForAllStates ? cond(
                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
                         returnValue(false)) : new NoOpStatement(),
-                compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                 incrementIndex()
                 ));
 
@@ -924,7 +935,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
 
         stateSwitchStatement.setDefault(List.of(set(MatchingVars.STATE, onFailure)));
-        if (compilationPolicy.usedByteClasses) {
+        if (spec.compilationPolicy.usedByteClasses) {
             var dfaMaxChar = spec.dfa.maxChar();
             var c = cond(gt(read(MatchingVars.CHAR), (int) dfaMaxChar)).withBody(
                     set(MatchingVars.STATE, onFailure));
@@ -938,7 +949,7 @@ class DFAClassBuilder extends ClassBuilder {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         int varIndex = 6;
         vars.setByteClassVar(varIndex++);
-        if (compilationPolicy.useMaxStart) {
+        if (spec.compilationPolicy.useMaxStart) {
             vars.setMaxStartVar(varIndex++);
         }
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
@@ -946,7 +957,7 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.LENGTH,
                 call("length", Builtin.I,
                         get(STRING_FIELD, ReferenceType.of(String.class), thisRef())));
-        if (compilationPolicy.useMaxStart) {
+        if (spec.compilationPolicy.useMaxStart) {
             method.set(MatchingVars.MAX_START, sub(read(MatchingVars.LENGTH), factorization.getMinLength()));
         }
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
@@ -955,15 +966,15 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.STATE, 0);
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
-        if (compilationPolicy.useMaxStart) {
+        if (spec.compilationPolicy.useMaxStart) {
             method.loop(inBoundsForStart(), outerLoopBody);
         }
         else {
             method.loop(inBounds(), outerLoopBody);
         }
 
-        if (compilationPolicy.usePrefix) {
-            var prefix = factorization.getSharedPrefix().orElseThrow();
+        if (spec.compilationPolicy.usePrefix) {
+            var prefix = spec.compilationPolicy.getPrefix().orElseThrow();
             int postPrefixState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
 
             outerLoopBody.add(set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
@@ -994,13 +1005,13 @@ class DFAClassBuilder extends ClassBuilder {
                                         .withBody(returnValue(true)),
                                 set(MatchingVars.CHAR, readChar()),
 
-                                compilationPolicy.useByteClassesForAllStates ? cond(
+                                spec.compilationPolicy.useByteClassesForAllStates ? cond(
                                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
                                                 List.of(set(MatchingVars.STATE, 0),
                                                         incrementIndex(),
                                                         escape())) : new NoOpStatement(),
-                                compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                                compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                                spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                                spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                                 incrementIndex()
                                 ));
         outerLoopBody.add(innerLoop);

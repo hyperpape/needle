@@ -26,15 +26,15 @@ public class FindMethodSpec {
      */
     public static final String FORWARDS = "Forwards";
 
-    public FindMethodSpec(DFA dfa, String name, boolean forwards, CompilationPolicy compilationPolicy) {
+    public FindMethodSpec(DFA dfa, String name, boolean forwards, Factorization factorization) {
         Objects.requireNonNull(dfa, "dfa cannot be null");
         Objects.requireNonNull(name, "name cannot be null)");
-        Objects.requireNonNull(compilationPolicy, "compilationPolicy cannot be null");
+        Objects.requireNonNull(factorization, "compilationPolicy cannot be null");
 
         this.dfa = dfa;
         this.name = name;
         this.forwards = forwards;
-        this.compilationPolicy = compilationPolicy;
+        this.compilationPolicy = CompilationPolicy.create(factorization);
     }
 
     int statesCount() {
@@ -69,6 +69,14 @@ public class FindMethodSpec {
         else {
             return "stateTransitions" + name + stateNumber;
         }
+    }
+
+    // TODO: could weaken the "allForwardTransitionsLeadToSameState" condition here, but it's not obvious to me whether
+    //  it would be worth it
+    // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
+    // make sense, and getting the loop correct is annoying
+    protected boolean canSeekForPredicate() {
+        return dfa.forwardTransitionIsPredicate(compilationPolicy) && dfa.allForwardTransitionsLeadToSameState() && dfa.isAccepting();
     }
 
     public String indexMethod() {
