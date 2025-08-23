@@ -26,11 +26,8 @@ class DFAStateTransitions {
         }
     }
 
-    boolean willUseByteClasses(DFA dfaState, DFAClassBuilder dfaClassBuilder) {
-        if (byteClasses == null) {
-            return false;
-        }
-        return true; // dfaState.getTransitions().size() > 3 || !dfa.allTransitionsLeadToSameState();
+    boolean willUseByteClasses() {
+        return byteClasses != null;
     }
 
     StringBuilder buildByteClassString(DFA dfaState) {

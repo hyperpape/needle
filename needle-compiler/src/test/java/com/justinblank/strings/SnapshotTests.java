@@ -61,6 +61,10 @@ class SnapshotTests {
         }
     }
 
+    /**
+     * Temporarily enable this method to recreate snapshots.
+     * @throws IOException
+     */
     @Disabled
     @Test
     void recordExamples() throws IOException {

@@ -684,31 +684,29 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     void addStateMethods() {
-        for (var spec : allSpecs()) {
-            addStateMethods(spec);
+        if (!compilationPolicy.useByteClassesForAllStates) {
+            for (var spec : allSpecs()) {
+                for (DFA dfaState : spec.dfa.allStates()) {
+                    addStateMethod(dfaState, spec);
+                }
+
+                var statesCount = spec.statesCount();
+                if (statesCount > LARGE_STATE_COUNT) {
+                    for (var i = 0; i < statesCount; i += LARGE_STATE_COUNT) {
+                        addStateGroupMethod(spec, i, Math.min(i + LARGE_STATE_COUNT, statesCount));
+                    }
+                }
+            }
         }
     }
 
     private void addStateTransitionStrings() {
         for (var spec : allSpecs()) {
             for (var dfaState : spec.dfa.allStates()) {
-                if (stateTransitions.willUseByteClasses(dfaState, this)) {
+                if (stateTransitions.willUseByteClasses()) {
                     stateTransitions.addStateTransitionString(spec, dfaState);
                     compilationPolicy.usedByteClasses = true;
                 }
-            }
-        }
-    }
-
-    private void addStateMethods(FindMethodSpec spec) {
-        for (DFA dfaState : spec.dfa.allStates()) {
-            addStateMethod(dfaState, spec);
-        }
-
-        var statesCount = spec.statesCount();
-        if (statesCount > LARGE_STATE_COUNT) {
-            for (var i = 0; i < statesCount; i += LARGE_STATE_COUNT) {
-                addStateGroupMethod(spec, i, Math.min(i + LARGE_STATE_COUNT, statesCount));
             }
         }
     }
@@ -752,7 +750,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private void addStateMethod(DFA dfaState, FindMethodSpec spec) {
         String name = stateMethodName(spec, dfaState.getStateNumber());
-        List<String> arguments = Arrays.asList("C"); // dfa.hasSelfTransition() ? Arrays.asList("C", "I") : Arrays.asList("C");
+        List<String> arguments = Arrays.asList("C");
         Vars vars = new GenericVars("c", "byteClass", "stateTransitions", "state");
         var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
 
@@ -760,8 +758,7 @@ class DFAClassBuilder extends ClassBuilder {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "debugState", Void.VOID,
                     literal(dfaState.getStateNumber()), read("c"));
         }
-        // TODO: offsets
-        if (stateTransitions.willUseByteClasses(dfaState, this)) {
+        if (stateTransitions.willUseByteClasses()) {
             Type stateTransitionsType = useShorts(spec) ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
             Type byteClassesType = ArrayType.of(Builtin.OCTET);
             method.cond(gt(read("c"), 127)).withBody(set("byteClass", catchAllByteClass)).orElse(
