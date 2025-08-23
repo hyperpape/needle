@@ -36,16 +36,6 @@ public class ByteClassUtil {
         }
     }
 
-    public static int maxByteClass(byte[] bytes) {
-        int max = Integer.MIN_VALUE;
-        for (int i : bytes) {
-            if (i > max) {
-                max = i;
-            }
-        }
-        return max;
-    }
-
     public static void fillMultipleByteClassesFromString_singleArray(byte[] stateTransitionArray, int length, String s) {
         String[] stateStrings = SEMICOLON_REGEX.split(s);
         for (String stateString : stateStrings) {
@@ -149,33 +139,6 @@ public class ByteClassUtil {
                     throw new IllegalStateException("Tried to store a state that's too large to fit in a byte. State=" + state);
                 }
                 byteClasses[byteClass] = (byte) state;
-            }
-            catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
-            }
-        }
-        return byteClasses;
-    }
-
-    public static short[] fillBytesFromStringUsingShorts(int length, String s) {
-        short[] byteClasses = new short[length];
-        Arrays.fill(byteClasses, (byte) -1);
-        if (s.isEmpty()) {
-            return byteClasses;
-        }
-        String[] components = COMMA_REGEX.split(s);
-        for (String component : components) {
-            String[] pieces = DASH_REGEX.split(component);
-            if (pieces.length != 2) {
-                throw new IllegalArgumentException("Malformed string, wrong number of parts. Component was: " + component);
-            }
-            try {
-                int byteClass = decode(pieces[0]);
-                int state = decode(pieces[1]);
-                if (state > Short.MAX_VALUE) {
-                    throw new IllegalStateException("Tried to store a state that's too large to fit in a short. State=" + state);
-                }
-                byteClasses[byteClass] = (short) state;
             }
             catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
