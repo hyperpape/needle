@@ -440,6 +440,11 @@ class RegexParserTest {
     }
 
     @Test
+    void doubleBrackets_withInternalCharRange() {
+        parse("[[a-c]]");
+    }
+
+    @Test
     void period() {
         parse(".");
     }
@@ -461,13 +466,6 @@ class RegexParserTest {
             for (int i = 0; i < 1000; i++) {
                 Node node = new RegexGenerator(random, maxSize).generate();
                 String regex = NodePrinter.print(node);
-                // catch any errors in our NodePrinter
-                // TODO: remove this check
-                try {
-                    java.util.regex.Pattern.compile(regex);
-                } catch (Exception e) {
-                    continue; // throw e;
-                }
                 try {
                     RegexParser.parse(regex);
                 } catch (Exception e) {

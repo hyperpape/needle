@@ -401,7 +401,6 @@ class RegexParser {
                 if (index == regex.length()) {
                     throw new RegexSyntaxException("");
                 }
-                // TODO: find out actual semantics
                 if (last == null) {
                     last = c;
                     continue;

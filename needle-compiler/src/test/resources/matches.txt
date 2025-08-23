@@ -118,6 +118,13 @@ sam|samwise         samwise             y       0       3
 \$\{[^}]*}             $${abcdef}       y       1       10
 \$\{[^}]*}             a${abcdef}       y       1       10
 
+# odd syntax
+[[a-c]]     a                           y       0       1
+[[a-c]]     [                           n
+[[a-c]]     -                           n
+[-]         -                           y       0       1
+[]]         ]                           y       0       1
+[]]         [                           n
 
 # unicode haystacks
 a.c                 aεc                 y       0       3

@@ -4,8 +4,7 @@ import com.justinblank.strings.RegexAST.Node;
 import org.junit.jupiter.api.Test;
 
 import static com.justinblank.strings.TestUtil.parse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RegexParserMalformedRegexTest {
 
@@ -25,6 +24,13 @@ public class RegexParserMalformedRegexTest {
     void leftUnbalancedBrackets() {
         assertThrows(RegexSyntaxException.class, () ->
             parse("[[]"));
+    }
+
+    @Test
+    void doubleBrackets() {
+        assertThrows(RegexSyntaxException.class, () -> {
+            parse("[[]]");
+        });
     }
 
     @Test
