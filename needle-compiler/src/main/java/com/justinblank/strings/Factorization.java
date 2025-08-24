@@ -13,13 +13,7 @@ import java.util.stream.Collectors;
  */
 public class Factorization {
 
-    // TODO: measure effect of this
-    public static final int MAX_CHAR_RANGE_FACTORS = 4;
-    // TODO: tune this
-    public static final int MAX_REPETITION_COUNT = 2;
-
     // Note: none of these sets are ever internally mutated, outside of the constructors.
-
     /**
      * The set of all factors that can be matched by the regular expression. Null represents a case where the required
      * factors cannot be computed, e.g. because of a repetition such as A*. Nullable.
@@ -81,7 +75,7 @@ public class Factorization {
     }
 
     public static Factorization fromRange(char start, char end) {
-        if ((int) end - (int) start > MAX_CHAR_RANGE_FACTORS) {
+        if ((int) end - (int) start > CompilationPolicy.FACTORIZATION_MAX_CHAR_RANGE_SIZE) {
             return Factorization.empty();
         }
         else if (start == end) {
@@ -279,7 +273,7 @@ public class Factorization {
 
     public Factorization countedRepetition(int min, int max) {
         Factorization factorization = this;
-        if (max > MAX_REPETITION_COUNT) {
+        if (max > CompilationPolicy.FACTORIZATION_MAX_REPETITION_COUNT) {
             return empty();
         }
         if (min == 0) {

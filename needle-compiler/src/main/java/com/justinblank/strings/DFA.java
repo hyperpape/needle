@@ -662,7 +662,7 @@ class DFA {
         if (effectiveTransitions.size() == 1) {
             var range = effectiveTransitions.get(0).getLeft();
             var count = 1 + (range.getEnd() - range.getStart());
-            return count <= compilationPolicy.predicateRangeSizeCutoff;
+            return count <= CompilationPolicy.PREDICATE_RANGE_SIZE_CUTOFF;
         } else if (effectiveTransitions.size() == 2) {
             var firstRange = effectiveTransitions.get(0).getLeft();
             var secondRange = effectiveTransitions.get(1).getLeft();

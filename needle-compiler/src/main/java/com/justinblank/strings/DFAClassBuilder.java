@@ -632,9 +632,8 @@ class DFAClassBuilder extends ClassBuilder {
             }
             method.returnValue(eq(accepting.get(0).getStateNumber(), read(MatchingVars.STATE)));
         }
-        // TODO: measure cutoffs between different implementations
         // once we're beyond one state, we can do an or, a switch, testing membership in a BitSet/HashSet/boolean[].
-        else if (accepting.size() < 5) {
+        else if (accepting.size() < CompilationPolicy.WAS_ACCEPTED_HASHSET_SIZE_THRESHOLD) {
             if (debugOptions.trackStates) {
                 method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
             }
@@ -811,9 +810,8 @@ class DFAClassBuilder extends ClassBuilder {
         return spec.dfa.forwardTransitionIsPredicate(spec.compilationPolicy) && spec.dfa.allForwardTransitionsLeadToSameState() && !spec.dfa.isAccepting();
     }
 
-    // TODO: measure breakeven point for offsets
     static boolean isUsefulOffset(Offset offset) {
-        return offset != null && offset.length > 3;
+        return offset != null && offset.length > CompilationPolicy.MIN_OFFSET_LENGTH;
     }
 
     private Method createMatchesMethod(FindMethodSpec spec) {
