@@ -14,10 +14,11 @@ class CompilationPolicy {
     public static final int PREDICATE_RANGE_SIZE_CUTOFF = 6;
     public static final int FACTORIZATION_MAX_CHAR_RANGE_SIZE = 4;
     public static final int FACTORIZATION_MAX_REPETITION_COUNT = 2;
+    public static final int LARGE_STATE_COUNT = 64;
 
     // Whether any of the states for this regex use byte classes. For DFAs that do not treat all non-ascii characters
-    // identically, some states may still only transition on an ascii character. For those states, we can potentially
-    // use byteclasses, so we need to separately track whether any state uses byteclasses, and whether all states use
+    // identically, some states may still only transition on an ascii characters. For those states, we can use
+    // byteclasses, so we need to separately track whether any state uses byteclasses, and whether all states use
     // byteclasses.
     boolean usedByteClasses = false;
     boolean useByteClassesForAllStates = false;

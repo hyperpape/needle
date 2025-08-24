@@ -35,8 +35,6 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String INFIX_CONSTANT = "INFIX";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
-    static final int LARGE_STATE_COUNT = 64;
-
     private final FindMethodSpec forwardFindMethodSpec;
     private final FindMethodSpec reversedFindMethodSpec;
     private final FindMethodSpec containedInFindMethodSpec;
@@ -690,9 +688,9 @@ class DFAClassBuilder extends ClassBuilder {
                 }
 
                 var statesCount = spec.statesCount();
-                if (statesCount > LARGE_STATE_COUNT) {
-                    for (var i = 0; i < statesCount; i += LARGE_STATE_COUNT) {
-                        addStateGroupMethod(spec, i, Math.min(i + LARGE_STATE_COUNT, statesCount));
+                if (statesCount > CompilationPolicy.LARGE_STATE_COUNT) {
+                    for (var i = 0; i < statesCount; i += CompilationPolicy.LARGE_STATE_COUNT) {
+                        addStateGroupMethod(spec, i, Math.min(i + CompilationPolicy.LARGE_STATE_COUNT, statesCount));
                     }
                 }
             }
@@ -735,7 +733,7 @@ class DFAClassBuilder extends ClassBuilder {
     static String stateGroupName(FindMethodSpec spec, int start) {
         var name = "stateGroup";
         name += spec.name;
-        name += (start / LARGE_STATE_COUNT);
+        name += (start / CompilationPolicy.LARGE_STATE_COUNT);
         return name;
     }
 
@@ -898,7 +896,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private CodeElement buildStateSwitch(FindMethodSpec spec, int onFailure) {
-        boolean largeStates = spec.statesCount() > LARGE_STATE_COUNT;
+        boolean largeStates = spec.statesCount() > CompilationPolicy.LARGE_STATE_COUNT;
         Switch stateSwitchStatement = null;
         if (largeStates) {
             stateSwitchStatement = new Switch(div(read(MatchingVars.STATE), 64));
@@ -907,8 +905,8 @@ class DFAClassBuilder extends ClassBuilder {
             stateSwitchStatement = new Switch(read(MatchingVars.STATE));
         }
         if (largeStates) {
-            for (var i = 0; i < spec.statesCount(); i += 64) {
-                stateSwitchStatement.setCase(i / 64,
+            for (var i = 0; i < spec.statesCount(); i += CompilationPolicy.LARGE_STATE_COUNT) {
+                stateSwitchStatement.setCase(i / CompilationPolicy.LARGE_STATE_COUNT,
                         set(MatchingVars.STATE,
                                 call(stateGroupName(spec, i), Builtin.I, thisRef(), read(MatchingVars.CHAR), read(MatchingVars.STATE))));
             }
