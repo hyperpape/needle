@@ -2,6 +2,8 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.justinblank.strings.TestUtil.parse;
 import static org.junit.jupiter.api.Assertions.*;
@@ -218,6 +220,12 @@ public class RegexParserMalformedRegexTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings ={ "\\p{IsLatin}", "\\p{InGreek}", "\\p{Lu}", "\\p{IsAlphabetic}", "\\p{Sc}" })
+    void pBrackets(String s) {
+        parseErrorOnJavaAcceptedRegex(s);
+    }
+
     @Test
     void failsOddNumberOfBackslashes() {
         for (int i = 1; i < 20; i += 2) {
@@ -233,6 +241,15 @@ public class RegexParserMalformedRegexTest {
         expectError("a|(");
     }
 
+    private void parseErrorOnJavaAcceptedRegex(String s) {
+        try {
+            Node node = RegexParser.parse(s);
+        } catch (RegexSyntaxException e) {
+            return;
+        }
+        fail("Expected an error parsing '" + s + "'");
+    }
+
     public static void expectError(String regexString) {
         try {
             parse(regexString);
@@ -242,5 +259,4 @@ public class RegexParserMalformedRegexTest {
         }
         fail("Expected RegexSyntaxException from regex: '" + regexString + "'");
     }
-
 }
