@@ -376,8 +376,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
         Loop innerLoop = loop(innerLoopBoundary,
                 List.of(
-                        innerLoopMustCallWasAccepted ? cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
-                                .withBody(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))) : new NoOpStatement(),
+                        innerLoopMustCallWasAccepted ? setLastMatchIfAccepted(wasAcceptedMethod) : new NoOpStatement(),
 
                         set(MatchingVars.CHAR, readChar()),
                         incrementIndex(),
@@ -397,11 +396,9 @@ class DFAClassBuilder extends ClassBuilder {
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH))),
+                        returnLastMatchIfDeadState(),
                         (!compilationPolicy.usePrefix && (compilationPolicy.useSuffix || compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
-                        cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
-                                set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
-                        )
+                        setLastMatchIfAccepted(wasAcceptedMethod)
                 ));
         outerLoopBody.add(innerLoop);
 
@@ -508,11 +505,8 @@ class DFAClassBuilder extends ClassBuilder {
                         )) : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        cond(eq(-1, read(MatchingVars.STATE))).
-                                withBody(returnValue(read(MatchingVars.LAST_MATCH))),
-                        cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
-                                set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
-                        ),
+                        returnLastMatchIfDeadState(),
+                        setLastMatchIfAccepted(wasAcceptedMethod),
                         set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
                 ));
 
@@ -1066,6 +1060,16 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Expression hasLastMatch() {
         return gt(read(MatchingVars.LAST_MATCH), literal(-1));
+    }
+
+    private Conditional returnLastMatchIfDeadState() {
+        return cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH)));
+    }
+
+    private Conditional setLastMatchIfAccepted(String wasAcceptedMethod) {
+        return cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
+                set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
+        );
     }
 
     private Statement updateIndexBasedOnSuffixIndex() {
