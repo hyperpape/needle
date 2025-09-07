@@ -92,10 +92,20 @@ public class FindMethodSpec {
     }
 
     public boolean doByteCheckForFirstCharacter() {
-        var hasFirstChar = dfa.initialAsciiBytes().isPresent() && !dfa.isAccepting();
-        if (hasFirstChar) {
-            return !(compilationPolicy.usePrefix || compilationPolicy.useInfixes || compilationPolicy.useSuffix || canSeekForPredicate());
+        if (dfa.isAccepting()) {
+            return false;
         }
-        return false;
+        return dfa.initialAsciiBytes().map(bytes -> {
+            int set = 0;
+            for (int i = 0; i < bytes.length; i++) {
+                if (bytes[i]) {
+                    set++;
+                }
+            }
+            if (set > CompilationPolicy.MAX_BYTES_FOR_INITIAL_CHAR_CHECK) {
+                return false;
+            }
+            return !(compilationPolicy.usePrefix || compilationPolicy.useInfixes || compilationPolicy.useSuffix || canSeekForPredicate());
+        }).orElse(false);
     }
 }
