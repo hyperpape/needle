@@ -45,7 +45,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
     private int catchAllByteClass;
-    private final DebugOptions debugOptions;
+    private final CompilerOptions compilerOptions;
 
     final List<Method> findMethods = new ArrayList<>();
 
@@ -53,14 +53,14 @@ class DFAClassBuilder extends ClassBuilder {
      * @param className the simple class name of the class to be created
      */
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
-                    Factorization factorization, DebugOptions debugOptions) {
+                    Factorization factorization, CompilerOptions options) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization);
-        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization);
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, factorization);
-        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization);
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
+        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
+        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
         this.factorization = factorization;
-        this.debugOptions = debugOptions;
+        this.compilerOptions = options;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
         if (dfa.maxDistinguishedChar() <= 127) {
             // TODO: test whether it matters that the four DFAs can have different byteClasses
@@ -201,7 +201,7 @@ class DFAClassBuilder extends ClassBuilder {
 
             if (useShorts(spec)) {
                 block.callStatic("fillMultipleByteClassesFromStringUsingShorts_singleArray", CompilerUtil.internalName(ByteClassUtil.class), "([SILjava/lang/String;)V");
-                if (debugOptions.trackStates) {
+                if (compilerOptions.debugOptions.trackStates) {
                     block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
                     block.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
                     block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[S)V");
@@ -209,7 +209,7 @@ class DFAClassBuilder extends ClassBuilder {
             }
             else {
                 block.callStatic("fillMultipleByteClassesFromString_singleArray", CompilerUtil.internalName(ByteClassUtil.class), "([BILjava/lang/String;)V");
-                if (debugOptions.trackStates) {
+                if (compilerOptions.debugOptions.trackStates) {
                     block.readStatic(spec.name.toUpperCase(), CompilerUtil.internalName(FindMethodSpec.class), CompilerUtil.descriptor(String.class));
                     block.readStatic(spec.statesConstant(), "[" + getStateArrayType(spec));
                     block.callStatic("debugStateArrays", CompilerUtil.internalName(DFADebugUtils.class), "(Ljava/lang/String;[B)V");
@@ -582,7 +582,7 @@ class DFAClassBuilder extends ClassBuilder {
                 call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                         read("FROM"), read("TO")));
         method.fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
-        if (debugOptions.trackStates) {
+        if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(ReferenceType.of(DFADebugUtils.class), "debugIndexForwards", Void.VOID, read(MatchingVars.INDEX));
         }
 
@@ -642,7 +642,7 @@ class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_PRIVATE, STATE_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, NEXT_START_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2));
-        if (debugOptions.trackStates) {
+        if (compilerOptions.debugOptions.trackStates) {
             // addField(new Field(ACC_PRIVATE, VISITED_STATES_CONSTANT, CompilerUtil.descriptor(List.class), null, null));
             addConstant("CURRENT_STATE", CompilerUtil.STRING_DESCRIPTOR, "CURRENT_STATE");
             addConstant("INDEX", CompilerUtil.STRING_DESCRIPTOR, "INDEX");
@@ -657,14 +657,14 @@ class DFAClassBuilder extends ClassBuilder {
         Method method = mkMethod(methodName, Collections.singletonList("I"), "Z", new GenericVars(MatchingVars.STATE));
 
         if (accepting.size() == 1) {
-            if (debugOptions.trackStates) {
+            if (compilerOptions.debugOptions.trackStates) {
                 method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
             }
             method.returnValue(eq(accepting.get(0).getStateNumber(), read(MatchingVars.STATE)));
         }
         // once we're beyond one state, we can do an or, a switch, testing membership in a BitSet/HashSet/boolean[].
         else if (accepting.size() < CompilationPolicy.WAS_ACCEPTED_HASHSET_SIZE_THRESHOLD) {
-            if (debugOptions.trackStates) {
+            if (compilerOptions.debugOptions.trackStates) {
                 method.addElement(callStatic(DFADebugUtils.class, "debugCallWasAccepted", Void.VOID, read(MatchingVars.STATE)));
             }
             Expression expression = null;
@@ -685,7 +685,7 @@ class DFAClassBuilder extends ClassBuilder {
 
             var block = method.addBlock();
 
-            if (debugOptions.trackStates) {
+            if (compilerOptions.debugOptions.trackStates) {
                 block.readVar(1, "I");
                 block.callStatic("debugCallWasAccepted", CompilerUtil.internalName(DFADebugUtils.class), "(I)V");
             }
@@ -783,7 +783,7 @@ class DFAClassBuilder extends ClassBuilder {
         Vars vars = new GenericVars("c", "byteClass", "stateTransitions", "state");
         var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
 
-        if (debugOptions.trackStates) {
+        if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "debugState", Void.VOID,
                     literal(dfaState.getStateNumber()), read("c"));
         }
@@ -883,7 +883,7 @@ class DFAClassBuilder extends ClassBuilder {
         if (usesOffsetCalculation(offsetCheckState)) {
             var offset = forwardOffsets.get(offsetCheckState);
             List<CodeElement> onFailure;
-            if (debugOptions.trackStates) {
+            if (compilerOptions.debugOptions.trackStates) {
                 onFailure = List.of(callStatic(DFADebugUtils.class, "failedLookAheadCheck",
                                 Void.VOID, read(MatchingVars.INDEX), plus(read(MatchingVars.INDEX), offset.length)),
                         returnValue(false));
@@ -899,7 +899,7 @@ class DFAClassBuilder extends ClassBuilder {
         method.loop(neq(read(MatchingVars.STATE), -1), List.of(
                 cond(eq(read(MatchingVars.INDEX),
                         read(MatchingVars.LENGTH)))
-                        .withBody(List.of(debugOptions.trackStates ?
+                        .withBody(List.of(compilerOptions.debugOptions.trackStates ?
                                         callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
                                         new NoOpStatement(),
                                 returnValue(
@@ -913,7 +913,7 @@ class DFAClassBuilder extends ClassBuilder {
                 incrementIndex()
                 ));
 
-        if (debugOptions.trackStates) {
+        if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "returnWasAccepted", Void.VOID, read(MatchingVars.STATE));
         }
         method.returnValue(
@@ -940,7 +940,7 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             for (var i = 0; i < spec.statesCount(); i++) {
                 var methodName = stateMethodName(spec, i);
-                if (debugOptions.trackStates) {
+                if (compilerOptions.debugOptions.trackStates) {
                     stateSwitchStatement.setCase(i,
                             List.of(set(MatchingVars.STATE,
                                     call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))),

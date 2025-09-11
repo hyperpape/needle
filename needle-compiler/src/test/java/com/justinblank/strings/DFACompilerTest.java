@@ -33,7 +33,8 @@ public class DFACompilerTest {
     }
 
     public static Pattern anonymousPattern(String regex, boolean debug) {
-        return DFACompiler.compile(regex, "Pattern" + CLASS_NAME_COUNTER.incrementAndGet(), 0, debug);
+        var compilerOptions = new CompilerOptions(0,  CharacterDistribution.DEFAULT, debug ? DebugOptions.all() : DebugOptions.none());
+        return DFACompiler.compile(regex, "Pattern" + CLASS_NAME_COUNTER.incrementAndGet(), compilerOptions);
     }
 
     // There are lots of painful little fencepost type errors possible as we start to experiment with inlining and
@@ -633,7 +634,7 @@ public class DFACompilerTest {
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
-        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, Factorization.empty());
+        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, Factorization.empty(), CharacterDistribution.DEFAULT);
         DFAStateTransitions stateTransitions = new DFAStateTransitions();
         stateTransitions.byteClasses = dfaSearch.byteClasses();
 
@@ -782,7 +783,7 @@ public class DFACompilerTest {
         assertTrue(pattern.matcher("abc").matches());
         assertEquals(MatchResult.success(0, 3), pattern.matcher("abc\nc").find());
 
-        pattern = DFACompiler.compile("a.*c", "aDotStarc_DOTALL", Pattern.DOTALL, false);
+        pattern = DFACompiler.compile("a.*c", "aDotStarc_DOTALL", CompilerOptions.fromFlags(Pattern.DOTALL));
         assertTrue(pattern.matcher("abc").matches());
         assertEquals(MatchResult.success(0, 5), pattern.matcher("abc\nc").find());
     }

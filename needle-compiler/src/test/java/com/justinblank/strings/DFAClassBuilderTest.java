@@ -24,8 +24,8 @@ class DFAClassBuilderTest {
         var dfa = DFA.createDFA("abcd");
         var factorization = RegexParser.parse("abcd", 0).bestFactors();
         var builder = new DFAClassBuilder("testContainedIn", dfa,
-                dfa, dfa, dfa, factorization, DebugOptions.none());
-        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true, factorization)));
+                dfa, dfa, dfa, factorization, CompilerOptions.defaultOptions());
+        builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true, factorization, CharacterDistribution.DEFAULT)));
         builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);
@@ -48,7 +48,7 @@ class DFAClassBuilderTest {
             var dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())),
                     ConversionMode.BASIC);
             var builder = new DFAClassBuilder("indexForwards",
-                    dfa, dfa, dfaReversed, dfa, node.bestFactors(), DebugOptions.none());
+                    dfa, dfa, dfaReversed, dfa, node.bestFactors(), CompilerOptions.defaultOptions());
             builder.initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwards");
             Object o = c.getDeclaredConstructors()[0].newInstance("abca");
@@ -65,7 +65,7 @@ class DFAClassBuilderTest {
             var dfa = DFA.createDFA("a");
             var node = RegexParser.parse("a", 0);
             var builder = new DFAClassBuilder("indexForwardsSingleChar",
-                    dfa, dfa, dfa, dfa, node.bestFactors(), DebugOptions.none());
+                    dfa, dfa, dfa, dfa, node.bestFactors(), CompilerOptions.defaultOptions());
             builder. initMethods();
             Class<?> c = compileFromBuilder(builder, "indexForwardsSingleChar");
             Object o = c.getDeclaredConstructors()[0].newInstance("aba");
@@ -91,7 +91,7 @@ class DFAClassBuilderTest {
     void stateMethodIsCompilable() throws Exception {
         var dfa = DFA.createDFA("a");
         var builder = new DFAClassBuilder("testStateMethod",
-                dfa, dfa, dfa, dfa, Factorization.fromChar('a'), DebugOptions.none());
+                dfa, dfa, dfa, dfa, Factorization.fromChar('a'), CompilerOptions.defaultOptions());
         builder.addStateMethods();
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }

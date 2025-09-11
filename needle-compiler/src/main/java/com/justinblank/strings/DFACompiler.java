@@ -14,19 +14,15 @@ import static org.objectweb.asm.Opcodes.*;
 public class DFACompiler {
 
     public static Pattern compile(String regex, String className) {
-        return compile(regex, className, 0,false);
+        var compilerOptions = new CompilerOptions(0, CharacterDistribution.DEFAULT, DebugOptions.none());
+        return compile(regex, className, compilerOptions);
     }
 
-    static Pattern compile(String regex, String className, int flags, boolean debug) {
-        var debugOptions = debug ? DebugOptions.all() : DebugOptions.none();
-        return compile(regex, className, flags, debugOptions);
-    }
-
-    static Pattern compile(String regex, String className, int flags, DebugOptions debugOptions) {
-        if (debugOptions.isDebug()) {
+    static Pattern compile(String regex, String className, CompilerOptions options) {
+        if (options.debugOptions.isDebug()) {
             System.out.println("Compiling " + className + "(" + regex + ")");
         }
-        byte[] classBytes = compileToBytes(regex, className, debugOptions, flags);
+        byte[] classBytes = compileToBytes(regex, className, options);
         Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
         Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
         try {
@@ -37,30 +33,32 @@ public class DFACompiler {
     }
 
     public static byte[] compileToBytes(String regex, String className, int flags) {
-        return compileToBytes(regex, className, DebugOptions.none(), flags);
+        var compilerOptions = new CompilerOptions(flags, CharacterDistribution.DEFAULT, DebugOptions.none());
+
+        return compileToBytes(regex, className, compilerOptions);
     }
 
-    static byte[] compileToBytes(String regex, String className, DebugOptions debugOptions, int flags) {
+    static byte[] compileToBytes(String regex, String className, CompilerOptions options) {
         Objects.requireNonNull(className, "name cannot be null");
-        Node node = RegexParser.parse(regex, flags);
+        Node node = RegexParser.parse(regex, options.flags);
         Factorization factorization = buildFactorization(node);
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed()));
 
-        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, debugOptions.printDFAs);
-        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, debugOptions.printDFAs);
-        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, debugOptions.printDFAs);
-        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, debugOptions.printDFAs);
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
+        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs);
+        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
 
-        if (debugOptions.printDFAs) {
+        if (options.debugOptions.printDFAs) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
         }
         checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
 
-        var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, debugOptions);
+        var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options);
         builder.initMethods();
-        ClassCompiler compiler = new ClassCompiler(builder, debugOptions.isDebug(), System.out);
+        ClassCompiler compiler = new ClassCompiler(builder, options.debugOptions.isDebug(), System.out);
         byte[] classBytes = compiler.generateClassAsBytes();
         return classBytes;
     }

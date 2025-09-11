@@ -4,11 +4,6 @@ import java.util.Objects;
 
 public class FindMethodSpec {
 
-    final DFA dfa;
-    final String name;
-    final boolean forwards;
-    final CompilationPolicy compilationPolicy;
-
     /**
      * The simplest method--determine if the entire string matches.
      */
@@ -26,15 +21,23 @@ public class FindMethodSpec {
      */
     public static final String FORWARDS = "Forwards";
 
-    public FindMethodSpec(DFA dfa, String name, boolean forwards, Factorization factorization) {
+    final DFA dfa;
+    final String name;
+    final boolean forwards;
+    final CompilationPolicy compilationPolicy;
+    private final CharacterDistribution distribution;
+
+    public FindMethodSpec(DFA dfa, String name, boolean forwards, Factorization factorization, CharacterDistribution distribution) {
         Objects.requireNonNull(dfa, "dfa cannot be null");
         Objects.requireNonNull(name, "name cannot be null)");
-        Objects.requireNonNull(factorization, "compilationPolicy cannot be null");
+        Objects.requireNonNull(factorization, "Factorization cannot be null");
+        Objects.requireNonNull(distribution, "CharacterDistribution cannot be null");
 
         this.dfa = dfa;
         this.name = name;
         this.forwards = forwards;
         this.compilationPolicy = CompilationPolicy.create(factorization);
+        this.distribution = distribution;
     }
 
     int statesCount() {
@@ -96,13 +99,7 @@ public class FindMethodSpec {
             return false;
         }
         return dfa.initialAsciiBytes().map(bytes -> {
-            int set = 0;
-            for (int i = 0; i < bytes.length; i++) {
-                if (bytes[i]) {
-                    set++;
-                }
-            }
-            if (set > CompilationPolicy.MAX_BYTES_FOR_INITIAL_CHAR_CHECK) {
+            if (distribution.weight(bytes) >= CompilationPolicy.MAX_FREQUENCY_FOR_INITIAL_CHAR_CHECK) {
                 return false;
             }
             return !(compilationPolicy.usePrefix || compilationPolicy.useInfixes || compilationPolicy.useSuffix || canSeekForPredicate());

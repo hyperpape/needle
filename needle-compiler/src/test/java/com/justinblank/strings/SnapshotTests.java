@@ -53,12 +53,12 @@ class SnapshotTests {
         LARGE_EXAMPLES.add(Pair.of("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson"));
     }
 
-    @Disabled
     @Test
     void generateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
+        var compilationOptions = new CompilerOptions(Pattern.DOTALL, CharacterDistribution.DEFAULT, debugOptions);
         for (var pair : EXAMPLES) {
-            DFACompiler.compile(pair.getLeft(), pair.getRight(), Pattern.DOTALL, debugOptions);
+            DFACompiler.compile(pair.getLeft(), pair.getRight(), compilationOptions);
         }
     }
 
@@ -78,8 +78,9 @@ class SnapshotTests {
     @Test
     void generateLargeExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
+        var compilationOptions = new CompilerOptions(Pattern.DOTALL, CharacterDistribution.DEFAULT, debugOptions);
         for (var pair : LARGE_EXAMPLES) {
-            DFACompiler.compile(pair.getLeft(), pair.getRight(), Pattern.DOTALL, debugOptions);
+            DFACompiler.compile(pair.getLeft(), pair.getRight(), compilationOptions);
         }
     }
 

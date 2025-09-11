@@ -16,7 +16,7 @@ class CompilationPolicy {
     public static final int FACTORIZATION_MAX_REPETITION_COUNT = 2;
     public static final int LARGE_STATE_COUNT = 64;
     public static final int THRESHOLD_FOR_CALCULATING_MAX_START = 4;
-    public static final int MAX_BYTES_FOR_INITIAL_CHAR_CHECK = 13;
+    public static final double MAX_FREQUENCY_FOR_INITIAL_CHAR_CHECK = .12;
 
     // Whether any of the states for this regex use byte classes. For DFAs that do not treat all non-ascii characters
     // identically, some states may still only transition on an ascii characters. For those states, we can use
