@@ -375,6 +375,20 @@ class RegexParserTest {
     }
 
     @Test
+    void nestedBracketsWithContents() {
+        check(parse("[a-b[d-f]]"), "[a-b]|[d-f]");
+        check(parse("[[a-b[d-f]]]"), "[a-b]|[d-f]");
+        check(parse("[a-bc-d[e-f]]"), "([a-b]|[c-d])|[e-f]");
+    }
+
+    @Test
+    void nestedBracketsWithContentsAndMoreChars() {
+        check(parse("[a-b[d-f]h]"), "([a-b]|[d-f])|h");
+        check(parse("[a-b[d-f]hij]"), "([a-b]|[d-f])|[h-j]");
+        check(parse("[a-b[d-f]h-j]"), "([a-b]|[d-f])|[h-j]");
+    }
+
+    @Test
     void escapedNestedBrackets() {
         check(parse("[\\[a]"), "\\[|a");
     }

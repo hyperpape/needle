@@ -420,17 +420,32 @@ class RegexParser {
                 ranges.add(CharRange.of(last, next));
                 last = null;
             } else if (c == '[') {
+                if (!ranges.isEmpty()) {
+                    Node rangeNode = null;
+                    for (var range : ranges) {
+                        if (rangeNode == null) {
+                            rangeNode = new CharRangeNode(range);
+                        }
+                        else {
+                            rangeNode = new Union(rangeNode, new CharRangeNode(range));
+                        }
+                    }
+                    ranges.clear();
+                    alternateNode = withAlternate(Optional.of(rangeNode), alternateNode).orElse(null);
+                }
                 int currentIndex = index;
                 Optional<Node> maybeNode = buildCharSet();
                 if (maybeNode.isEmpty()) {
                     throw new RegexSyntaxException("Unbalanced [ token at index=" + currentIndex);
                 }
-                char next = takeChar();
-                if (next != ']') {
-                    throw new RegexSyntaxException("Unbalanced [ token at index=" + currentIndex);
+                if (peekChar(']')) {
+                    takeChar();
+                    charRangeDepth--;
+                    return withAlternate(maybeNode, alternateNode);
                 }
-                charRangeDepth--;
-                return withAlternate(maybeNode, alternateNode);
+                else {
+                    alternateNode = withAlternate(maybeNode, alternateNode).orElse(null);
+                }
             } else if (c == '\\') {
                 char next;
                 if (peekChar('[') || peekChar(']') || peekChar('\\')) {
@@ -454,7 +469,7 @@ class RegexParser {
     private Optional<Node> withAlternate(Optional<Node> node, Node alternate) {
         var union = node.map(n -> {
             if (alternate != null) {
-                return new Union(n, alternate);
+                return new Union(alternate, n);
             } else {
                 return n;
             }
