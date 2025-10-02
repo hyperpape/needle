@@ -7,6 +7,12 @@ import java.util.stream.Collectors;
 
 class RegexParser {
 
+    /**
+     * The set of single character escapes not supported by this library that are recognized by the standard library.
+     * Most of these should be supported in the future, but the backreferences will likely never be supported because
+     * of limitations on efficiently matching them.
+     */
+    public static final char[] UNSUPPORTED_STANDARD_LIBRARY_ESCAPE_CHARACTERS = new char[]{'A', 'B', 'G', 'Q', 'R', 'X', 'Z', 'b', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
     private int index = 0;
     private int charRangeDepth = 1;
     private boolean dotAll;
@@ -257,11 +263,20 @@ class RegexParser {
             case 'G': {
                 throw new RegexSyntaxException("\\G not supported yet");
             }
+            case 'H': {
+                return Union.complement(" \t\u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000");
+            }
             case 'h': {
-                return Union.ofChars(" \u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\200a\u202f\u205f\u3000");
+                return Union.ofChars(" \t\u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000");
+            }
+            case 'n': {
+                return new CharRangeNode('\n', '\n');
             }
             case 'p': {
                 throw new RegexSyntaxException("\\p not supported yet");
+            }
+            case 'r': {
+                return new CharRangeNode('\r', '\r');
             }
             case 's': {
                 return Union.ofChars(" \t\n\u000B\f\r");
@@ -288,6 +303,12 @@ class RegexParser {
             }
             case 'x': {
                 return parseHexadecimal();
+            }
+            case 'V': {
+                return Union.complement("\n\u000B\f\r\u0085\u2028\u2029");
+            }
+            case 'v': {
+                return Union.ofChars("\n\u000B\f\r\u0085\u2028\u2029");
             }
             case 'Z': {
                 throw new RegexSyntaxException("\\Z not supported yet");
@@ -319,6 +340,18 @@ class RegexParser {
             case '.': {
                 return new CharRangeNode(c, c);
             }
+        }
+        if (c >= '1' && c <= '9') {
+            throw new RegexSyntaxException("Can't parse \\" + c + ". Backreferences are not supported");
+        }
+        if (c < 'A') {
+            return new CharRangeNode(c, c);
+        }
+        else if (c > 'Z' && c < 'a') {
+            return new CharRangeNode(c, c);
+        }
+        else if (c > 'z') {
+            return new CharRangeNode(c, c);
         }
         throw new RegexSyntaxException("Escape with unrecognized escaped character: '" + c + "'");
     }

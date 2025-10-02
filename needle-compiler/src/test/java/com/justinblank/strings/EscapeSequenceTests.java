@@ -4,19 +4,51 @@ import com.justinblank.strings.RegexAST.Node;
 import com.justinblank.strings.Search.SearchMethod;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import static com.justinblank.strings.RegexParserMalformedRegexTest.expectError;
 import static com.justinblank.strings.RegexParserTest.check;
 import static com.justinblank.strings.SearchMethodTestUtil.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class EscapeSequenceTests {
+
+    @ParameterizedTest
+    @MethodSource(value = "chars")
+    void testAllEscapes(int i) {
+        for (char c : RegexParser.UNSUPPORTED_STANDARD_LIBRARY_ESCAPE_CHARACTERS) {
+            if (c == i) {
+                return;
+            }
+        }
+        String escape = "\\" + (char) i;
+        Optional<Node> node = TestUtil.compareParseToJava(escape);
+        node.ifPresent(n -> {
+            Pattern pattern = DFACompilerTest.anonymousPattern(escape);
+            java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(escape);
+            for (char c = 0; c < Character.MAX_VALUE; c++) {
+                String needle = String.valueOf(c);
+                assertEquals(pattern.matcher(needle).matches(), javaPattern.matcher(needle).matches(), "Match failure for escape sequence " + i + " on needle " + (int) c);
+            }
+        });
+    }
+
+    static Stream<Arguments> chars() {
+        List<Arguments> integer = new ArrayList<>();
+        for (int i = 0; i < 128; i++) {
+            integer.add(Arguments.of(i));
+        }
+        return integer.stream();
+    }
 
     @Test
     void escape_a() {
@@ -44,6 +76,7 @@ class EscapeSequenceTests {
         fail(method, "abc");
         fail(method, "%");
     }
+
 
     @Test
     void escape_D() {
@@ -92,7 +125,7 @@ class EscapeSequenceTests {
 
     @Test
     void escape_h() {
-        String charsToMatch = " \u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\200a\u202f\u205f\u3000";
+        String charsToMatch = " \t\u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000";
         SearchMethod method = NFA.createNFA("\\h");
         for (int i = 0; i < 4096; i++) {
             if (charsToMatch.contains(String.valueOf((char) i))) {

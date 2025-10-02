@@ -78,7 +78,7 @@ public class Union extends Node {
             }
             else {
                 char high = (char) (((int) current.range().getStart()) -1);
-                complementedNodes.add(new CharRangeNode('\u0001', high));
+                complementedNodes.add(new CharRangeNode('\u0000', high));
             }
             last = current;
         }
@@ -95,6 +95,8 @@ public class Union extends Node {
 
     public static Union complement(String s) {
         if (s.length() < 2) {
+            // TODO: why did I write this? Maybe to work around a silly limitation in my complement method?
+            // If so, I should fix that
             throw new IllegalArgumentException("Silly short complement");
         }
         List<Character> chars = new ArrayList<>();

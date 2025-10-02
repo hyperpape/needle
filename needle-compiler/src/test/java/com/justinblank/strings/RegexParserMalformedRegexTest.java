@@ -204,22 +204,6 @@ public class RegexParserMalformedRegexTest {
         expectError("\\0999");
     }
 
-    @Test
-    void badEscapes() {
-        char[] badChars = new char[]{'A', 'b', 'B', 'c', 'C', 'E', 'F', 'g', 'G', 'H', 'i', 'I', 'j', 'J', 'k', 'K',
-                'l', 'L', 'm', 'M', 'n', 'N', 'o', 'O', 'p', 'P', 'q', 'Q', 'r', 'R', 'T', 'u', 'U', 'v', 'V', 'X',
-                'y', 'Y', 'z', 'Z'};
-        for (char c : badChars) {
-            try {
-                RegexParser.parse("\\" + c);
-            }
-            catch (RegexSyntaxException e) {
-                continue;
-            }
-            fail("Expected syntax exception");
-        }
-    }
-
     @ParameterizedTest
     @ValueSource(strings ={ "\\p{IsLatin}", "\\p{InGreek}", "\\p{Lu}", "\\p{IsAlphabetic}", "\\p{Sc}" })
     void pBrackets(String s) {
