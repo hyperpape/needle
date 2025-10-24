@@ -83,10 +83,19 @@ gc(g|a)*cg          gccg                y       0       4
 gc(g|a)*cg          gcgcg               y       0       5
 gc(g|a)*cg          gcgcgcg             y       0       5
 gc(g|a)*cg          gcggcgcg            y       0       6
-(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag     y       0       6
-(a*tgc*|t*acg*)*(cg)(a|t)*  aacgatgccgaa    y   1       12
-(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag         y   0       6
-(t*acg*)*(cg)       acgggactcgcc        y       1       3
+(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag         y       0       6
+(a*tgc*|t*acg*)*(cg)(a|t)*  aacgatgccgaa    y       1       12
+(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag         y       0       6
+(t*acg*)*(cg)       acgggactcgcc            y       1       3
+
+# infix/suffix tests
+[a-z]*ing                               bringing            y       0       8
+[a-z]{0,8}ing                           bringing            y       0       8
+[a-z]*ing[a-z]*                         bringing            y       0       8
+[a-z]{0,8}ing[a-z]*                     bringing            y       0       8
+
+Holmes.{0,4}Watson|Watson.{0,4}Holmes   Holmes to Watson    y       0       16
+[a-z]{0,8}ly\s[a-z]{1,8}                actually valid      y       0       14
 
 http://.+\.com      http://www.google.com       y   0   21
 http://.+\.com      http://www.google.co.uk     n
