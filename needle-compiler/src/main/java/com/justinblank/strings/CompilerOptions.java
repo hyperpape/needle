@@ -7,6 +7,9 @@ public class CompilerOptions {
     protected final DebugOptions debugOptions;
 
     public CompilerOptions(int flags, CharacterDistribution distribution, DebugOptions debugOptions) {
+        if ((flags & ~Pattern.ALL_FLAGS) != 0) {
+            throw new IllegalArgumentException("Unrecognized flags=" + flags);
+        }
         this.flags = flags;
         this.distribution = distribution;
         this.debugOptions = debugOptions;
@@ -17,6 +20,6 @@ public class CompilerOptions {
     }
 
     public static CompilerOptions defaultOptions() {
-        return new CompilerOptions(0, CharacterDistribution.DEFAULT, DebugOptions.none());
+        return fromFlags(0);
     }
 }

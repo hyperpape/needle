@@ -1,10 +1,5 @@
 package com.justinblank.strings;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-
 public class RegexTestSpec {
 
     final String pattern;
@@ -12,12 +7,22 @@ public class RegexTestSpec {
     final boolean successful;
     final int start;
     final int end;
+    final Flags flags;
 
-    public RegexTestSpec(String pattern, String target, boolean successful, int start, int end) {
+    public RegexTestSpec(String pattern, String target, boolean successful, int start, int end, Flags flags) {
         this.pattern = pattern;
         this.target = target;
         this.successful = successful;
         this.start = start;
         this.end = end;
+        this.flags = flags;
+    }
+
+    public static class Flags {
+        int flags;
+
+        public Flags(int flags) {
+            this.flags = flags;
+        }
     }
 }

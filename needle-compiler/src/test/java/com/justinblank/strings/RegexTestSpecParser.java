@@ -3,6 +3,7 @@ package com.justinblank.strings;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class RegexTestSpecParser {
@@ -12,25 +13,37 @@ public class RegexTestSpecParser {
     List<RegexTestSpec> readTests() throws Exception {
         var resource = this.getClass().getClassLoader().getResource("matches.txt");
         var text = Files.readAllLines(Path.of(resource.toURI()));
-        return text.stream().filter(s -> {
-            return !s.isBlank() && !s.startsWith("#");
-        }).map(this::readSpec).collect(Collectors.toList());
+        return text.stream().filter(s ->
+                !s.isBlank() && !s.startsWith("#")
+        ).map(String::trim).map(this::readSpec).collect(Collectors.toList());
     }
 
     private RegexTestSpec readSpec(String s) {
-        idx = 0;
-        var pattern = chomp(s);
-        var target = chomp(s);
-        var successful = "y".equals(chomp(s));
-        if (successful) {
-            var start = Integer.parseInt(chomp(s));
-            var end = Integer.parseInt(chomp(s));
-            return new RegexTestSpec(pattern, target, successful, start, end);
+        try {
+            idx = 0;
+            var pattern = chomp(s);
+            var target = chomp(s);
+            var successful = "y".equals(chomp(s));
+            if (successful) {
+                var start = Integer.parseInt(chomp(s));
+                var end = Integer.parseInt(chomp(s));
+                var flags = optionalChomp(s).map(f -> new RegexTestSpec.Flags(Integer.parseInt(f))).orElse(null);
+                return new RegexTestSpec(pattern, target, successful, start, end, flags);
+            } else {
+                var flags = optionalChomp(s).map(f -> new RegexTestSpec.Flags(Integer.parseInt(f))).orElse(null);
+                return new RegexTestSpec(pattern, target, successful, -1, -1, flags);
+            }
         }
-        else {
-            return new RegexTestSpec(pattern, target, successful, -1, -1);
+        catch (Exception e) {
+            throw new RuntimeException("Failed to parse spec '" + s + "'", e);
         }
+    }
 
+    private Optional<String> optionalChomp(String s) {
+        if (s.length() > idx) {
+            return Optional.of(chomp(s));
+        }
+        return Optional.empty();
     }
 
     private String chomp(String s) {

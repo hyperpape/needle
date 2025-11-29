@@ -1,9 +1,6 @@
 package com.justinblank.strings;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class CharRange implements Comparable<CharRange> {
     private final char start;
@@ -161,6 +158,22 @@ public class CharRange implements Comparable<CharRange> {
 
     public boolean overlaps(CharRange range) {
         return getStart() <= range.getEnd() && getEnd() >= range.getStart();
+    }
+
+    public Optional<CharRange> intersection(CharRange other) {
+        if (!overlaps(other)) {
+            return Optional.empty();
+        }
+        return Optional.of(CharRange.of((char) Math.max(getStart(), other.getStart()), (char) Math.min(getEnd(), other.getEnd())));
+    }
+
+    public CharRange translate(int translation) {
+        var translatedStart = (int) start + translation;
+        var translatedEnd = (int) end + translation;
+        if (translatedEnd > Character.MAX_VALUE || translatedStart < Character.MIN_VALUE) {
+            throw new IllegalArgumentException("");
+        }
+        return CharRange.of((char) translatedStart, (char) translatedEnd);
     }
 
     static boolean checkRep(List<CharRange> ranges) {

@@ -1,6 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -696,13 +697,15 @@ public class DFACompilerTest {
     void fileBasedTests() throws Exception {
         var baseName = "dfaFileBasedTests";
         var counter = new AtomicInteger();
-        var patterns = new HashMap<String, Pattern>();
+        var patterns = new HashMap<Pair<String, Integer>, Pattern>();
         var testSpecs = new RegexTestSpecParser().readTests();
         var correctMatches = 0;
         var nonMatches = 0;
         var errors = new ArrayList<String>();
         for (var spec : testSpecs) {
-            var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet()));
+            int flags = spec.flags != null ? spec.flags.flags : 0;
+            var pair = Pair.of(spec.pattern, flags);
+            var pattern = patterns.computeIfAbsent(pair, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), flags));
             if (spec.successful) {
                 var result = pattern.matcher(spec.target).find();
                 if (!result.matched) {

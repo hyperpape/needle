@@ -18,6 +18,10 @@ public class DFACompiler {
         return compile(regex, className, compilerOptions);
     }
 
+    static Pattern compile(String regex, String className, int flags) {
+        return compile(regex, className, CompilerOptions.fromFlags(flags));
+    }
+
     static Pattern compile(String regex, String className, CompilerOptions options) {
         if (options.debugOptions.isDebug()) {
             System.out.println("Compiling " + className + "(" + regex + ")");
