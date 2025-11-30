@@ -195,6 +195,20 @@ class RegexParserTest {
     }
 
     @Test
+    void singleCharRange() {
+        Node node = parse("[a-a]");
+        assertNotNull(node);
+        check(node, "a");
+    }
+
+    @Test
+    void dashInRange() {
+        Node node = parse("[a-]");
+        assertNotNull(node);
+        check(node, "-|a");
+    }
+
+    @Test
     void multiCharRange() {
         Node node = parse("[0-9A-Z]");
         assertNotNull(node);

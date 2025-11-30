@@ -432,7 +432,14 @@ class RegexParser {
                 return withAlternate(node, alternateNode);
             } else if (c == '-') {
                 if (index == regex.length()) {
-                    throw new RegexSyntaxException("");
+                    throw new RegexSyntaxException("Unterminated character range");
+                }
+                else if (peekChar(']')) {
+                    if (last != null) {
+                        ranges.add(CharRange.of(last, last));
+                    }
+                    last = '-';
+                    continue;
                 }
                 if (last == null) {
                     last = c;
@@ -449,6 +456,9 @@ class RegexParser {
                     else if (peekChar('\\')) {
                         next = takeChar();
                     }
+                }
+                if (next < last) {
+                    throw new RegexSyntaxException("Start of range must be less than the end, start=" + last + ", end=" + next);
                 }
                 ranges.add(CharRange.of(last, next));
                 last = null;

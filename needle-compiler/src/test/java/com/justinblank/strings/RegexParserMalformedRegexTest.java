@@ -36,6 +36,13 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test
+    void reversedRange() {
+        assertThrows(RegexSyntaxException.class, () -> {
+            parse("[c-a]");
+        });
+    }
+
+    @Test
     void insideOutBrackets() {
         assertThrows(RegexSyntaxException.class, () ->
             parse("]["));
@@ -183,6 +190,10 @@ public class RegexParserMalformedRegexTest {
     void charClassWithTrailingDash() {
         assertThrows(RegexSyntaxException.class, () ->
             parse("[-"));
+        assertThrows(RegexSyntaxException.class, () ->
+                parse("[a-"));
+        assertThrows(RegexSyntaxException.class, () ->
+                parse("[[a-]"));
     }
 
     @Test
