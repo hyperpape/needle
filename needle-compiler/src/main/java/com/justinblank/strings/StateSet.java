@@ -48,15 +48,10 @@ class StateSet extends HashSet<Integer> {
                 continue;
             }
             var stateData = stateStarts.get(state);
-            if (stateData.distance < boundary) {
+            if (stateData.distance < boundary || priority < stateData.priority) {
                 it.remove();
                 removed = true;
                 stateStarts.remove(state);
-            }
-            else if (stateData.priority > priority) {
-                it.remove();
-                removed = true;
-                stateStarts.remove(priority);
             }
         }
         return removed;
