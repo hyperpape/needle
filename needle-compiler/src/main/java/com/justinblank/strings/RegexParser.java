@@ -413,7 +413,6 @@ class RegexParser {
 
     private Optional<Node> buildCharSet() {
         charRangeDepth++;
-        Set<Character> characterSet = new HashSet<>();
         Set<CharRange> ranges = new HashSet<>();
         Character last = null;
         int startingIndex = index;
@@ -425,10 +424,10 @@ class RegexParser {
                 complemented = true;
             } else if (c == ']') {
                 if (last != null) {
-                    characterSet.add(last);
+                    ranges.add(CharRange.of(last, last));
                 }
                 charRangeDepth--;
-                var node = buildNode(characterSet, ranges, complemented);
+                var node = buildNode(ranges, complemented);
                 return withAlternate(node, alternateNode);
             } else if (c == '-') {
                 if (index == regex.length()) {
@@ -493,7 +492,7 @@ class RegexParser {
                 char next;
                 if (peekChar('[') || peekChar(']') || peekChar('\\')) {
                     next = takeChar();
-                    characterSet.add(next);
+                    ranges.add(CharRange.of(next, next));
                     last = next;
                 }
                 else {
@@ -501,7 +500,7 @@ class RegexParser {
                 }
             } else {
                 if (last != null) {
-                    characterSet.add(last);
+                    ranges.add(CharRange.of(last, last));
                 }
                 last = c;
             }
@@ -520,30 +519,23 @@ class RegexParser {
         return Optional.ofNullable(union);
     }
 
-    private Optional<Node> buildNode(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
-        if (ranges.isEmpty() && characterSet.isEmpty()) {
+    private Optional<Node> buildNode(Set<CharRange> ranges, boolean complemented) {
+        if (ranges.isEmpty()) {
             return Optional.empty();
-        } else if (characterSet.isEmpty() && ranges.size() == 1) {
+        } else if (ranges.size() == 1) {
             CharRange range = ranges.iterator().next();
             CharRangeNode rangeNode = new CharRangeNode(range);
             if (complemented) {
                 return Optional.of(Union.complement(List.of(rangeNode)));
             }
             return Optional.of(rangeNode);
-        } else if (ranges.isEmpty() && characterSet.size() == 1) {
-            Character character = characterSet.iterator().next();
-            CharRangeNode rangeNode = new CharRangeNode(character, character);
-            if (complemented) {
-                return Optional.of(Union.complement(List.of(rangeNode)));
-            }
-            return Optional.of(rangeNode);
         } else {
-            return Optional.of(buildRanges(characterSet, ranges, complemented));
+            return Optional.of(buildRanges(ranges, complemented));
         }
     }
 
-    private Node buildRanges(Set<Character> characterSet, Set<CharRange> ranges, boolean complemented) {
-        List<CharRange> sortedCharRanges = buildSortedCharRanges(characterSet, ranges);
+    private Node buildRanges(Set<CharRange> ranges, boolean complemented) {
+        List<CharRange> sortedCharRanges = CharRange.compact(new ArrayList<>(ranges));
         if (sortedCharRanges.size() == 1) {
             CharRangeNode rangeNode = new CharRangeNode(sortedCharRanges.get(0));
             if (complemented) {
@@ -562,14 +554,6 @@ class RegexParser {
             }
             return node;
         }
-    }
-
-    private List<CharRange> buildSortedCharRanges(Set<Character> characterSet, Set<CharRange> ranges) {
-        List<Character> characters = new ArrayList<>(characterSet);
-        Collections.sort(characters);
-        List<CharRange> charRanges = new ArrayList<>(ranges);
-        characters.stream().map(c -> CharRange.of(c, c)).forEach(charRanges::add);
-        return CharRange.compact(charRanges);
     }
 
     private boolean peekChar(char c) {
