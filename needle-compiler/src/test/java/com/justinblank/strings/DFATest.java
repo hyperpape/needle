@@ -151,12 +151,20 @@ class DFATest {
     }
 
     @Test
-    void offsetsDiamond() {
+    void offsetsDiamondWithTail() {
         String regexString = "ab(cd|ef)ghi";
         var dfa = DFA.createDFA(regexString);
         var offsets = dfa.calculateOffsets(RegexParser.parse(regexString, 0).bestFactors());
         // offsets before 'a', 'c', 'e'
         assertEquals(3, offsets.size());
+    }
+
+    @Test
+    void offsetsDiamond() {
+        String regexString = "[a-q][xX]";
+        var dfa = DFA.createDFA(regexString);
+        var offsets = dfa.calculateOffsets(RegexParser.parse(regexString).bestFactors());
+        assertEquals(0, offsets.size());
     }
 
     @Test

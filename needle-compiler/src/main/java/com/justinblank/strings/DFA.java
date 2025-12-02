@@ -292,13 +292,17 @@ class DFA {
     }
 
     Optional<Offset> calculateOffset() {
-        Set<Integer> passedStates = new HashSet<>();
+        var passedStates = new HashSet<Integer>();
         var count = -1;
-        CharRange charRange = null;
         var next = this;
+
+        CharRange currentCharRange = null;
+        var currentCount = 0;
+        var currentPassed = new HashSet<Integer>();
         // TODO: handle case where offset is resolved to . or similarly permissive character range: checking that is
         //  not useful
         while (true) {
+            var choosable = true;
             if (passedStates.contains(next) || next.hasSelfTransition() || next.transitions.size() == 0 ||
                     next.isAccepting()) {
                 break;
@@ -308,17 +312,22 @@ class DFA {
                 if (!next.allTransitionsLeadToSameState()) {
                     break;
                 }
+                choosable = false;
             }
             passedStates.add(next.stateNumber);
 
             var transition = next.transitions.get(0);
             next = transition.getRight();
             count++;
-            charRange = transition.getLeft();
+            if (choosable) {
+                currentCharRange = transition.getLeft();
+                currentCount = count;
+                currentPassed = new HashSet<>(passedStates);
+            }
         }
 
-        if (count > 0) {
-            return Optional.of(new Offset(count, passedStates, charRange));
+        if (currentCount > 0) {
+            return Optional.of(new Offset(currentCount, currentPassed, currentCharRange));
         } else {
             return Optional.empty();
         }
