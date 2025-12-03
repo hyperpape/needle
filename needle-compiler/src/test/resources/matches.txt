@@ -1,7 +1,7 @@
 # pattern           haystack           matches  start   end     flags
 a                   a                   y       0       1
 a                   A                   n
-a                   A                   y       0       1       3
+a                   A                   y       0       1       22
 a                   b                   n
 a                   ab                  y       0       1
 a                   ba                  y       1       2
@@ -69,10 +69,10 @@ AAB                 AAAB                y       1       4
 AAB                 ABAAB               y       2       5
 [a-q][^u-z]{3}x     aaax                n
 [a-q][^u-z]{3}x     aaaax               y       0       5
-[a-q][^u-z]{3}x     AAAAx               y       0       5       3
+[a-q][^u-z]{3}x     AAAAx               y       0       5       22
 [a-q][^u-z]{3}x     aaaaaax             y       2       7
 [a-q][^u-z]{3}x     aaaux               n
-[a-q][^u-z]{3}x     AAAUX               n                       3
+[a-q][^u-z]{3}x     AAAUX               n                       22
 a                   ''                  n
 a{1,2}              a                   y       0       1
 a{1,2}              aa                  y       0       2

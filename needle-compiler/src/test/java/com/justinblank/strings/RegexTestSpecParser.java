@@ -27,10 +27,10 @@ public class RegexTestSpecParser {
             if (successful) {
                 var start = Integer.parseInt(chomp(s));
                 var end = Integer.parseInt(chomp(s));
-                var flags = optionalChomp(s).map(f -> new RegexTestSpec.Flags(Integer.parseInt(f))).orElse(null);
+                var flags = optionalChomp(s).map(f -> new RegexTestSpec.Flags(Integer.parseInt(f, 16))).orElse(null);
                 return new RegexTestSpec(pattern, target, successful, start, end, flags);
             } else {
-                var flags = optionalChomp(s).map(f -> new RegexTestSpec.Flags(Integer.parseInt(f))).orElse(null);
+                var flags = optionalChomp(s).map(f -> new RegexTestSpec.Flags(Integer.parseInt(f, 16))).orElse(null);
                 return new RegexTestSpec(pattern, target, successful, -1, -1, flags);
             }
         }
