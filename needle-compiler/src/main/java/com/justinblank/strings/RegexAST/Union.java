@@ -44,6 +44,25 @@ public class Union extends Node {
         return new Union(left.reversed(), right.reversed());
     }
 
+    public static Node of(Node left, Node right) {
+        if (left.equals(right)) {
+            return left;
+        }
+        if (left instanceof Union) {
+            Union lUnion = (Union) left;
+            if (lUnion.left.equals(right) || lUnion.right.equals(right)) {
+                return left;
+            }
+        }
+        if (right instanceof Union) {
+            Union rUnion = (Union) right;
+            if (rUnion.left.equals(left) || rUnion.right.equals(left)) {
+                return right;
+            }
+        }
+        return new Union(left, right);
+    }
+
     public static Union ofChars(String s) {
         if (s.length() < 2) {
             throw new IllegalArgumentException("silly union");

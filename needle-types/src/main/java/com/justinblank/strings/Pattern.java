@@ -9,9 +9,15 @@ public interface Pattern {
     int DOTALL = java.util.regex.Pattern.DOTALL;
 
     /**
-     * Enabled case insensitive matching for ASCII characters.
+     * Enables case insensitive matching for ASCII characters.
      */
     int CASE_INSENSITIVE = java.util.regex.Pattern.CASE_INSENSITIVE;
+
+    /**
+     * Enables case insensitive matching for Unicode characters, if case insensitive matching is enabled. Does nothing by itself.
+     */
+    int UNICODE_CASE = java.util.regex.Pattern.UNICODE_CASE;
+
 
     /**
      * By default, matching (sam|samwise) against the string "samwise" will match "samwise" but with the leftmost first
@@ -21,7 +27,7 @@ public interface Pattern {
      */
     int LEFTMOST_FIRST = 0x800000;
 
-    int ALL_FLAGS = DOTALL | CASE_INSENSITIVE | LEFTMOST_FIRST;
+    int ALL_FLAGS = DOTALL | CASE_INSENSITIVE | UNICODE_CASE | LEFTMOST_FIRST;
 
     Matcher matcher(String s);
 }

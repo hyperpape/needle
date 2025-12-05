@@ -2,6 +2,10 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,13 +25,16 @@ class RegexParser {
     private int charRangeDepth = 1;
     private final boolean dotAll;
     private final boolean caseInsensitive;
+    private final boolean unicodeCaseInsensitive;
+
     private final String regex;
     private final Stack<Node> nodes = new Stack<>();
 
     protected RegexParser(String regex, int flags) {
         this.regex = regex;
         this.dotAll = (flags & Pattern.DOTALL) != 0;
-        this.caseInsensitive = (flags & java.util.regex.Pattern.CASE_INSENSITIVE) != 0;
+        this.caseInsensitive = (flags & Pattern.CASE_INSENSITIVE) != 0;
+        this.unicodeCaseInsensitive = (flags & Pattern.UNICODE_CASE) != 0;
     }
 
     public static Node parse(String regex) {
@@ -154,17 +161,28 @@ class RegexParser {
                     break;
                 default:
                     if (caseInsensitive) {
-                        var node = LiteralNode.fromChar(c);
-                        if ('A' <= c && c <= 'Z') {
-                            char other = (char) (((int) c) + 32);
-                            nodes.push(new Union(node, LiteralNode.fromChar(other)));
-                        }
-                        else if ('a' <= c && c <= 'z') {
-                            char other = (char) (((int) c) - 32);
-                            nodes.push(new Union(node, LiteralNode.fromChar(other)));
-                        }
-                        else {
-                            nodes.push(node);
+                        if (unicodeCaseInsensitive) {
+                            var upperCase = Character.toUpperCase(c);
+                            var lowerCase = Character.toLowerCase(c);
+                            if (upperCase != c || lowerCase != c) {
+                                var union = Union.of(Union.of(LiteralNode.fromChar(c), LiteralNode.fromChar(lowerCase)), LiteralNode.fromChar(upperCase));
+                                nodes.push(union);
+                            }
+                            else {
+                                var node = LiteralNode.fromChar(c);
+                                nodes.push(node);
+                            }
+                        } else {
+                            var node = LiteralNode.fromChar(c);
+                            if ('A' <= c && c <= 'Z') {
+                                char other = (char) (((int) c) + 32);
+                                nodes.push(new Union(node, LiteralNode.fromChar(other)));
+                            } else if ('a' <= c && c <= 'z') {
+                                char other = (char) (((int) c) - 32);
+                                nodes.push(new Union(node, LiteralNode.fromChar(other)));
+                            } else {
+                                nodes.push(node);
+                            }
                         }
                     }
                     else {
@@ -512,21 +530,34 @@ class RegexParser {
                 }
                 var range = CharRange.of(last, next);
                 if (caseInsensitive) {
-                    if (next < 'A' || 'z' < last) {
-                        ranges.add(range);
-                    }
-                    else {
-                        var upperCaseRange = range.intersection(CharRange.of('A', 'Z'));
-                        var lowerCaseRange = range.intersection(CharRange.of('a', 'z'));
-                        upperCaseRange.ifPresent(r -> {
-                            ranges.add(r);
-                            ranges.add(r.translate(32));
-                        });
-                        lowerCaseRange.ifPresent(r -> {
-                            ranges.add(r);
-                            ranges.add(r.translate(-32));
-                        });
-                        ranges.add(range);
+                    if (unicodeCaseInsensitive) {
+                        for (char rangeChar = last; rangeChar <= next; rangeChar++) {
+                            var upperCase = Character.toUpperCase(rangeChar);
+                            var lowerCase = Character.toLowerCase(rangeChar);
+                            ranges.add(CharRange.of(rangeChar, rangeChar));
+                            if (upperCase != rangeChar) {
+                                ranges.add(CharRange.of(upperCase, upperCase));
+                            }
+                            else if (lowerCase != rangeChar) {
+                                ranges.add(CharRange.of(lowerCase, lowerCase));
+                            }
+                        }
+                    } else {
+                        if (next < 'A' || 'z' < last) {
+                            ranges.add(range);
+                        } else {
+                            var upperCaseRange = range.intersection(CharRange.of('A', 'Z'));
+                            var lowerCaseRange = range.intersection(CharRange.of('a', 'z'));
+                            upperCaseRange.ifPresent(r -> {
+                                ranges.add(r);
+                                ranges.add(r.translate(32));
+                            });
+                            lowerCaseRange.ifPresent(r -> {
+                                ranges.add(r);
+                                ranges.add(r.translate(-32));
+                            });
+                            ranges.add(range);
+                        }
                     }
                 }
                 else {
