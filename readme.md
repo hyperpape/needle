@@ -2,11 +2,11 @@
 
 ![Badge](https://www.repostatus.org/badges/latest/wip.svg)
 
-This library compiles regular expressions to Deterministic 
-Finite Automata (DFA) (meaning that the regular expressions are 
+Needle is a very fast regular expression library for the JVM. It works by compiling regular expressions to Deterministic
+Finite Automata (DFA) (meaning that the regular expressions are
 [non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and
-then compiles them those to JVM ByteCode. Each regex becomes a 
-separate JVM class. 
+then compiles them those to JVM ByteCode. Each regex becomes a
+separate JVM class.
 
 ### Status
 
