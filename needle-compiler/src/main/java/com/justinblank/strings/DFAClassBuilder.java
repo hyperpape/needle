@@ -635,15 +635,10 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private void addFields() {
-        addField(new Field(ACC_PRIVATE, INDEX_FIELD, "I", null, 0));
-        addField(new Field(ACC_PRIVATE, CHAR_FIELD, "C", null, null));
         addField(new Field(ACC_PRIVATE, STRING_FIELD, CompilerUtil.STRING_DESCRIPTOR, null, null));
         addField(new Field(ACC_PRIVATE, LENGTH_FIELD, "I", null, 0));
-        addField(new Field(ACC_PRIVATE, STATE_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, NEXT_START_FIELD, "I", null, 0));
-        addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "CONTAINED_IN_FAILURE", "I", null, -2));
         if (compilerOptions.debugOptions.trackStates) {
-            // addField(new Field(ACC_PRIVATE, VISITED_STATES_CONSTANT, CompilerUtil.descriptor(List.class), null, null));
             addConstant("CURRENT_STATE", CompilerUtil.STRING_DESCRIPTOR, "CURRENT_STATE");
             addConstant("INDEX", CompilerUtil.STRING_DESCRIPTOR, "INDEX");
         }
