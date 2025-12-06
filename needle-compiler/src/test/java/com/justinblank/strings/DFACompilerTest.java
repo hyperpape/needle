@@ -10,12 +10,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.justinblank.strings.Pattern.ALL_FLAGS;
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,6 +22,8 @@ public class DFACompilerTest {
     private static final AtomicInteger CLASS_NAME_COUNTER = new AtomicInteger();
 
     static final String CORE_LARGE_REGEX_STRING = "((123)|(234)|(345)|(456)|(567)|(678)|(789)|(0987)|(9876)|(8765)|(7654)|(6543)|(5432)|(4321)|(3210)){1,";
+
+    static final Random random = new Random(1024); // arbitrary fixed seed
 
     // TODO: This is suboptimal, as it doesn't mix unicode and A-Z.
     static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE)
@@ -703,17 +703,17 @@ public class DFACompilerTest {
         var nonMatches = 0;
         var errors = new ArrayList<String>();
         for (var spec : testSpecs) {
-            int flags = spec.flags != null ? spec.flags.flags : 0;
+            int flags = generateFlags(spec);
             var pair = Pair.of(spec.pattern, flags);
             var pattern = patterns.computeIfAbsent(pair, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), flags));
             if (spec.successful) {
                 var result = pattern.matcher(spec.target).find();
                 if (!result.matched) {
-                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
                 }
                 else {
                     if (result.start != spec.start || result.end != spec.end) {
-                        errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
+                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
                         nonMatches++;
                     } else {
                         correctMatches++;
@@ -723,10 +723,10 @@ public class DFACompilerTest {
                     find(pattern, spec.target);
                 }
                 catch (Exception e) {
-                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had error in find " + e);
+                    errors.add("Matching spec='" + spec.pattern + " 'with flags=" + flags + " against needle=" + spec.target + " had error in find " + e);
                 }
                 catch (AssertionError e) {
-                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had AssertionError in find " + e);
+                    errors.add("Matching spec='" + spec.pattern + " 'with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
                 }
             }
             else {
@@ -742,6 +742,15 @@ public class DFACompilerTest {
         // If these fail, then the test parsing is broken
         assertNotEquals(0, correctMatches);
         assertNotEquals(0, nonMatches);
+    }
+
+    private static int generateFlags(RegexTestSpec spec) {
+        if (spec.flags != null) {
+            return spec.flags.flags;
+        }
+        else {
+            return ALL_FLAGS & random.nextInt(ALL_FLAGS);
+        }
     }
 
     @Test
