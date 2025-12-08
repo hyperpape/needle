@@ -222,6 +222,17 @@ public class RegexParserMalformedRegexTest {
     }
 
     @Test
+    void rejectsBackReferences() {
+        parseErrorOnJavaAcceptedRegex("(abc)\\1");
+    }
+
+    @Test
+    void rejectsJavaQuotation() {
+        parseErrorOnJavaAcceptedRegex("\\Q");
+        parseErrorOnJavaAcceptedRegex("\\E");
+    }
+
+    @Test
     void failsOddNumberOfBackslashes() {
         for (int i = 1; i < 20; i += 2) {
             String escapes = "\\".repeat(i);
