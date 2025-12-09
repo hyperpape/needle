@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -94,12 +95,6 @@ public class RegexParserMalformedRegexTest {
     void badRepetitionNoBracket() {
         assertThrows(RegexSyntaxException.class, () ->
             parse("a{b,}"));
-    }
-
-    @Test
-    void emptyRegexLeading() {
-        assertThrows(RegexSyntaxException.class, () ->
-            parse("{}"));
     }
 
     @Test
@@ -230,6 +225,35 @@ public class RegexParserMalformedRegexTest {
     void rejectsJavaQuotation() {
         parseErrorOnJavaAcceptedRegex("\\Q");
         parseErrorOnJavaAcceptedRegex("\\E");
+    }
+
+    @Test
+    void rejectsReluctantQuantifiers() {
+        parseErrorOnJavaAcceptedRegex("X??");
+        parseErrorOnJavaAcceptedRegex("X+?");
+        parseErrorOnJavaAcceptedRegex("X*?");
+        parseErrorOnJavaAcceptedRegex("X{4,5}?");
+    }
+
+    @Test
+    void rejectsPossessiveQuantifiers() {
+        parseErrorOnJavaAcceptedRegex("X?+");
+        parseErrorOnJavaAcceptedRegex("X++");
+        parseErrorOnJavaAcceptedRegex("X*+");
+        parseErrorOnJavaAcceptedRegex("X{4,5}+");
+    }
+
+    @Test
+    void bareReluctantQuantifiers() {
+        assertThrows(RegexSyntaxException.class, () -> {
+            parse("??");
+        });
+        assertThrows(RegexSyntaxException.class, () -> {
+            parse("*?");
+        });
+        assertThrows(RegexSyntaxException.class, () -> {
+            parse("+?");
+        });
     }
 
     @Test

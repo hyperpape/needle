@@ -13,6 +13,10 @@ class RegexParser {
      * of limitations on efficiently matching them.
      */
     public static final char[] UNSUPPORTED_STANDARD_LIBRARY_ESCAPE_CHARACTERS = new char[]{'A', 'B', 'G', 'Q', 'R', 'X', 'Z', 'b', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    private static final String RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED = "Reluctant quantifiers are not supported";
+    private static final String POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED = "Possessive quantifiers are not supported";
+
+
     private int index = 0;
     private int charRangeDepth = 1;
     private final boolean dotAll;
@@ -72,6 +76,12 @@ class RegexParser {
                     char next = takeChar();
                     if (next == '}') {
                         nodes.push(new CountedRepetition(nodes.pop(), left, left));
+                        if (peekChar('?')) {
+                            throw parseError(RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                        }
+                        if (peekChar('+')) {
+                            throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                        }
                         break;
                     }
                     else if (next != ',') {
@@ -83,10 +93,22 @@ class RegexParser {
                     if (next != '}') {
                         throw parseError("Found unclosed brackets at position " + index);
                     }
+                    if (peekChar('?')) {
+                        throw parseError(RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                    }
+                    if (peekChar('+')) {
+                        throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                    }
                     break;
                 case '?':
                     if (nodes.isEmpty()) {
                         throw parseError("");
+                    }
+                    if (peekChar('?')) {
+                        throw parseError(RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                    }
+                    if (peekChar('+')) {
+                        throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
                     }
                     nodes.push(new CountedRepetition(nodes.pop(), 0, 1));
                     break;
@@ -97,12 +119,24 @@ class RegexParser {
                     if (nodes.isEmpty()) {
                         throw parseError("Found '+' with no preceding regex");
                     }
+                    if (peekChar('?')) {
+                        throw parseError(RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                    }
+                    if (peekChar('+')) {
+                        throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                    }
                     Node lastNode = nodes.pop();
                     nodes.push(concatenate(lastNode, new Repetition(lastNode)));
                     break;
                 case '*':
                     if (nodes.isEmpty()) {
                         throw parseError("Found '*' with no preceding regex");
+                    }
+                    if (peekChar('?')) {
+                        throw parseError(RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED);
+                    }
+                    if (peekChar('+')) {
+                        throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
                     }
                     nodes.push(new Repetition(nodes.pop()));
                     break;

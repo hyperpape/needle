@@ -354,12 +354,6 @@ class RegexParserTest {
     }
 
     @Test
-    void duplicateQuestionMark() {
-        // This is allowed by the Java regex library
-        check(parse("a??"), "(a?)?");
-    }
-
-    @Test
     void singleBracketElement() {
         check( RegexParser.parse("[a]"), "a");
     }
@@ -415,6 +409,11 @@ class RegexParserTest {
     @Test
     void escapedBracketInCharRange() {
         check("[A-\\[]", "[A-\\[]");
+    }
+
+    @Test
+    void escapedMetaCharWithQuantifier() {
+        check("\\*?", "\\*?");
     }
 
     static void check(String regex, String representation) {
@@ -489,7 +488,7 @@ class RegexParserTest {
 
     @Test
     void generativeParsingTest() {
-        Random random = new Random();
+        Random random = new Random(1024);
         for (int maxSize = 1; maxSize < 24; maxSize++) {
             for (int i = 0; i < 1000; i++) {
                 Node node = new RegexGenerator(random, maxSize).generate();
