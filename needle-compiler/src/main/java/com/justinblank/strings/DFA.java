@@ -435,9 +435,9 @@ class DFA {
             byteClass++;
         }
         if (catchAll == ByteClasses.CATCHALL_INVALID) {
-            catchAll = byteClass;
+            catchAll = 0;
         }
-        return new ByteClasses(ranges, catchAll, byteClass + 1);
+        return new ByteClasses(ranges, catchAll, byteClass);
     }
 
     List<RangeGroup> generateRangeGroups() {
