@@ -16,7 +16,7 @@ class RegexInstr {
     final char end;
     final int jumpTarget;
     final int[] splitTargets;
-    int priority;
+    int priority = 0;
 
     private static final int[] EMPTY = new int[0];
 

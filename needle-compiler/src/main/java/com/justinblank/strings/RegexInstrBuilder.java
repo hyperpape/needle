@@ -11,9 +11,18 @@ class RegexInstrBuilder {
 
     static final int STARTING_PRIORITY = 1;
     private int maxPriority = STARTING_PRIORITY;
+    private final boolean leftMostLongest;
+
+    private RegexInstrBuilder(boolean leftMostLongest) {
+        this.leftMostLongest = leftMostLongest;
+    }
 
     public static RegexInstr[] createNFA(Node ast) {
-        return new RegexInstrBuilder().build(ast);
+        return createNFA(ast, false);
+    }
+
+    public static RegexInstr[] createNFA(Node ast, boolean leftMostLongest) {
+        return new RegexInstrBuilder(leftMostLongest).build(ast);
     }
 
     protected RegexInstr[] build(Node ast) {
@@ -107,7 +116,9 @@ class RegexInstrBuilder {
             instrs.add(null);
             createPartial(r.node, instrs);
             instrs.add(RegexInstr.jump(splitIndex, maxPriority));
-            maxPriority++;
+            if (!leftMostLongest) {
+                maxPriority++;
+            }
             int postIndex = instrs.size();
             instrs.set(splitIndex, RegexInstr.split(new int[] {splitIndex + 1, postIndex}, maxPriority));
         }
@@ -140,12 +151,16 @@ class RegexInstrBuilder {
 
             int firstAlternativePriority = maxPriority;
             createPartial(a.left, instrs);
-            maxPriority++;
+            if (!leftMostLongest) {
+                maxPriority++;
+            }
             int firstJumpIndex = instrs.size();
             instrs.add(null);
             int secondSplitTarget = instrs.size();
             createPartial(a.right, instrs);
-            maxPriority++;
+            if (!leftMostLongest) {
+                maxPriority++;
+            }
 
             int finalJumpTarget = instrs.size();
             // TODO: not sure what this should be
