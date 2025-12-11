@@ -18,7 +18,7 @@ class RegexInstrBuilder {
     }
 
     public static RegexInstr[] createNFA(Node ast) {
-        return createNFA(ast, false);
+        return createNFA(ast, true);
     }
 
     public static RegexInstr[] createNFA(Node ast, boolean leftMostLongest) {

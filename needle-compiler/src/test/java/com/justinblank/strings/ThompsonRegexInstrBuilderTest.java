@@ -24,7 +24,7 @@ class ThompsonRegexInstrBuilderTest {
 
     @Test
     void prioritiesUnionOfLiterals() {
-        var instrs = RegexInstrBuilder.createNFA(RegexParser.parse("Sam|Samwise"));
+        var instrs = RegexInstrBuilder.createNFA(RegexParser.parse("Sam|Samwise"), false);
         assertEquals(1, instrs[0].priority); // split instr
         assertEquals(1, instrs[1].priority); // S in first alternation
         assertEquals(2, instrs[5].priority); // S in second alternation
