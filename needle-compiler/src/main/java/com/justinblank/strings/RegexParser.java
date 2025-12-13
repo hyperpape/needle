@@ -512,13 +512,10 @@ class RegexParser {
                 }
                 var range = CharRange.of(last, next);
                 if (caseInsensitive) {
-                    if (last < 'A' && next < 'A') {
+                    if (next < 'A' || 'z' < last) {
                         ranges.add(range);
                     }
-                    else if ('z' < last && 'z' < next) {
-                        ranges.add(range);
-                    }
-                    else if ('A' <= last && last <= 'Z' || 'a' <= last && last <= 'z') {
+                    else {
                         var upperCaseRange = range.intersection(CharRange.of('A', 'Z'));
                         var lowerCaseRange = range.intersection(CharRange.of('a', 'z'));
                         upperCaseRange.ifPresent(r -> {
@@ -529,6 +526,7 @@ class RegexParser {
                             ranges.add(r);
                             ranges.add(r.translate(-32));
                         });
+                        ranges.add(range);
                     }
                 }
                 else {
