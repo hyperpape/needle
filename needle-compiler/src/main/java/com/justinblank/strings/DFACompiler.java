@@ -18,7 +18,7 @@ public class DFACompiler {
         return compile(regex, className, compilerOptions);
     }
 
-    static Pattern compile(String regex, String className, int flags) {
+    public static Pattern compile(String regex, String className, int flags) {
         return compile(regex, className, CompilerOptions.fromFlags(flags));
     }
 

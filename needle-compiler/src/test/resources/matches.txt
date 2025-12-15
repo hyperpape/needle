@@ -1,6 +1,6 @@
 # pattern           haystack           matches  start   end     flags
 a                   a                   y       0       1
-a                   A                   n
+a                   A                   n                       0
 a                   A                   y       0       1       22
 a                   b                   n
 a                   ab                  y       0       1
@@ -54,7 +54,7 @@ a.*c                axycc               y       0       5
 [^c]                d                   y       0       1
 ((I)|(S{0,4}))      I                   y       0       1
 ((I)|(S{0,4}))      ''                  y       0       0
-((I)|(S{0,4}))      B                   n
+((I)|(S{0,4}))      B                   y       0       0
 ((I)|(S{0,4}))      S                   y       0       1
 ((I)|(S{0,4}))      SSS                 y       0       3
 ((I)|(S{0,4}))      SSSS                y       0       4

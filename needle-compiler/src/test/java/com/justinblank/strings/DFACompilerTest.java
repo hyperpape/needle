@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.justinblank.strings.Pattern.ALL_FLAGS;
+import static com.justinblank.strings.Pattern.*;
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -706,8 +706,8 @@ public class DFACompilerTest {
             int flags = generateFlags(spec);
             var pair = Pair.of(spec.pattern, flags);
             var pattern = patterns.computeIfAbsent(pair, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), flags));
+            var result = pattern.matcher(spec.target).find();
             if (spec.successful) {
-                var result = pattern.matcher(spec.target).find();
                 if (!result.matched) {
                     errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
                 }
@@ -723,17 +723,22 @@ public class DFACompilerTest {
                     find(pattern, spec.target);
                 }
                 catch (Exception e) {
-                    errors.add("Matching spec='" + spec.pattern + " 'with flags=" + flags + " against needle=" + spec.target + " had error in find " + e);
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had error in find " + e);
                 }
                 catch (AssertionError e) {
-                    errors.add("Matching spec='" + spec.pattern + " 'with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
                 }
             }
             else {
-                nonMatches++;
+                if (result.matched) {
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle='" + spec.target + "' incorrectly matched");
+                }
+                else {
+                    nonMatches++;
+                }
             }
         }
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             for (var error : errors) {
                 System.out.println(error);
             }
@@ -762,6 +767,12 @@ public class DFACompilerTest {
 
         assertEquals(3, result.start);
         assertEquals(7, result.end);
+    }
+
+    @Test
+    void foo() {
+        var compilerOptions = new CompilerOptions(UNICODE_CASE | CASE_INSENSITIVE, CharacterDistribution.DEFAULT, DebugOptions.none());
+        var pattern = DFACompiler.compile("[Γ-Θ]", "Pattern" + CLASS_NAME_COUNTER.incrementAndGet(), compilerOptions);
     }
 
     @Test
