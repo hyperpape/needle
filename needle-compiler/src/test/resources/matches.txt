@@ -43,6 +43,8 @@ a+a                 aaaaaaa             y       0       7
 (ab)cd              abcd                y       0       4
 (ab)+cd             abcd                y       0       4
 (ab)+cd             ababcd              y       0       6
+a|bc*               b                   y       0       1
+(a|b)c|a            ac                  y       0       2
 a.c                 abc                 y       0       3
 a.c                 a.c                 y       0       3
 a.*c                ac                  y       0       2
@@ -74,6 +76,8 @@ AAB                 ABAAB               y       2       5
 [a-q][^u-z]{3}x     aaaux               n
 [a-q][^u-z]{3}x     AAAUX               n                       22
 a                   ''                  n
+a{0,0}              ''                  y       0       0
+a{0,1}              ''                  y       0       0
 a{1,2}              a                   y       0       1
 a{1,2}              aa                  y       0       2
 a{1,2}              aaa                 y       0       2
@@ -105,7 +109,9 @@ Holmes.{0,4}Watson|Watson.{0,4}Holmes   'Holmes to Watson'    y       0       16
 http://.+\.com      http://www.google.com       y   0   21
 http://.+\.com      http://www.google.co.uk     n
 
-# leftmost first semantics
+# leftmost longest and leftmost first semantics
+samwise|sam         samwise                 y       0       7
+sam|samwise         samwise                 y       0       7           0
 samwise|sam         samwise                 y       0       7           800000
 sam|samwise         samwise                 y       0       3           800000
 
