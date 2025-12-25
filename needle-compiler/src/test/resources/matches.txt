@@ -125,6 +125,9 @@ sam|samwise         samwise                 y       0       3           800000
 (sam|samwise)(sam|samwise)  samwisesam      y       0       10          800000
 (sam|samwise)(sam|samwise)  samwisesamwise  y       0       10          800000
 
+(aaa|aaaa)*         aaaaaaa                 y       0       7           0
+(aaa|aaaa)*         aaaaaaa                 y       0       6           800000
+
 # greedy quantifiers
 (a|ab|bc)+def       abcdef                  y       0       6
 (a|ab|bc)+def       abcdef                  y       0       6

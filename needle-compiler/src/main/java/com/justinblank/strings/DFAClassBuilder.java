@@ -412,7 +412,7 @@ class DFAClassBuilder extends ClassBuilder {
         // an accepting state. Otherwise, we can skip that check.
         var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
         var innerLoopBoundary = inBounds();
-        if (spec.compilationPolicy.usePrefix || (!spec.compilationPolicy.useSuffix && spec.canSeekForPredicate())) {
+        if (spec.compilationPolicy.usePrefix || (!(spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes) && spec.canSeekForPredicate())) {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
         Loop innerLoop = loop(innerLoopBoundary,
