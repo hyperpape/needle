@@ -79,7 +79,7 @@ public class FindMethodSpec {
     // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
     // make sense, and getting the loop correct is annoying
     protected boolean canSeekForPredicate() {
-        return dfa.forwardTransitionIsPredicate(compilationPolicy) && dfa.allForwardTransitionsLeadToSameState() && dfa.isAccepting();
+        return dfa.forwardTransitionIsPredicate(compilationPolicy) && dfa.allForwardTransitionsLeadToSameState() && !dfa.isAccepting();
     }
 
     public String indexMethod() {
