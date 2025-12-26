@@ -72,7 +72,7 @@ class SnapshotTests {
     @Test
     void recordExamples() throws IOException {
         for (var pair : EXAMPLES) {
-            Precompile.precompile(pair.getLeft(), pair.getRight(), SNAPSHOT_PATH);
+            Precompile.precompile(pair.getLeft(), pair.getRight(), new File(SNAPSHOT_PATH));
         }
     }
 

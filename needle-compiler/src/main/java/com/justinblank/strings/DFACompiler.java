@@ -22,7 +22,7 @@ public class DFACompiler {
         return compile(regex, className, CompilerOptions.fromFlags(flags));
     }
 
-    static Pattern compile(String regex, String className, CompilerOptions options) {
+    public static Pattern compile(String regex, String className, CompilerOptions options) {
         if (options.debugOptions.isDebug()) {
             System.out.println("Compiling " + className + "(" + regex + ")");
         }
@@ -42,7 +42,7 @@ public class DFACompiler {
         return compileToBytes(regex, className, compilerOptions);
     }
 
-    static byte[] compileToBytes(String regex, String className, CompilerOptions options) {
+    public static byte[] compileToBytes(String regex, String className, CompilerOptions options) {
         Objects.requireNonNull(className, "name cannot be null");
         Node node = RegexParser.parse(regex, options.flags);
         Factorization factorization = buildFactorization(node);

@@ -13,7 +13,7 @@ class PrecompileTest {
     @Test
     void precompilation() throws IOException {
         File dir = Files.newTemporaryFolder();
-        Precompile.precompile("a", "PrecompiledRegex", dir.getAbsolutePath());
+        Precompile.precompile("a", "PrecompiledRegex", dir);
         var target = dir.getAbsolutePath() + "/PrecompiledRegex.class";
         var proc = Runtime.getRuntime().exec("file " + target, new String[0]);
         var output = new String(proc.getInputStream().readAllBytes());
