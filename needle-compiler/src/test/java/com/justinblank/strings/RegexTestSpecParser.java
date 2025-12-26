@@ -59,9 +59,10 @@ public class RegexTestSpecParser {
             }
             else if (c == '\'') {
                 if (inQuote) {
-                    var substring = s.substring(start, idx++).trim();
+                    var substring = s.substring(start, ++idx).trim();
                     // remove beginning ' character.
-                    return substring.substring(1);
+                    // this is wrong
+                    return substring.substring(1, substring.length() - 1);
                 }
                 else {
                     inQuote = true;

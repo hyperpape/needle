@@ -1,5 +1,6 @@
 package com.justinblank.strings.RegexAST;
 
+import com.justinblank.strings.CharRange;
 import com.justinblank.strings.Factorization;
 
 import java.util.Objects;
@@ -63,21 +64,47 @@ public class Union extends Node {
         return new Union(left, right);
     }
 
-    public static Union ofChars(String s) {
-        if (s.length() < 2) {
-            throw new IllegalArgumentException("silly union");
+    public static Node ofChars(String s) {
+        if (s.isEmpty()) {
+            throw new IllegalArgumentException("Cannot create a union of zero characters");
         }
-        char s1 = s.charAt(0);
-        char s2 = s.charAt(1);
-        Union union = new Union(new CharRangeNode(s1, s1), new CharRangeNode(s2, s2));
-        for (int i = 2; i < s.length(); i++) {
-            char c = s.charAt(i);
-            union = new Union(new CharRangeNode(c, c), union);
+        if (s.length() == 1) {
+            return new CharRangeNode(CharRange.of(s.charAt(0), s.charAt(0)));
+        }
+        List<Character> sorted = sortedChars(s);
+        Node union = null;
+        int i = 0;
+        int start = 0;
+        while (i < sorted.size()) {
+            char current = sorted.get(i);
+            if (i < sorted.size() - 1) {
+                char next = sorted.get(i + 1);
+                if (current + 1 != next) {
+                    var range = new CharRangeNode(CharRange.of(sorted.get(start), sorted.get(i)));
+                    if (union == null) {
+                        union = range;
+                    }
+                    else {
+                        union = Union.of(union, range);
+                    }
+                    start = i + 1;
+                }
+            }
+            else {
+                var range = new CharRangeNode(CharRange.of(sorted.get(start), sorted.get(i)));
+                if (union == null) {
+                    union = range;
+                }
+                else {
+                    union = Union.of(union, range);
+                }
+            }
+            i++;
         }
         return union;
     }
 
-    public static Union complement(List<CharRangeNode> ranges) {
+    public static Node complement(List<CharRangeNode> ranges) {
         if (ranges.isEmpty()) {
             throw new IllegalArgumentException("Can't complement empty set of ranges");
         }
@@ -105,28 +132,33 @@ public class Union extends Node {
         complementedNodes.add(new CharRangeNode(low, '\uFFFF'));
         CharRangeNode first = complementedNodes.get(0);
         CharRangeNode second = complementedNodes.get(1);
-        Union union = new Union(first, second);
+        Node union = Union.of(first, second);
         for (int i = 2; i < complementedNodes.size(); i++) {
-            union = new Union(union, complementedNodes.get(i));
+            union = Union.of(union, complementedNodes.get(i));
         }
         return union;
     }
 
-    public static Union complement(String s) {
+    public static Node complement(String s) {
         if (s.length() < 2) {
             // TODO: why did I write this? Maybe to work around a silly limitation in my complement method?
             // If so, I should fix that
             throw new IllegalArgumentException("Silly short complement");
         }
-        List<Character> chars = new ArrayList<>();
-        for (int i = 0; i < s.length(); i++) {
-            chars.add(s.charAt(i));
-        }
-        Collections.sort(chars);
+        List<Character> chars = sortedChars(s);
         List<CharRangeNode> nodes = new ArrayList<>();
         for (Character c : chars) {
             nodes.add(new CharRangeNode(c, c));
         }
         return Union.complement(nodes);
+    }
+
+    private static List<Character> sortedChars(String s) {
+        List<Character> chars = new ArrayList<>();
+        for (int i = 0; i < s.length(); i++) {
+            chars.add(s.charAt(i));
+        }
+        Collections.sort(chars);
+        return chars;
     }
 }

@@ -2,10 +2,6 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.*;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,12 +16,51 @@ class RegexParser {
     private static final String RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED = "Reluctant quantifiers are not supported";
     private static final String POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED = "Possessive quantifiers are not supported";
 
-
     private int index = 0;
     private int charRangeDepth = 1;
     private final boolean dotAll;
     private final boolean caseInsensitive;
     private final boolean unicodeCaseInsensitive;
+    private final boolean unicodeCharacterClass;
+
+    private static final String UNICODE_DIGITS;
+    private static final String UNICODE_WHITE_SPACE;
+    private static final String UNICODE_WORD;
+
+    /**
+     * return ALPHABETIC().union(ch -> ((((1 << Character.NON_SPACING_MARK) |
+     *                                   (1 << Character.ENCLOSING_MARK) |
+     *                                   (1 << Character.COMBINING_SPACING_MARK) |
+     *                                   (1 << Character.DECIMAL_DIGIT_NUMBER) |
+     *                                   (1 << Character.CONNECTOR_PUNCTUATION))
+     *                                  >> Character.getType(ch)) & 1) != 0,
+     *                          JOIN_CONTROL());
+     */
+
+    static {
+        StringBuilder digitString = new StringBuilder();
+        StringBuilder whiteSpaceString = new StringBuilder();
+        StringBuilder unicodeWord = new StringBuilder();
+        for (char candidate = 0; candidate < Character.MAX_VALUE; candidate++) {
+            if (Character.isDigit(candidate)) {
+                digitString.append(candidate);
+            }
+            if (Character.isWhitespace(candidate)) {
+                whiteSpaceString.append(candidate);
+            }
+            if (Character.isAlphabetic(candidate) || ((((1 << Character.NON_SPACING_MARK) |
+                                                       (1 << Character.ENCLOSING_MARK) |
+                                                       (1 << Character.COMBINING_SPACING_MARK) |
+                                                       (1 << Character.DECIMAL_DIGIT_NUMBER) |
+                                                       (1 << Character.CONNECTOR_PUNCTUATION))
+                                                      >> Character.getType(candidate)) & 1) != 0) {
+                unicodeWord.append(candidate);
+            }
+        }
+        UNICODE_DIGITS = digitString.toString();
+        UNICODE_WHITE_SPACE = whiteSpaceString.toString();
+        UNICODE_WORD = unicodeWord.toString();
+    }
 
     private final String regex;
     private final Stack<Node> nodes = new Stack<>();
@@ -34,7 +69,14 @@ class RegexParser {
         this.regex = regex;
         this.dotAll = (flags & Pattern.DOTALL) != 0;
         this.caseInsensitive = (flags & Pattern.CASE_INSENSITIVE) != 0;
-        this.unicodeCaseInsensitive = (flags & Pattern.UNICODE_CASE) != 0;
+        this.unicodeCharacterClass = (flags & Pattern.UNICODE_CHARACTER_CLASS) != 0;
+        if (unicodeCharacterClass) {
+            unicodeCaseInsensitive = true;
+        }
+        else {
+            this.unicodeCaseInsensitive = (flags & Pattern.UNICODE_CASE) != 0;
+        }
+
     }
 
     public static Node parse(String regex) {
@@ -342,10 +384,20 @@ class RegexParser {
                 throw parseError("\\c not supported yet");
             }
             case 'd': {
-                return new CharRangeNode('0', '9');
+                if (unicodeCharacterClass) {
+                    return Union.ofChars(UNICODE_DIGITS);
+                }
+                else {
+                    return new CharRangeNode('0', '9');
+                }
             }
             case 'D': {
-                return Union.complement(List.of(new CharRangeNode('0', '9')));
+                if (unicodeCharacterClass) {
+                    return Union.complement(UNICODE_DIGITS);
+                }
+                else {
+                    return Union.complement(List.of(new CharRangeNode('0', '9')));
+                }
             }
             case 'e': {
                 return new CharRangeNode('\u001B', '\u001B');
@@ -372,27 +424,47 @@ class RegexParser {
                 return new CharRangeNode('\r', '\r');
             }
             case 's': {
-                return Union.ofChars(" \t\n\u000B\f\r");
+                if (unicodeCharacterClass) {
+                    return Union.ofChars(UNICODE_WHITE_SPACE);
+                }
+                else {
+                    return Union.ofChars(" \t\n\u000B\f\r");
+                }
             }
             case 'S': {
-                return Union.complement(" \t\n\u000B\f\r");
+                if (unicodeCharacterClass) {
+                    return Union.complement(UNICODE_WHITE_SPACE);
+                }
+                else {
+                    return Union.complement(" \t\n\u000B\f\r");
+                }
             }
             case 't': {
                 return new CharRangeNode('\t', '\t');
             }
             case 'w': {
-                var digits = new CharRangeNode('0', '9');
-                var alpha1 = new CharRangeNode('a', 'z');
-                var alpha2 = new CharRangeNode('A', 'Z');
-                var underscore = new CharRangeNode('_', '_');
-                return new Union(digits, new Union(underscore, new Union(alpha1, alpha2)));
+                if (unicodeCharacterClass) {
+                    return Union.ofChars(UNICODE_WORD);
+                }
+                else {
+                    var digits = new CharRangeNode('0', '9');
+                    var alpha1 = new CharRangeNode('a', 'z');
+                    var alpha2 = new CharRangeNode('A', 'Z');
+                    var underscore = new CharRangeNode('_', '_');
+                    return Union.of(digits, Union.of(underscore, Union.of(alpha1, alpha2)));
+                }
             }
             case 'W': {
-                var digits = new CharRangeNode('0', '9');
-                var alpha1 = new CharRangeNode('a', 'z');
-                var alpha2 = new CharRangeNode('A', 'Z');
-                var underscore = new CharRangeNode('_', '_');
-                return Union.complement(List.of(digits, underscore, alpha1, alpha2));
+                if (unicodeCharacterClass) {
+                    return Union.complement(UNICODE_WORD);
+                }
+                else {
+                    var digits = new CharRangeNode('0', '9');
+                    var alpha1 = new CharRangeNode('a', 'z');
+                    var alpha2 = new CharRangeNode('A', 'Z');
+                    var underscore = new CharRangeNode('_', '_');
+                    return Union.complement(List.of(digits, underscore, alpha1, alpha2));
+                }
             }
             case 'x': {
                 return parseHexadecimal();

@@ -18,6 +18,7 @@ public interface Pattern {
      */
     int UNICODE_CASE = java.util.regex.Pattern.UNICODE_CASE;
 
+    int UNICODE_CHARACTER_CLASS = java.util.regex.Pattern.UNICODE_CHARACTER_CLASS;
 
     /**
      * By default, trying to find the regex (sam|samwise) in the string "samwise" will find "sam" but with the leftmost
@@ -27,7 +28,7 @@ public interface Pattern {
      */
     int LEFTMOST_LONGEST = 0x800000;
 
-    int ALL_FLAGS = DOTALL | CASE_INSENSITIVE | UNICODE_CASE | LEFTMOST_LONGEST;
+    int ALL_FLAGS = DOTALL | CASE_INSENSITIVE | UNICODE_CASE | LEFTMOST_LONGEST | UNICODE_CHARACTER_CLASS;
 
     Matcher matcher(String s);
 }

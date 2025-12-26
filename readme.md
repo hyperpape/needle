@@ -66,12 +66,15 @@ supported operations. For any regex, the results of using this library should
 be the same as the standard library, or a `RegexSyntaxException` should be 
 raised during parsing. Any other discrepancies should be reported as a bug.
 
-Capturing groups are not currently supported. Backreferences are
-unlikely to ever be supported.
+Extracting matches for capturing groups are not currently supported. Lookahead
+and lookbehind are not currently supported. Backreferences are unlikely to
+ever be supported. 
+
+Inline flags are not yet supported. 
 
 The following character classes are supported:
 
-    \a, \d, \D, \e, \f, \h, \s, \S, \t, \w, \W, \x, \0, \., \\
+    \a, \d, \D, \e, \f, \h, \H, \s, \S, \t, \w, \W, \x, \.
 
 ### Unicode
 
