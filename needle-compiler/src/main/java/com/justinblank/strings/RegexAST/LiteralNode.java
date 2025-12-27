@@ -3,6 +3,7 @@ package com.justinblank.strings.RegexAST;
 import com.justinblank.strings.Factorization;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class LiteralNode extends Node {
@@ -59,5 +60,17 @@ public class LiteralNode extends Node {
     public String toString() {
         return "LiteralNode{" + string +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        LiteralNode that = (LiteralNode) o;
+        return Objects.equals(string.toString(), that.string.toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(string);
     }
 }

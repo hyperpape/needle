@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.Search.SearchMethod;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static com.justinblank.strings.Pattern.UNICODE_CASE;
 import static com.justinblank.strings.SearchMethodTestUtil.*;
 import static com.justinblank.strings.SearchMethodTestUtil.match;
 import static org.junit.jupiter.api.Assertions.*;
@@ -392,6 +394,73 @@ class NFATest {
             String needle = newTargetString.substring(result.start, result.end);
             return l.contains(needle);
         });
+    }
+
+    @Test
+    void unicodeCaseInsensitive() {
+        char c = (char) 128;
+        while (c < Character.MAX_VALUE) {
+            SearchMethod searchMethod = NFA.createNFA(String.valueOf(c), UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+            java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(String.valueOf(c), java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
+            for (char hayStack = (char) Math.max(c - 2000, 0); hayStack < Character.MAX_VALUE - 2000 && hayStack < c + 2000; hayStack++) {
+                boolean needleMatched = searchMethod.matches(String.valueOf(hayStack));
+                boolean javaMatched = javaPattern.matcher(String.valueOf(hayStack)).matches();
+                if (needleMatched != javaMatched) {
+                    fail("For " + c + ", " + hayStack + ", needleMatched=" + needleMatched + ", javaMatched=" + javaMatched);
+                }
+            }
+            c++;
+        }
+    }
+
+    @Test
+    @Disabled
+    void unicodeCaseInsensitiveLong() {
+        char c = (char) 128;
+        while (c < Character.MAX_VALUE) {
+            SearchMethod searchMethod = NFA.createNFA(String.valueOf(c), UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+            java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(String.valueOf(c), java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
+            for (char hayStack = 0; hayStack < Character.MAX_VALUE; hayStack++) {
+                boolean needleMatched = searchMethod.matches(String.valueOf(hayStack));
+                boolean javaMatched = javaPattern.matcher(String.valueOf(hayStack)).matches();
+                if (needleMatched != javaMatched) {
+                    fail("For " + c + ", " + hayStack + ", needleMatched=" + needleMatched + ", javaMatched=" + javaMatched);
+                }
+            }
+            c++;
+        }
+    }
+
+    @Test
+    void testCaseInsensitiveMu() {
+        String s = "µ";
+        RegexParser.parse(s, UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+        SearchMethod searchMethod = NFA.createNFA(s, Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(s, java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
+
+        for (char hayStack = 0; hayStack < Character.MAX_VALUE; hayStack++) {
+            boolean needleMatched = searchMethod.matches(String.valueOf(hayStack));
+            boolean javaMatched = javaPattern.matcher(String.valueOf(hayStack)).matches();
+            if (needleMatched != javaMatched) {
+                fail("For " + hayStack + ", needleMatched=" + needleMatched + ", javaMatched=" + javaMatched);
+            }
+        }
+    }
+
+    @Test
+    void testCaseInsensitiveharpS() {
+        String s = "ß";
+        RegexParser.parse(s, UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+        SearchMethod searchMethod = NFA.createNFA(s, Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(s, java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
+
+        for (char hayStack = 0; hayStack < Character.MAX_VALUE; hayStack++) {
+            boolean needleMatched = searchMethod.matches(String.valueOf(hayStack));
+            boolean javaMatched = javaPattern.matcher(String.valueOf(hayStack)).matches();
+            if (needleMatched != javaMatched) {
+                fail("For " + hayStack + ", needleMatched=" + needleMatched + ", javaMatched=" + javaMatched);
+            }
+        }
     }
 
     @Test

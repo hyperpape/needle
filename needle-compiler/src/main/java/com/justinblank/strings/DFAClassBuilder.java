@@ -119,9 +119,9 @@ class DFAClassBuilder extends ClassBuilder {
             });
         }
         // TODO: refactor to use compilation policy
-        forwardFindMethodSpec.dfa.initialAsciiBytes().ifPresent(bytes -> {
-            if (!(forwardFindMethodSpec.compilationPolicy.usePrefix || forwardFindMethodSpec.compilationPolicy.useSuffix || forwardFindMethodSpec.compilationPolicy.useInfixes)) {
-                addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, bytes);
+        dfaSearchFindMethodSpec.dfa.initialAsciiBytes().ifPresent(byteMask -> {
+            if (shouldIncludeFirstByteMask()) {
+                addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, byteMask);
             }
         });
 
@@ -136,6 +136,15 @@ class DFAClassBuilder extends ClassBuilder {
         }
         addConstructor();
         addFields();
+    }
+
+    private boolean shouldIncludeFirstByteMask() {
+        if (!(dfaSearchFindMethodSpec.compilationPolicy.usePrefix || dfaSearchFindMethodSpec.compilationPolicy.useSuffix || dfaSearchFindMethodSpec.compilationPolicy.useInfixes)) {
+            if (dfaSearchFindMethodSpec.dfa.initialAsciiBytes().isPresent() && !dfaSearchFindMethodSpec.dfa.isAccepting()) {
+                return true;
+            };
+        }
+        return false;
     }
 
     private boolean shouldPopulateByteClassArrays() {

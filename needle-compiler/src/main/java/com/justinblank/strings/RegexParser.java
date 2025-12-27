@@ -162,10 +162,18 @@ class RegexParser {
                 default:
                     if (caseInsensitive) {
                         if (unicodeCaseInsensitive) {
-                            var upperCase = Character.toUpperCase(c);
-                            var lowerCase = Character.toLowerCase(c);
-                            if (upperCase != c || lowerCase != c) {
-                                var union = Union.of(Union.of(LiteralNode.fromChar(c), LiteralNode.fromChar(lowerCase)), LiteralNode.fromChar(upperCase));
+                            Set<Character> characters = new HashSet<>();
+                            addCaseInsensitiveMatches(characters, c);
+                            if (characters.size() > 1) {
+                                Node union = null;
+                                for (var caseChar : characters) {
+                                    if (union == null) {
+                                        union = LiteralNode.fromChar(caseChar);
+                                    }
+                                    else {
+                                        union = Union.of(union, LiteralNode.fromChar(caseChar));
+                                    }
+                                }
                                 nodes.push(union);
                             }
                             else {
@@ -215,6 +223,22 @@ class RegexParser {
         }
         // node = concatenateAllLiterals(node);
         return node;
+    }
+
+    private static void addCaseInsensitiveMatches(Set<Character> characters, char c) {
+        characters.add(c);
+        char lower = Character.toLowerCase(Character.toUpperCase(c));
+        char candidate = Character.MIN_VALUE;
+        if (lower != Character.toUpperCase(c)) {
+            // TODO: this could probably be a lot faster--I'm told RE2 uses some precomputed ranges
+            // to speed it up
+            while (candidate < Character.MAX_VALUE) {
+                if (lower == Character.toLowerCase(Character.toUpperCase(candidate))) {
+                    characters.add(candidate);
+                }
+                candidate++;
+            }
+        }
     }
 
     private RegexSyntaxException parseError(String message) {
@@ -531,16 +555,13 @@ class RegexParser {
                 var range = CharRange.of(last, next);
                 if (caseInsensitive) {
                     if (unicodeCaseInsensitive) {
+                        Set<Character> characters = new HashSet<>();
                         for (char rangeChar = last; rangeChar <= next; rangeChar++) {
-                            var upperCase = Character.toUpperCase(rangeChar);
-                            var lowerCase = Character.toLowerCase(rangeChar);
+                            addCaseInsensitiveMatches(characters, rangeChar);
+                        }
+                        // This should get normalized later
+                        for (char rangeChar : characters) {
                             ranges.add(CharRange.of(rangeChar, rangeChar));
-                            if (upperCase != rangeChar) {
-                                ranges.add(CharRange.of(upperCase, upperCase));
-                            }
-                            else if (lowerCase != rangeChar) {
-                                ranges.add(CharRange.of(lowerCase, lowerCase));
-                            }
                         }
                     } else {
                         if (next < 'A' || 'z' < last) {
