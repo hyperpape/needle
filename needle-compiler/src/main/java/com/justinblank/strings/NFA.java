@@ -27,7 +27,11 @@ class NFA implements SearchMethod {
     }
 
     public static SearchMethod createNFA(String regex) {
-        Node parse = RegexParser.parse(regex, 0);
+        return createNFA(regex, 0);
+    }
+
+    public static SearchMethod createNFA(String regex, int flags) {
+        Node parse = RegexParser.parse(regex, flags);
         var factors = parse.bestFactors();
         if (factors.isComplete()) {
             return SearchMethods.makeSearchMethod(factors.getAll());
