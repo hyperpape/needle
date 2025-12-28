@@ -586,8 +586,8 @@ class DFAClassBuilder extends ClassBuilder {
             method.callStatic(ReferenceType.of(DFADebugUtils.class), "debugIndexForwards", Void.VOID, read(MatchingVars.INDEX));
         }
 
-        // If the string can only have one length, no need to search backwards, we can just compute the starting point
-        if (factorization.getMinLength() == factorization.getMaxLength().orElse(Integer.MAX_VALUE)) {
+        if (factorization.canOnlyHaveOneLength()) {
+            // If the string can only have one length, no need to search backwards, we can just compute the starting point
             method.cond(neq(-1, read(MatchingVars.INDEX))).withBody(
                     List.of(
                             returnValue(
@@ -841,9 +841,9 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.LENGTH,
                 call("length", Builtin.I,
                         get(STRING_FIELD, ReferenceType.of(String.class), thisRef())));
-        if (factorization.getMinLength() > 0 || factorization.getMaxLength().isPresent()) {
+        if (factorization.getMinLength() > CompilationPolicy.THRESHOLD_FOR_CALCULATING_MAX_START || factorization.getMaxLength().isPresent()) {
             Expression expression = null;
-            if (factorization.getMinLength() > 0) {
+            if (factorization.getMinLength() > CompilationPolicy.THRESHOLD_FOR_CALCULATING_MAX_START) {
                 expression = gt(factorization.getMinLength(), read(MatchingVars.LENGTH));
             }
             if (factorization.getMaxLength().isPresent()) {

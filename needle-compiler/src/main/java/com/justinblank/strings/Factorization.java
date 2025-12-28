@@ -369,6 +369,10 @@ public class Factorization {
         return Optional.of(maxLength);
     }
 
+    public boolean canOnlyHaveOneLength() {
+        return getMinLength() == getMaxLength().orElse(Integer.MAX_VALUE);
+    }
+
     @Override
     public String toString() {
         return "Factorization{" +
@@ -378,4 +382,5 @@ public class Factorization {
                 ", factors=" + factors +
                 '}';
     }
+
 }
