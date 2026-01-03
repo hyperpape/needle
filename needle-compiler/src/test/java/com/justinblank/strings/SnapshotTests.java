@@ -38,6 +38,8 @@ class SnapshotTests {
         EXAMPLES.add(Pair.of("Sherlock|Holmes|Watson|Irene|Adler|John|Baker", "UnionOfManyNames"));
         // Suffix
         EXAMPLES.add(Pair.of("anywhere|somewhere", "Suffix"));
+        // Infix
+        EXAMPLES.add(Pair.of("Holmes.{1,10}Watson|Watson.{1,10}Holmes", "HolmesNearWatson"));
         // Predicate
         EXAMPLES.add(Pair.of("([Ss]herlock)|([Hh]olmes)", "TwoNamesCaseInsensitiveFirstChar"));
         // Dot character including unicode
