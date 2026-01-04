@@ -47,7 +47,7 @@ public class DFACompiler {
         Node node = RegexParser.parse(regex, options.flags);
         Factorization factorization = buildFactorization(node);
 
-        boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_FIRST) == 0;
+        boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
         NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
 

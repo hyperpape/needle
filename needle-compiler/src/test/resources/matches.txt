@@ -111,22 +111,26 @@ http://.+\.com      http://www.google.co.uk     n
 
 # leftmost longest and leftmost first semantics
 samwise|sam         samwise                 y       0       7
-sam|samwise         samwise                 y       0       7           0
+sam|samwise         samwise                 y       0       3           0
 samwise|sam         samwise                 y       0       7           800000
-sam|samwise         samwise                 y       0       3           800000
+sam|samwise         samwise                 y       0       7           800000
 
 (sam|samwise)(sam)  samsam                  y       0       6           800000
 (sam|samwise)(sam)  samsamwise              y       0       6           800000
 (sam|samwise)(sam)  samwisesam              y       0       10          800000
 (sam|samwise)(sam)  samwisesamwise          y       0       10          800000
 
+(sam|samwise)(sam|samwise)  samsam          y       0       6           0
 (sam|samwise)(sam|samwise)  samsam          y       0       6           800000
-(sam|samwise)(sam|samwise)  samsamwise      y       0       6           800000
+(sam|samwise)(sam|samwise)  samsamwise      y       0       6           0
+(sam|samwise)(sam|samwise)  samsamwise      y       0       10          800000
+(sam|samwise)(sam|samwise)  samwisesam      y       0       10          0
 (sam|samwise)(sam|samwise)  samwisesam      y       0       10          800000
-(sam|samwise)(sam|samwise)  samwisesamwise  y       0       10          800000
+(sam|samwise)(sam|samwise)  samwisesamwise  y       0       10          0
+(sam|samwise)(sam|samwise)  samwisesamwise  y       0       14          800000
 
-(aaa|aaaa)*         aaaaaaa                 y       0       7           0
-(aaa|aaaa)*         aaaaaaa                 y       0       6           800000
+(aaa|aaaa)*         aaaaaaa                 y       0       6           0
+(aaa|aaaa)*         aaaaaaa                 y       0       7           800000
 
 # greedy quantifiers
 (a|ab|bc)+def       abcdef                  y       0       6
@@ -134,10 +138,10 @@ sam|samwise         samwise                 y       0       3           800000
 (ab|a|bc)+def       abcdef                  y       0       6
 (a|ab|bc)+c         abcc                    y       0       4           800000
 (a|ab|bc)+          abc                     y       0       3           800000
-(a|ab)+(a|ab)+      abab                    y       0       4
-(a|ab)+(a|ab)+      abab                    y       0       3           800000
-(ab|a|bc)+          abc                     y       0       3
-(ab|a|bc)+          abc                     y       0       2           800000
+(a|ab)+(a|ab)+      abab                    y       0       3           0
+(a|ab)+(a|ab)+      abab                    y       0       4           800000
+(ab|a|bc)+          abc                     y       0       2           0
+(ab|a|bc)+          abc                     y       0       3           800000
 
 # considered special optimizations that touch this case
 \$\{[^}]*}             ${abcdef}        y       0       9

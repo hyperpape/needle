@@ -20,14 +20,14 @@ public interface Pattern {
 
 
     /**
-     * By default, matching (sam|samwise) against the string "samwise" will match "samwise" but with the leftmost first
-     * flag, it will match "sam".
+     * By default, trying to find the regex (sam|samwise) in the string "samwise" will find "sam" but with the leftmost
+     * longest flag, it will match "samwise".
      *
-     * The default behavior of not setting this flag (aka "leftmost longest") matches the JDK implementation.
+     * The default behavior of not setting this flag (aka "leftmost first") matches the JDK implementation.
      */
-    int LEFTMOST_FIRST = 0x800000;
+    int LEFTMOST_LONGEST = 0x800000;
 
-    int ALL_FLAGS = DOTALL | CASE_INSENSITIVE | UNICODE_CASE | LEFTMOST_FIRST;
+    int ALL_FLAGS = DOTALL | CASE_INSENSITIVE | UNICODE_CASE | LEFTMOST_LONGEST;
 
     Matcher matcher(String s);
 }
