@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import com.justinblank.strings.RegexAST.Node;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -99,6 +100,13 @@ public class Factorization {
 
     static Factorization copy(Factorization factorization) {
         return new Factorization(factorization.all, factorization.suffixes, factorization.prefixes, factorization.factors, factorization.requiredFactors);
+    }
+
+    static Factorization buildFactorization(Node node) {
+        var factorization = node.bestFactors();
+        factorization.setMinLength(node.minLength());
+        node.maxLength().ifPresent(factorization::setMaxLength);
+        return factorization;
     }
 
     Set<String> getAll() {

@@ -45,7 +45,7 @@ public class DFACompiler {
     public static byte[] compileToBytes(String regex, String className, CompilerOptions options) {
         Objects.requireNonNull(className, "name cannot be null");
         Node node = RegexParser.parse(regex, options.flags);
-        Factorization factorization = buildFactorization(node);
+        Factorization factorization = Factorization.buildFactorization(node);
 
         boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
@@ -75,13 +75,6 @@ public class DFACompiler {
                 throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
             }
         }
-    }
-
-    private static Factorization buildFactorization(Node node) {
-        var factorization = node.bestFactors();
-        factorization.setMinLength(node.minLength());
-        node.maxLength().ifPresent(factorization::setMaxLength);
-        return factorization;
     }
 
     private static void printDFARepresentations(DFA dfa, DFA containedInDFA, DFA dfaReversed, DFA dfaSearch) {
