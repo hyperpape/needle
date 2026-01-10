@@ -102,22 +102,7 @@ class DFAClassBuilder extends ClassBuilder {
             setByteClassTransitions(dfaSearchFindMethodSpec);
         }
 
-        // Although we have a separate compilationPolicy for each spec, they share prefix/suffix/infix
-        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.usePrefix)) {
-            allSpecs().get(0).compilationPolicy.getPrefix().ifPresent(prefix -> {
-                addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
-            });
-        }
-        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useSuffix)) {
-            allSpecs().get(0).compilationPolicy.getSuffix().ifPresent(suffix -> {
-                addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
-            });
-        }
-        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useInfixes)) {
-            allSpecs().get(0).compilationPolicy.getInfix().ifPresent(infix -> {
-                addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, infix);
-            });
-        }
+        addAffixConstants();
         // TODO: refactor to use compilation policy
         dfaSearchFindMethodSpec.dfa.initialAsciiBytes().ifPresent(byteMask -> {
             if (shouldIncludeFirstByteMask()) {
@@ -136,6 +121,25 @@ class DFAClassBuilder extends ClassBuilder {
         }
         addConstructor();
         addFields();
+    }
+
+    private void addAffixConstants() {
+        // Although we have a separate compilationPolicy for each spec, they share prefix/suffix/infix
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.usePrefix)) {
+            allSpecs().get(0).compilationPolicy.getPrefix().ifPresent(prefix -> {
+                addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
+            });
+        }
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useSuffix)) {
+            allSpecs().get(0).compilationPolicy.getSuffix().ifPresent(suffix -> {
+                addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
+            });
+        }
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useInfixes)) {
+            allSpecs().get(0).compilationPolicy.getInfix().ifPresent(infix -> {
+                addConstant(INFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, infix);
+            });
+        }
     }
 
     private boolean shouldIncludeFirstByteMask() {
