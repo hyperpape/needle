@@ -705,7 +705,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    private void addSetOfAcceptingStates(ArrayList<DFA> accepting, String setName) {
+    private void addSetOfAcceptingStates(List<DFA> accepting, String setName) {
         addField(new Field(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, setName, "Ljava/util/HashSet;", null, null));
         var b = addStaticBlock();
         construct(b, "java/util/HashSet");
@@ -720,6 +720,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
+    // TODO: validate if we can remove this after fixing Unicode limitations
     void addStateMethods() {
         if (!allSpecs().stream().allMatch(spec -> spec.compilationPolicy.useByteClassesForAllStates)) {
             for (var spec : allSpecs()) {
