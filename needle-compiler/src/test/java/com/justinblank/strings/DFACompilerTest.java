@@ -723,11 +723,16 @@ public class DFACompilerTest {
                     if ((flags & LEFTMOST_LONGEST) != LEFTMOST_LONGEST) {
                         var javaPattern = java.util.regex.Pattern.compile(spec.pattern, flags &~LEFTMOST_LONGEST);
                         var javaMatcher = javaPattern.matcher(spec.target);
-                        javaMatcher.find();
-                        var javaStart = javaMatcher.start();
-                        var javaEnd = javaMatcher.end();
-                        if (javaStart != result.start || javaEnd != result.end) {
-                            errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd);
+                        var javaFound = javaMatcher.find();
+                        if (javaFound) {
+                            var javaStart = javaMatcher.start();
+                            var javaEnd = javaMatcher.end();
+                            if (javaStart != result.start || javaEnd != result.end) {
+                                errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd);
+                            }
+                        }
+                        else {
+                            errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " matched, while the java regex did not match");
                         }
                     }
                 }

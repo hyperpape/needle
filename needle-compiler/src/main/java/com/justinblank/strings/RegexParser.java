@@ -107,7 +107,7 @@ class RegexParser {
                         nodes.push(new CharRangeNode(CharRange.ALL_CHARS));
                     }
                     else {
-                        nodes.push(new Union(new CharRangeNode((char) 0, '\u0009'), new CharRangeNode('\u000B', '\uFFFF')));
+                        nodes.push(Union.of(new CharRangeNode((char) 0, '\u0009'), Union.of(new CharRangeNode('\u000B', '\u000C'), new CharRangeNode('\u000E', '\uFFFF'))));
                     }
                     break;
                 case '^':

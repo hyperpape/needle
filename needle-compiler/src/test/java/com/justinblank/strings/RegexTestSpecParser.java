@@ -23,6 +23,7 @@ public class RegexTestSpecParser {
             idx = 0;
             var pattern = chomp(s);
             var target = chomp(s);
+            target = unescapeEscapes(target);
             var successful = "y".equals(chomp(s));
             if (successful) {
                 var start = Integer.parseInt(chomp(s));
@@ -37,6 +38,12 @@ public class RegexTestSpecParser {
         catch (Exception e) {
             throw new RuntimeException("Failed to parse spec '" + s + "'", e);
         }
+    }
+
+    private String unescapeEscapes(String target) {
+        target = target.replaceAll("\\\\n", "\n");
+        target = target.replaceAll("\\\\r", "\r");
+        return target;
     }
 
     private Optional<String> optionalChomp(String s) {

@@ -208,3 +208,8 @@ a.c                 aεc                 y       0       3
 \w                  0                   y       0       1               0
 \w                  0                   y       0       1               100
 
+# dot semantics
+.{5}                abc\nabc            n                               0
+.{5}                abc\nabc            y       0       5               20
+.{5}                abc\rabc            n                               0
+.{5}                abc\rabc            y       0       5               20
