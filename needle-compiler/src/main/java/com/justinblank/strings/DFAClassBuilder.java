@@ -208,7 +208,7 @@ class DFAClassBuilder extends ClassBuilder {
             block.readStatic(field, "[" + getStateArrayType(spec));
             // 2 in order to accomodate forced catchAll?
             // TODO: could we shrink these if arrays if we redid our byteClasses to be 0 indexed?
-            block.push(stateTransitions.byteClasses.byteClassCount);
+            block.push(getEffectiveByteClassCount(stateTransitions.byteClasses.byteClassCount));
 
             block.readStatic(name, CompilerUtil.STRING_DESCRIPTOR);
 
@@ -229,6 +229,25 @@ class DFAClassBuilder extends ClassBuilder {
                 }
             }
         }
+    }
+
+    private int getEffectiveByteClassCount(int byteClassCount) {
+        if (byteClassCount > CompilationPolicy.THRESHOLD_TO_ROUND_UP_ALL_BYTECLASSES) {
+            return byteClassCount;
+        }
+        else if (byteClassCount < 3) {
+            return byteClassCount;
+        }
+        else if (byteClassCount < 4) {
+            return 4;
+        }
+        else if (byteClassCount < 8) {
+            return 8;
+        }
+        else if (byteClassCount < 16) {
+            return 16;
+        }
+        return byteClassCount;
     }
 
     private String addConstantForByteClassString(FindMethodSpec spec, List<String> names, StringBuilder sb) {
@@ -298,7 +317,7 @@ class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), descriptor, null, null));
         var staticBlock = addStaticBlock();
 
-        staticBlock.push(spec.statesCount() * stateTransitions.byteClasses.byteClassCount)
+        staticBlock.push(spec.statesCount() * getEffectiveByteClassCount(stateTransitions.byteClasses.byteClassCount))
                 // TODO: bit of a hack--should have a proper way of generating T_SHORT/T_BYTE
                 .newArray(getStateArrayType(spec).equals("S") ? T_SHORT : T_BYTE)
                 .putStatic(spec.statesConstant(), true, descriptor);
@@ -492,7 +511,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
         Type type = useShorts(spec) ? Builtin.S : Builtin.OCTET;
-        var index = plus(read(BYTE_CLASS_FIELD), mul(read(MatchingVars.STATE), stateTransitions.byteClasses.byteClassCount));
+        var index = plus(read(BYTE_CLASS_FIELD), mul(read(MatchingVars.STATE), getEffectiveByteClassCount(stateTransitions.byteClasses.byteClassCount)));
         // TODO: use a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
         return set(MatchingVars.STATE,
                 cast(Builtin.I,
