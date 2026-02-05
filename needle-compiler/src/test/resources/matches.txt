@@ -143,6 +143,14 @@ sam|samwise         samwise                 y       0       7           800000
 (ab|a|bc)+          abc                     y       0       2           0
 (ab|a|bc)+          abc                     y       0       3           800000
 
+# named and non-capturing quantifiers
+(?:abc)+            abcabcabc               y       0       9
+(?:abc)+            defabcdef               y       3       6
+(?:abc)+            defdefdef               n
+(?<something>abc)+  abcabcabc               y       0       9
+(?<something>abc)+  defabcdef               y       3       6
+(?<something>abc)+  defdefdef               n
+
 # considered special optimizations that touch this case
 \$\{[^}]*}             ${abcdef}        y       0       9
 \$\{[^}]*}             $${abcdef}       y       1       10

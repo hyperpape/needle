@@ -27,7 +27,8 @@ class RegexParser {
     private static final String UNICODE_WHITE_SPACE;
     private static final String UNICODE_WORD;
 
-    /**
+    /*
+     * From JDK:
      * return ALPHABETIC().union(ch -> ((((1 << Character.NON_SPACING_MARK) |
      *                                   (1 << Character.ENCLOSING_MARK) |
      *                                   (1 << Character.COMBINING_SPACING_MARK) |
@@ -36,7 +37,6 @@ class RegexParser {
      *                                  >> Character.getType(ch)) & 1) != 0,
      *                          JOIN_CONTROL());
      */
-
     static {
         StringBuilder digitString = new StringBuilder();
         StringBuilder whiteSpaceString = new StringBuilder();
@@ -116,6 +116,13 @@ class RegexParser {
                     throw parseError("'$' not supported yet");
                 case '(':
                     nodes.push(LParenNode.getInstance());
+                    if (peekString("?:")) {
+                        takeChar();
+                        takeChar();
+                    }
+                    else if (peekString("?<")) {
+                        consumeNamedGroup();
+                    }
                     break;
                 case '{':
                     if (nodes.isEmpty()) {
@@ -750,6 +757,26 @@ class RegexParser {
             }
             return node;
         }
+    }
+
+    private Optional<String> consumeNamedGroup() {
+        int groupIndex = index + 2;
+        while (groupIndex < regex.length()) {
+            char c = regex.charAt(groupIndex);
+            if ('A' <= c && c <= 'Z' || 'a' <= c &&  c <= 'z' || '0' <= c && c <= '9') {
+                groupIndex++;
+            }
+            else if (c == '>') {
+                var name = regex.substring(index + 2, groupIndex - 1);
+                index = groupIndex + 1;
+                return Optional.of(name);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean peekString(String s) {
+        return regex.indexOf(s, index) == index;
     }
 
     private boolean peekChar(char c) {
