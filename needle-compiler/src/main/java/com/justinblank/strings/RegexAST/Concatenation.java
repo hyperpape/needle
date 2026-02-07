@@ -44,6 +44,11 @@ public class Concatenation extends Node {
     }
 
     @Override
+    public Optional<Polynomial> lengthPolynomial() {
+        return head.lengthPolynomial().flatMap(h -> tail.lengthPolynomial().map(h::plus));
+    }
+
+    @Override
     protected int height() {
         return 1 + Math.max(head.height(), tail.height());
     }

@@ -16,11 +16,10 @@ public abstract class Node {
 
     public boolean isFixedLength() {
         var maxLength = maxLength();
-        if (maxLength.isPresent()) {
-            return maxLength.get().equals(minLength());
-        }
-        return false;
+        return maxLength.map(integer -> integer.equals(minLength())).orElse(false);
     }
+
+    public abstract Optional<Polynomial> lengthPolynomial();
 
     protected abstract int height();
 

@@ -32,6 +32,11 @@ public class CountedRepetition extends Node {
     }
 
     @Override
+    public Optional<Polynomial> lengthPolynomial() {
+        return Optional.empty();
+    }
+
+    @Override
     protected int height() {
         return 1 + node.height();
     }
