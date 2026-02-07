@@ -23,6 +23,11 @@ public class Repetition extends Node {
     }
 
     @Override
+    public Optional<LengthPolynomial> lengthPolynomial() {
+        return node.lengthPolynomial().flatMap(p -> p.multi(0, -1));
+    }
+
+    @Override
     protected int height() {
         return 1 + node.height();
     }

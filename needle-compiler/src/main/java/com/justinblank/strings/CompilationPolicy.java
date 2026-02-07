@@ -16,6 +16,9 @@ class CompilationPolicy {
     public static final int FACTORIZATION_MAX_REPETITION_COUNT = 2;
     public static final int LARGE_STATE_COUNT = 64;
     public static final int THRESHOLD_FOR_CALCULATING_MAX_START = 4;
+    // The largest modulus for which we compute an exact length membership table instead of falling back to a simple
+    // residue check. The table has one entry per residue, so larger moduli cost more to embed.
+    public static final int MAX_LENGTH_FILTER_MODULUS = 256;
     public static final double MAX_FREQUENCY_FOR_INITIAL_CHAR_CHECK = .12;
     public static final int THRESHOLD_TO_ROUND_UP_ALL_BYTECLASSES = 16;
 

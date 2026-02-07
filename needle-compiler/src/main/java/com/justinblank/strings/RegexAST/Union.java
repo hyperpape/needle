@@ -30,6 +30,11 @@ public class Union extends Node {
     }
 
     @Override
+    public Optional<LengthPolynomial> lengthPolynomial() {
+        return Optional.empty();
+    }
+
+    @Override
     protected int height() {
         return 1 + Math.max(left.height(), right.height());
     }

@@ -4,6 +4,7 @@ import com.justinblank.classcompiler.*;
 import com.justinblank.classcompiler.Operation;
 import com.justinblank.classcompiler.lang.*;
 import com.justinblank.classcompiler.lang.Void;
+import com.justinblank.strings.RegexAST.LengthPolynomial;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -37,6 +38,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String SUFFIX_CONSTANT = "SUFFIX";
     protected static final String INFIX_CONSTANT = "INFIX";
     protected static final String FIRST_BYTE_MASK = "FIRST_BYTE_MASK";
+    protected static final String LENGTH_FILTER = "LENGTH_FILTER";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
     private final FindMethodSpec forwardFindMethodSpec;
@@ -46,6 +48,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final FindMethodSpec suffixSearchFindMethodSpec;
     private final FindMethodSpec relaxedSuffixFindMethodSpec;
     private final Factorization factorization;
+    private final LengthPolynomial lengthPolynomial;
     private final Map<Integer, Offset> forwardOffsets;
 
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
@@ -64,6 +67,7 @@ class DFAClassBuilder extends ClassBuilder {
         this.suffixSearchFindMethodSpec = dfas.suffixSearchFindMethodSpec;
         this.relaxedSuffixFindMethodSpec = dfas.relaxedSuffixFindMethodSpec;
         this.factorization = dfas.factorization;
+        this.lengthPolynomial = dfas.lengthPolynomial;
         this.compilerOptions = options;
         this.forwardOffsets = dfas.forwardOffsets;
         // TODO: test whether it matters that the four DFAs can have different byteClasses
@@ -1103,6 +1107,26 @@ class DFAClassBuilder extends ClassBuilder {
         return offset != null && offset.length > CompilationPolicy.MIN_OFFSET_LENGTH;
     }
 
+    private void addLengthPolynomialCheck(Method method) {
+        var membership = lengthPolynomial.membership(CompilationPolicy.MAX_LENGTH_FILTER_MODULUS);
+        if (membership.isEmpty()) {
+            DFAMethodComponents.checkLengthPolynomial(method, lengthPolynomial);
+            return;
+        }
+        var filter = membership.get();
+        addArrayConstant(LENGTH_FILTER, ACC_PRIVATE | ACC_STATIC | ACC_FINAL, filter.minRepresentable());
+        // checkMinMaxLengthForMatch already rejects lengths below the minimum when it is large enough to be worth
+        // checking; only fill the gap (and keep the array index non-negative) for short minimums.
+        if (filter.base() > 0 && filter.base() <= CompilationPolicy.THRESHOLD_FOR_CALCULATING_MAX_START) {
+            method.cond(lt(read(MatchingVars.LENGTH), filter.base())).withBody(returnValue(0));
+        }
+        Expression remaining = sub(read(MatchingVars.LENGTH), filter.base());
+        Expression minRepresentable = arrayRead(
+                getStatic(LENGTH_FILTER, ReferenceType.of(getClassName()), ArrayType.of(Builtin.I)),
+                mod(remaining, filter.modulus()));
+        method.cond(gt(minRepresentable, remaining)).withBody(returnValue(0));
+    }
+
     private Method createMatchesMethod(FindMethodSpec spec) {
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         vars.setByteClassVar(6);
@@ -1110,6 +1134,9 @@ class DFAClassBuilder extends ClassBuilder {
 
         DFAMethodComponents.setLengthLocalVariable(method);
         DFAMethodComponents.checkMinMaxLengthForMatch(method, factorization);
+        if (lengthPolynomial != null) {
+            addLengthPolynomialCheck(method);
+        }
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
         int offsetCheckState = 0;

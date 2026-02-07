@@ -25,6 +25,11 @@ public class LParenNode extends Node {
     }
 
     @Override
+    public Optional<LengthPolynomial> lengthPolynomial() {
+        return Optional.empty();
+    }
+
+    @Override
     protected int height() {
         throw new UnsupportedOperationException();
     }

@@ -32,6 +32,19 @@ public class CountedRepetition extends Node {
     }
 
     @Override
+    public Optional<LengthPolynomial> lengthPolynomial() {
+        var inner = node.lengthPolynomial();
+        return inner.flatMap(p -> {
+            if (min == max) {
+                return Optional.of(p.times(min));
+            }
+            else {
+                return p.multi(min, max);
+            }
+        });
+    }
+
+    @Override
     protected int height() {
         return 1 + node.height();
     }
