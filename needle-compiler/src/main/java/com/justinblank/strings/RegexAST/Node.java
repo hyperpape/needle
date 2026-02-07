@@ -19,7 +19,7 @@ public abstract class Node {
         return maxLength.map(integer -> integer.equals(minLength())).orElse(false);
     }
 
-    public abstract Optional<Polynomial> lengthPolynomial();
+    public abstract Optional<LengthPolynomial> lengthPolynomial();
 
     protected abstract int height();
 

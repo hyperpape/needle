@@ -29,8 +29,8 @@ public class LiteralNode extends Node {
     }
 
     @Override
-    public Optional<Polynomial> lengthPolynomial() {
-        return Optional.of(Polynomial.constant(minLength()));
+    public Optional<LengthPolynomial> lengthPolynomial() {
+        return Optional.of(LengthPolynomial.constant(minLength()));
     }
 
     @Override

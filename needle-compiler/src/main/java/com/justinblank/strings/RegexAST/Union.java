@@ -30,7 +30,7 @@ public class Union extends Node {
     }
 
     @Override
-    public Optional<Polynomial> lengthPolynomial() {
+    public Optional<LengthPolynomial> lengthPolynomial() {
         return Optional.empty();
     }
 

@@ -26,10 +26,10 @@ public class Concatenation extends Node {
         }
         else if (head instanceof LiteralNode && tail instanceof Concatenation) {
             var literalHead = (LiteralNode) head;
-            var concatendatedTail = (Concatenation) tail;
-            if (concatendatedTail.head instanceof LiteralNode) {
-                literalHead.append((LiteralNode) concatendatedTail.head);
-                return new Concatenation(literalHead, concatendatedTail.tail);
+            var concatenatedTail = (Concatenation) tail;
+            if (concatenatedTail.head instanceof LiteralNode) {
+                literalHead.append((LiteralNode) concatenatedTail.head);
+                return new Concatenation(literalHead, concatenatedTail.tail);
             }
         }
         return new Concatenation(head, tail);
@@ -44,7 +44,7 @@ public class Concatenation extends Node {
     }
 
     @Override
-    public Optional<Polynomial> lengthPolynomial() {
+    public Optional<LengthPolynomial> lengthPolynomial() {
         return head.lengthPolynomial().flatMap(h -> tail.lengthPolynomial().map(h::plus));
     }
 
