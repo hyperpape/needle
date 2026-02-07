@@ -35,6 +35,8 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String INFIX_CONSTANT = "INFIX";
     protected static final String FIRST_BYTE_MASK = "FIRST_BYTE_MASK";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
+    // TODO: rename 
+    protected static final int ASCII_BOUNDARY = 128;
 
     private final FindMethodSpec forwardFindMethodSpec;
     private final FindMethodSpec reversedFindMethodSpec;
@@ -299,8 +301,8 @@ class DFAClassBuilder extends ClassBuilder {
         }
         staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
                 .push(stateTransitions.byteClasses.catchAll)
-                .push(128)
-                .push(128)
+                .push(ASCII_BOUNDARY)
+                .push(ASCII_BOUNDARY)
                 .callStatic("fillBytes", CompilerUtil.internalName(ByteClassUtil.class), "([BBII)V");
     }
 
@@ -514,7 +516,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Expression matchDFAInitialByte() {
         return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
-                callStatic(ReferenceType.of(Math.class), "min", Builtin.I, cast(Builtin.I, read(MatchingVars.CHAR)), literal(128)));
+                callStatic(ReferenceType.of(Math.class), "min", Builtin.I, cast(Builtin.I, read(MatchingVars.CHAR)), literal(ASCII_BOUNDARY)));
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
