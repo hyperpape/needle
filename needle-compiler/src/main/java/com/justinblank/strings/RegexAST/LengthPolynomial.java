@@ -1,0 +1,62 @@
+package com.justinblank.strings.RegexAST;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+public class LengthPolynomial {
+
+    private final List<LengthComponent> components;
+    private final int constant;
+
+    private LengthPolynomial(List<LengthComponent> components, int constant) {
+        this.components = components;
+        this.constant = constant;
+    }
+
+    public static LengthPolynomial constant(int n) {
+        return new LengthPolynomial(Collections.emptyList(), n);
+    }
+
+    public LengthPolynomial times(int n) {
+        var variables = new ArrayList<LengthComponent>();
+        for (LengthComponent c : this.components) {
+            variables.add(c.times(n));
+        }
+        return new LengthPolynomial(variables, n * constant);
+    }
+
+    public LengthPolynomial plus(LengthPolynomial other) {
+        var variables = new ArrayList<LengthComponent>();
+        int thisIdx = 0;
+        int otherIdx = 0;
+        while (thisIdx < this.components.size()) {
+            var thisVariable = this.components.get(thisIdx);
+            var toAdd = thisVariable;
+            while (otherIdx < other.components.size()) {
+                var otherVariable = other.components.get(otherIdx);
+                if (otherVariable.size < thisVariable.size) {
+                    variables.add(otherVariable);
+                    otherIdx++;
+                    continue;
+                }
+                else if (thisVariable.size == otherVariable.size) {
+                    toAdd = new LengthComponent(thisVariable.min + otherVariable.min, thisVariable.max + otherVariable.max, thisVariable.size);
+                }
+                break;
+            }
+            variables.add(toAdd);
+            thisIdx++;
+        }
+        while (otherIdx < other.components.size()) {
+            variables.add(other.components.get(otherIdx));
+            otherIdx++;
+        }
+        return new LengthPolynomial(variables, constant + other.constant);
+    }
+
+    public Optional<LengthPolynomial> multi(int min, int max) {
+        return Optional.empty();
+    }
+}
