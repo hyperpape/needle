@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public class LiteralNode extends Node {
 
-    private StringBuilder string = new StringBuilder();
+    private final StringBuilder string = new StringBuilder();
 
     public LiteralNode(String string) {
         this.string.append(string);
@@ -26,6 +26,11 @@ public class LiteralNode extends Node {
     @Override
     public Optional<Integer> maxLength() {
         return Optional.of(string.length());
+    }
+
+    @Override
+    public Optional<Polynomial> lengthPolynomial() {
+        return Optional.of(Polynomial.constant(minLength()));
     }
 
     @Override

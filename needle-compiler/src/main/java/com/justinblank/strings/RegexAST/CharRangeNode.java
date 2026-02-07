@@ -30,6 +30,11 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
     }
 
     @Override
+    public Optional<Polynomial> lengthPolynomial() {
+        return Optional.of(Polynomial.constant(1));
+    }
+
+    @Override
     protected int height() {
         return 0;
     }
