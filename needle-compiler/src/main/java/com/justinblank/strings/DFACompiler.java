@@ -48,7 +48,8 @@ public class DFACompiler {
             Node node = RegexParser.parse(regex, options.flags);
             Factorization factorization = Factorization.buildFactorization(node);
             Objects.requireNonNull(className, "name cannot be null");
-            if (node.nonAscii()) {
+            boolean nonAscii = node.nonAscii();
+            if (nonAscii) {
                 node = node.toUTF16Bytes();
             }
 
@@ -66,7 +67,7 @@ public class DFACompiler {
             }
             checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
 
-            var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options);
+            var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options, nonAscii);
             builder.initMethods();
             ClassCompiler compiler = new ClassCompiler(builder, options.debugOptions.isDebug(), System.out);
             byte[] classBytes = compiler.generateClassAsBytes();

@@ -48,6 +48,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
     private int catchAllByteClass;
     private final CompilerOptions compilerOptions;
+    private final boolean nonAscii;
 
     final List<Method> findMethods = new ArrayList<>();
 
@@ -55,7 +56,7 @@ class DFAClassBuilder extends ClassBuilder {
      * @param className the simple class name of the class to be created
      */
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
-                    Factorization factorization, CompilerOptions options) {
+                    Factorization factorization, CompilerOptions options, boolean nonAscii) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
         this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
         this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
@@ -63,6 +64,7 @@ class DFAClassBuilder extends ClassBuilder {
         this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
         this.factorization = factorization;
         this.compilerOptions = options;
+        this.nonAscii = nonAscii;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
         if (dfa.maxDistinguishedChar() <= 127) {
             // TODO: test whether it matters that the four DFAs can have different byteClasses
