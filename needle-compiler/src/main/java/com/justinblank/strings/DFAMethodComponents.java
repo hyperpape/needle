@@ -30,6 +30,10 @@ public class DFAMethodComponents {
         return lte(read(MatchingVars.INDEX), read(MatchingVars.MAX_START));
     }
 
+    static Expression atStringEnd() {
+        return eq(read(MatchingVars.INDEX), read(MatchingVars.LENGTH));
+    }
+
     protected static Expression readChar() {
         return call("charAt", Builtin.C,
                 read(MatchingVars.STRING),
@@ -56,6 +60,10 @@ public class DFAMethodComponents {
         return cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
         );
+    }
+
+    static Expression isLiveState() {
+        return neq(read(MatchingVars.STATE), -1);
     }
 
     static void checkMinMaxLengthForMatch(Method method, Factorization factorization) {

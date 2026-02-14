@@ -905,9 +905,8 @@ class DFAClassBuilder extends ClassBuilder {
             }
         }
 
-        method.loop(neq(read(MatchingVars.STATE), -1), List.of(
-                cond(eq(read(MatchingVars.INDEX),
-                        read(MatchingVars.LENGTH)))
+        method.loop(DFAMethodComponents.isLiveState(), List.of(
+                cond(DFAMethodComponents.atStringEnd())
                         .withBody(List.of(compilerOptions.debugOptions.trackStates ?
                                         callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
                                         new NoOpStatement(),
