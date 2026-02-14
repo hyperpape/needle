@@ -400,7 +400,7 @@ class DFAClassBuilder extends ClassBuilder {
         else if (spec.canSeekForPredicate()) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
             outerLoopBody.add(loop(and(
-                            eq(read(MatchingVars.LAST_MATCH), -1),
+                            DFAMethodComponents.doesNotHaveLastMatch(),
                             and(
                                     DFAMethodComponents.inBounds(),
                                     lte(read(MatchingVars.STATE), 0)

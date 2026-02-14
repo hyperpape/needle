@@ -44,6 +44,10 @@ public class DFAMethodComponents {
         return gt(read(MatchingVars.LAST_MATCH), literal(-1));
     }
 
+    static Expression doesNotHaveLastMatch() {
+        return eq(read(MatchingVars.LAST_MATCH), -1);
+    }
+
     static Conditional returnLastMatchIfDeadState() {
         return cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH)));
     }
