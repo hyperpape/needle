@@ -13,9 +13,9 @@ import static com.justinblank.classcompiler.lang.CodeElement.set;
 import static com.justinblank.classcompiler.lang.Literal.literal;
 
 public class DFAMethodComponents {
-    static void returnWasAccepted(FindMethodSpec spec, Method method) {
-        method.returnValue(
-                call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)));
+
+    static Expression wasAccepted(FindMethodSpec spec) {
+        return call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE));
     }
 
     static void setLengthLocalVariable(Method method) {

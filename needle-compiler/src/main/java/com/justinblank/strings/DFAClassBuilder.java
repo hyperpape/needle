@@ -911,8 +911,7 @@ class DFAClassBuilder extends ClassBuilder {
                         .withBody(List.of(compilerOptions.debugOptions.trackStates ?
                                         callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
                                         new NoOpStatement(),
-                                returnValue(
-                                        call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE))))),
+                                returnValue(DFAMethodComponents.wasAccepted(spec)))),
                 set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
                 spec.compilationPolicy.useByteClassesForAllStates ? cond(
                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
@@ -925,7 +924,7 @@ class DFAClassBuilder extends ClassBuilder {
         if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "returnWasAccepted", Void.VOID, read(MatchingVars.STATE));
         }
-        DFAMethodComponents.returnWasAccepted(spec, method);
+        method.returnValue(DFAMethodComponents.wasAccepted(spec));
         return method;
     }
 
@@ -1028,7 +1027,7 @@ class DFAClassBuilder extends ClassBuilder {
                 lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
                         neq(-1, read(MatchingVars.STATE))),
                         List.of(
-                                cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                                cond(DFAMethodComponents.wasAccepted(spec))
                                         .withBody(returnValue(true)),
                                 set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
 
@@ -1042,7 +1041,7 @@ class DFAClassBuilder extends ClassBuilder {
                                 DFAMethodComponents.incrementIndex()
                                 ));
         outerLoopBody.add(innerLoop);
-        DFAMethodComponents.returnWasAccepted(spec, method);
+        method.returnValue(DFAMethodComponents.wasAccepted(spec));
 
         return method;
     }
