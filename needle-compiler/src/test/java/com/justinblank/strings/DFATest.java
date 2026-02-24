@@ -193,7 +193,7 @@ class DFATest {
         assertEquals(1, byteClasses['a']);
         assertEquals(2, byteClasses['b']);
         assertEquals(3, byteClasses['c']);
-        for (var i = 'd'; i <= DFA.MAX_CHAR_FOR_BYTECLASSES; i++) {
+        for (var i = 'd'; i <= DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES; i++) {
             assertEquals(0, byteClasses[i]);
         }
     }
@@ -212,7 +212,7 @@ class DFATest {
         for (var c = 'c'; c <= 'z'; c++) {
             assertEquals(1, byteClasses[c]);
         }
-        for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_BYTECLASSES; c++) {
+        for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES; c++) {
             assertEquals(0, byteClasses[c]);
         }
     }
@@ -231,7 +231,7 @@ class DFATest {
         for (var c = 'c'; c <= 'z'; c++) {
             assertEquals(2, byteClasses[c]);
         }
-        for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_BYTECLASSES; c++) {
+        for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES; c++) {
             assertEquals(1, byteClasses[c]);
         }
     }

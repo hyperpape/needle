@@ -424,6 +424,38 @@ public class DFACompilerTest {
     }
 
     @Test
+    void dfaCompiledBMP2() throws Exception {
+        Pattern pattern = DFACompiler.compile("ε|λ", "anotherUnicode");
+        match(pattern, "ε");
+    }
+
+    @Test
+    void testEscape() {
+        String escape = "\\" + (char) 68;
+        Optional<Node> node = TestUtil.compareParseToJava(escape);
+        node.ifPresent(n -> {
+            Pattern pattern = DFACompilerTest.anonymousPattern(escape);
+            java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(escape);
+            for (char c = 0; c < Character.MAX_VALUE; c++) {
+                String needle = String.valueOf(c);
+                assertEquals(pattern.matcher(needle).matches(), javaPattern.matcher(needle).matches(), "Match failure for escape sequence " + 68 + " on needle " + (int) c);
+            }
+        });
+    }
+
+    @Test
+    void testEscape_256() {
+        Pattern pattern = DFACompiler.compile("\\w", "w_escape", 256);
+        pattern.matcher("a").matches();
+    }
+
+    @Test
+    void testPostInitialState() {
+        Pattern pattern = DFACompiler.compile("a|b", "another");
+        match(pattern, "a");
+    }
+
+    @Test
     void dfaCompiledUnionOfLiterals() throws Exception {
         Pattern pattern = DFACompiler.compile("A|BCD|E", "union1");
         match(pattern, "A");
@@ -639,8 +671,8 @@ public class DFACompilerTest {
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
-        FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, Factorization.empty(), CharacterDistribution.DEFAULT);
-        DFAStateTransitions stateTransitions = new DFAStateTransitions();
+        FindMethodSpec spec = new FindMethodSpec(dfaSearch, dfaSearch, FindMethodSpec.FORWARDS, true, Factorization.empty(), CharacterDistribution.DEFAULT);
+        DFAStateTransitions stateTransitions = new DFAStateTransitions(false);
         stateTransitions.byteClasses = dfaSearch.byteClasses();
 
         for (var state : dfaSearch.allStates()) {

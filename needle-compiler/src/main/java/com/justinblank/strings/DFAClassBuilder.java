@@ -18,6 +18,10 @@ import static com.justinblank.classcompiler.lang.BinaryOperator.*;
 import static com.justinblank.classcompiler.lang.CodeElement.*;
 import static com.justinblank.classcompiler.lang.Literal.literal;
 import static com.justinblank.classcompiler.lang.UnaryOperator.not;
+import static com.justinblank.strings.DFAMethodComponents.inBounds;
+import static com.justinblank.strings.DFAMethodComponents.isLiveState;
+import static com.justinblank.strings.MatchingVars.CHAR;
+import static com.justinblank.strings.MatchingVars.HIGH_BYTE;
 import static org.objectweb.asm.Opcodes.*;
 
 class DFAClassBuilder extends ClassBuilder {
@@ -35,7 +39,8 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String INFIX_CONSTANT = "INFIX";
     protected static final String FIRST_BYTE_MASK = "FIRST_BYTE_MASK";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
-    // TODO: rename 
+    // TODO: rename
+    protected static final int UNICODE_BOUNDARY = 256;
     protected static final int ASCII_BOUNDARY = 128;
 
     private final FindMethodSpec forwardFindMethodSpec;
@@ -45,7 +50,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final Factorization factorization;
     private final Map<Integer, Offset> forwardOffsets;
 
-    private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
+    private final DFAStateTransitions stateTransitions;
     private int catchAllByteClass;
     private final CompilerOptions compilerOptions;
     private final boolean nonAscii;
@@ -56,17 +61,18 @@ class DFAClassBuilder extends ClassBuilder {
      * @param className the simple class name of the class to be created
      */
     DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
-                    Factorization factorization, CompilerOptions options, boolean nonAscii) {
+                    DFA alternateDFA, Factorization factorization, CompilerOptions options, boolean nonAscii) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
-        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
-        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
+        this.forwardFindMethodSpec = new FindMethodSpec(dfa, alternateDFA, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
+        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, alternateDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
+        this.reversedFindMethodSpec = new FindMethodSpec(reversed, alternateDFA, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
+        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, alternateDFA, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
         this.factorization = factorization;
         this.compilerOptions = options;
         this.nonAscii = nonAscii;
+        stateTransitions = new DFAStateTransitions(nonAscii);
         this.forwardOffsets = dfa.calculateOffsets(factorization);
-        if (dfa.maxDistinguishedChar() <= 127) {
+        // if (dfa.maxDistinguishedChar() <= 127) {
             // TODO: test whether it matters that the four DFAs can have different byteClasses
             ByteClasses byteClasses = dfa.byteClasses();
             stateTransitions.byteClasses = byteClasses;
@@ -74,9 +80,9 @@ class DFAClassBuilder extends ClassBuilder {
                 spec.compilationPolicy.useByteClassesForAllStates = true;
             }
             catchAllByteClass = byteClasses.catchAll;
-        } else {
-            stateTransitions.byteClasses = null;
-        }
+//        } else {
+//            stateTransitions.byteClasses = null;
+//        }
     }
 
     boolean useShorts(FindMethodSpec spec) {
@@ -167,12 +173,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private boolean shouldInitByteClasses() {
-        for (var spec : allSpecs()) {
-            if (spec.compilationPolicy.requiresByteClasses()) {
-                return true;
-            }
-        }
-        return false;
+        return true;
     }
 
     /**
@@ -275,7 +276,8 @@ class DFAClassBuilder extends ClassBuilder {
         var staticBlock = addStaticBlock();
 
         // All characters that cannot be recognized by the DFA are represented with 0
-        Block block = staticBlock.push(DFA.MAX_CHAR_FOR_BYTECLASSES + 2)
+        int byteClassSize = nonAscii ? DFA.MAX_CHAR_FOR_UTF_BYTECLASSES + 2 : DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES + 2;
+        Block block = staticBlock.push(byteClassSize)
                 .newArray(T_BYTE)
                 .putStatic(BYTE_CLASSES_CONSTANT, true, "[B");
         block.readStatic(BYTE_CLASSES_CONSTANT, "[B")
@@ -287,7 +289,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         // Identify runs of characters that are mapped to the same byte class. For each of these runs, we emit a call to
         // ByteClassUtil#fillBytes() to fill the array with the number representing that byte class.
-        while (end < 129) {
+        while (end < byteClassSize && end < stateTransitions.byteClasses.ranges.length) {
             if (stateTransitions.byteClasses.ranges[end] != byteClass) {
                 if (byteClass != 0) {
                     staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
@@ -303,8 +305,8 @@ class DFAClassBuilder extends ClassBuilder {
         }
         staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
                 .push(stateTransitions.byteClasses.catchAll)
-                .push(ASCII_BOUNDARY)
-                .push(ASCII_BOUNDARY)
+                .push(nonAscii ? UNICODE_BOUNDARY : ASCII_BOUNDARY)
+                .push(nonAscii ? UNICODE_BOUNDARY : ASCII_BOUNDARY)
                 .callStatic("fillBytes", CompilerUtil.internalName(ByteClassUtil.class), "([BBII)V");
     }
 
@@ -348,6 +350,9 @@ class DFAClassBuilder extends ClassBuilder {
         if (spec.compilationPolicy.useMaxStart) {
             vars.setMaxStartVar(varIndex++);
         }
+        if (nonAscii) {
+            vars.setHighByte(varIndex++);
+        }
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
@@ -367,11 +372,11 @@ class DFAClassBuilder extends ClassBuilder {
             method.loop(DFAMethodComponents.inBoundsForStart(), outerLoopBody);
         }
         else {
-            method.loop(DFAMethodComponents.inBounds(), outerLoopBody);
+            method.loop(inBounds(), outerLoopBody);
         }
         if (spec.compilationPolicy.usePrefix) {
             var prefix = spec.compilationPolicy.getPrefix().orElseThrow();
-            var postPrefixState = spec.dfa.after(prefix).orElseThrow(()
+            var postPrefixState = spec.dfa.after(transformAffix(prefix)).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming prefix. This should be impossible"));
             int state = postPrefixState.getStateNumber();
 
@@ -408,32 +413,34 @@ class DFAClassBuilder extends ClassBuilder {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
         else if (spec.canSeekForPredicate()) {
+            DFA dfaForPredicate = spec.alternateDFA != null ? spec.alternateDFA : spec.dfa;
             outerLoopBody.add(set(MatchingVars.STATE, 0));
             outerLoopBody.add(loop(and(
                             DFAMethodComponents.doesNotHaveLastMatch(),
                             and(
-                                    DFAMethodComponents.inBounds(),
+                                    inBounds(),
                                     lte(read(MatchingVars.STATE), 0)
                             )),
                     List.of(
-                            set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                            cond(generatePredicate(spec.dfa))
+                            set(CHAR, DFAMethodComponents.readChar()),
+                            cond(generatePredicate(dfaForPredicate))
                                     .withBody(List.of(
-                                            set(MatchingVars.STATE, spec.dfa.forwardFollowingState().getStateNumber()),
+                                            set(MatchingVars.STATE, dfaForPredicate.forwardFollowingState().getStateNumber()),
                                             DFAMethodComponents.incrementIndex(),
-                                            spec.dfa.forwardFollowingState().isAccepting()
+                                            dfaForPredicate.forwardFollowingState().isAccepting()
                                                     ? set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : new NoOpStatement()))
                                     .orElse(List.of(
                                             DFAMethodComponents.incrementIndex(),
                                             set(MatchingVars.STATE, -1)))
                     )));
         }
+        // TODO: properly handle nonAscii byte splitting
         else if (spec.dfa.initialAsciiBytes().isPresent() && !spec.dfa.isAccepting()) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
             outerLoopBody.add(loop(and(eq(read(MatchingVars.LAST_MATCH), -1),
-                            and(DFAMethodComponents.inBounds(),
+                            and(inBounds(),
                                     lte(read(MatchingVars.STATE), 0)))
-                    , List.of(set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
+                    , List.of(set(CHAR, DFAMethodComponents.readChar()),
                             cond(matchDFAInitialByte()).withBody(List.of(escape())).orElse(List.of(DFAMethodComponents.incrementIndex())))));
         }
         else {
@@ -443,38 +450,78 @@ class DFAClassBuilder extends ClassBuilder {
         // We only need to call wasAccepted at the top of our loop if matching a prefix/initial state can leave us in
         // an accepting state. Otherwise, we can skip that check.
         var innerLoopMustCallWasAccepted = isInnerLoopMustCallWasAccepted(spec);
-        var innerLoopBoundary = DFAMethodComponents.inBounds();
+        var innerLoopBoundary = inBounds();
         if (spec.compilationPolicy.usePrefix || (!(spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes) && spec.canSeekForPredicate())) {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
-        Loop innerLoop = loop(innerLoopBoundary,
-                List.of(
-                        innerLoopMustCallWasAccepted ? DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod) : new NoOpStatement(),
+        Loop innerLoop;
 
-                        set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                        DFAMethodComponents.incrementIndex(),
-                        // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
-                        // using non-ascii character from the haystack as our index
-                        // TODO: performing this check should be ok regardless of whether we're using byteclasses--
-                        //  maybe even a valuable speedup?
-                        // TODO: consider an entirely separate version if we're using byteclasses
-                        // current implementation seems overcomplicated
+        if (nonAscii) {
+            innerLoop = loop(innerLoopBoundary,
+                    List.of(
+                            innerLoopMustCallWasAccepted ? DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod) : new NoOpStatement(),
 
-                        spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
-                                set(MatchingVars.STATE, -1),
-                                cond(DFAMethodComponents.hasLastMatch()).withBody(
-                                        returnValue(read(MatchingVars.LAST_MATCH))
-                                ),
-                                skip()
-                        )) : new NoOpStatement(),
+                            set(CHAR, DFAMethodComponents.readChar()),
+                            DFAMethodComponents.incrementIndex(),
+                            // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
+                            // using non-ascii character from the haystack as our index
+                            // TODO: performing this check should be ok regardless of whether we're using byteclasses--
+                            //  maybe even a valuable speedup?
+                            // TODO: consider an entirely separate version if we're using byteclasses
+                            // current implementation seems overcomplicated
 
-                        spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                        spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        DFAMethodComponents.returnLastMatchIfDeadState(),
-                        spec.doByteCheckForFirstCharacter() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
-                        (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
-                        DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod)
-                ));
+                            spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                                    set(MatchingVars.STATE, -1),
+                                    cond(DFAMethodComponents.hasLastMatch()).withBody(
+                                            returnValue(read(MatchingVars.LAST_MATCH))
+                                    ),
+                                    skip()
+                            )) : new NoOpStatement(),
+
+                            set(HIGH_BYTE, shiftR(read(CHAR), literal(8))),
+                            set(CHAR, bitAnd(literal(0xFF), read(CHAR))),
+                            setByteClass(HIGH_BYTE),
+                            buildStateLookupFromByteClass(spec),
+                            // TODO: we probably want to update how we generate states, to remove this conditional
+                            cond(eq(-1, read(MatchingVars.STATE))).withBody(escape()),
+                            setByteClass(CHAR),
+                            buildStateLookupFromByteClass(spec),
+
+                            DFAMethodComponents.returnLastMatchIfDeadState(),
+                            spec.doByteCheckForFirstCharacter() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
+                            (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
+                            DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod)
+                    ));
+        } else {
+            innerLoop = loop(innerLoopBoundary,
+                    List.of(
+                            innerLoopMustCallWasAccepted ? DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod) : new NoOpStatement(),
+
+                            set(CHAR, DFAMethodComponents.readChar()),
+                            DFAMethodComponents.incrementIndex(),
+                            // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
+                            // using non-ascii character from the haystack as our index
+                            // TODO: performing this check should be ok regardless of whether we're using byteclasses--
+                            //  maybe even a valuable speedup?
+                            // TODO: consider an entirely separate version if we're using byteclasses
+                            // current implementation seems overcomplicated
+
+                            spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                                    set(MatchingVars.STATE, -1),
+                                    cond(DFAMethodComponents.hasLastMatch()).withBody(
+                                            returnValue(read(MatchingVars.LAST_MATCH))
+                                    ),
+                                    skip()
+                            )) : new NoOpStatement(),
+
+                            spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                            spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                            DFAMethodComponents.returnLastMatchIfDeadState(),
+                            spec.doByteCheckForFirstCharacter() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
+                            (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
+                            DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod)
+                    ));
+        }
         outerLoopBody.add(innerLoop);
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
@@ -483,11 +530,15 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private boolean isInnerLoopMustCallWasAccepted(FindMethodSpec spec) {
-        if (spec.dfa.isAccepting()) {
+        DFA targetDFA = spec.alternateDFA != null ? spec.alternateDFA : spec.dfa;
+        if (targetDFA.isAccepting()) {
+            return true;
+        }
+        else if (spec.canSeekForPredicate()) {
             return true;
         }
         else {
-            return spec.compilationPolicy.getPrefix().flatMap(spec.dfa::after).map(DFA::isAccepting).orElse(false);
+            return spec.compilationPolicy.getPrefix().flatMap(targetDFA::after).map(DFA::isAccepting).orElse(false);
         }
     }
 
@@ -499,26 +550,33 @@ class DFAClassBuilder extends ClassBuilder {
         if (forwardTransitions.size() == 1) {
             var range = forwardTransitions.get(0).getLeft();
             if (range.isSingleCharRange()) {
-                return eq(read(MatchingVars.CHAR), (int) range.getStart());
+                return eq(read(CHAR), (int) range.getStart());
             }
             else {
                 return and(
-                        gte(read(MatchingVars.CHAR), (int) range.getStart()),
-                        lte(read(MatchingVars.CHAR), (int) range.getEnd()));
+                        gte(read(CHAR), (int) range.getStart()),
+                        lte(read(CHAR), (int) range.getEnd()));
             }
         }
         else {
             var char2 = forwardTransitions.get(1).getLeft().getEnd();
             var char1 = forwardTransitions.get(0).getLeft().getStart();
             return or(
-                    eq(read(MatchingVars.CHAR), (int) char1),
-                    eq(read(MatchingVars.CHAR), (int) char2));
+                    eq(read(CHAR), (int) char1),
+                    eq(read(CHAR), (int) char2));
         }
     }
 
     private Expression matchDFAInitialByte() {
-        return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
-                callStatic(ReferenceType.of(Math.class), "min", Builtin.I, cast(Builtin.I, read(MatchingVars.CHAR)), literal(ASCII_BOUNDARY)));
+        if (nonAscii) {
+            return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
+                    shiftR(read(CHAR), literal(8)));
+
+        }
+        else {
+            return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
+                    callStatic(ReferenceType.of(Math.class), "min", Builtin.I, cast(Builtin.I, read(CHAR)), literal(ASCII_BOUNDARY)));
+        }
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
@@ -530,12 +588,17 @@ class DFAClassBuilder extends ClassBuilder {
                         arrayRead(getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(type)), index)));
     }
 
-    private CodeElement setByteClass() {
+    private CodeElement setByteClass(String variable) {
+        int byteClassMax = nonAscii ? DFA.MAX_CHAR_FOR_UTF_BYTECLASSES + 1 : DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES + 1;
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
         var byteClassLookup = arrayRead(byteClassRef, callStatic(ReferenceType.of(Math.class), "min", Builtin.I,
-                literal(DFA.MAX_CHAR_FOR_BYTECLASSES + 1), cast(Builtin.I, read(MatchingVars.CHAR)))); // read(MatchingVars.CHAR));
+                literal(byteClassMax), cast(Builtin.I, read(variable))));
 
         return set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup);
+    }
+
+    private CodeElement setByteClass() {
+        return setByteClass(CHAR);
     }
 
     private Method createIndexMethodReversed(FindMethodSpec spec) {
@@ -545,6 +608,9 @@ class DFAClassBuilder extends ClassBuilder {
         var varIndex = 6;
         vars.setLastMatchVar(varIndex++);
         vars.setByteClassVar(varIndex++);
+        if (nonAscii) {
+            vars.setHighByte(varIndex++);
+        }
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
@@ -561,7 +627,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         if (shouldSeekBackwards(spec)) {
             var suffix = spec.compilationPolicy.getSuffix().get();
-            var postSuffixState = spec.dfa.after(StringUtils.reverse(suffix)).orElseThrow(()
+            var postSuffixState = spec.dfa.after(StringUtils.reverse(transformAffix(suffix))).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming suffix. This should be impossible"));
             int state = postSuffixState.getStateNumber();
             method.set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), suffix.length()));
@@ -574,24 +640,44 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             method.set(MatchingVars.STATE, 0);
         }
-        method.loop(loopBoundary,
-                List.of(
-                        set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                        // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
-                        // using non-ascii character from the haystack as our index
-                        // TODO: this should be ok regardless of whether we're using byteclasses?
-                        // TODO: consider an entirely separate version if we're using byteclasses
-                        // current implementation seems overcomplicated
-                        spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
-                                returnValue(read(MatchingVars.LAST_MATCH))
-                        )) : new NoOpStatement(),
-                        spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                        spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                        DFAMethodComponents.returnLastMatchIfDeadState(),
-                        DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod),
-                        set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
-                ));
 
+        if (nonAscii) {
+            method.loop(loopBoundary,
+                    List.of(
+                            set(CHAR, DFAMethodComponents.readChar()),
+                            set(HIGH_BYTE, shiftR(read(CHAR), literal(8))),
+                            set(CHAR, bitAnd(literal(0xFF), read(CHAR))),
+                            setByteClass(CHAR),
+                            buildStateLookupFromByteClass(spec),
+                            // TODO: we probably want to update how we generate states, to remove this conditional
+                            cond(eq(-1, read(MatchingVars.STATE))).withBody(escape()),
+                            setByteClass(HIGH_BYTE),
+                            buildStateLookupFromByteClass(spec),
+
+                            DFAMethodComponents.returnLastMatchIfDeadState(),
+                            DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod),
+                            set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
+                    ));
+        }
+        else {
+            method.loop(loopBoundary,
+                    List.of(
+                            set(CHAR, DFAMethodComponents.readChar()),
+                            // This check is necessary so that we don't get an array index out of bounds looking up a byteclass
+                            // using non-ascii character from the haystack as our index
+                            // TODO: this should be ok regardless of whether we're using byteclasses?
+                            // TODO: consider an entirely separate version if we're using byteclasses
+                            // current implementation seems overcomplicated
+                            spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                                    returnValue(read(MatchingVars.LAST_MATCH))
+                            )) : new NoOpStatement(),
+                            spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                            spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                            DFAMethodComponents.returnLastMatchIfDeadState(),
+                            DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod),
+                            set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
+                    ));
+        }
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
@@ -602,7 +688,7 @@ class DFAClassBuilder extends ClassBuilder {
         var stateArrayRef = arrayRead(
                 getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
-        var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
+        var byteClassLookup = arrayRead(byteClassRef, read(CHAR));
         // TODO: using a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
         return set(MatchingVars.STATE, cast(Builtin.I, arrayRead(stateArrayRef, byteClassLookup)));
     }
@@ -756,7 +842,8 @@ class DFAClassBuilder extends ClassBuilder {
         if (!allSpecs().stream().allMatch(spec -> spec.compilationPolicy.useByteClassesForAllStates)) {
             for (var spec : allSpecs()) {
                 for (DFA dfaState : spec.dfa.allStates()) {
-                    addStateMethod(dfaState, spec);
+                    // TODO: decide if this is necessary? 
+                    // addStateMethod(dfaState, spec);
                 }
 
                 var statesCount = spec.statesCount();
@@ -879,8 +966,12 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createMatchesMethod(FindMethodSpec spec) {
+        int varIndex = 1;
         var vars = new MatchingVars(1, 2, 3, 4, 5);
         vars.setByteClassVar(6);
+        if (nonAscii) {
+            vars.setHighByte(7);
+        }
         var method = mkMethod("matches", new ArrayList<>(), "Z", vars);
 
         DFAMethodComponents.setLengthLocalVariable(method);
@@ -890,7 +981,7 @@ class DFAClassBuilder extends ClassBuilder {
         int offsetCheckState = 0;
         if (spec.compilationPolicy.usePrefix) {
             var prefix = spec.compilationPolicy.getPrefix().orElseThrow();
-            offsetCheckState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
+            offsetCheckState = spec.dfa.after(transformAffix(prefix)).orElseThrow().getStateNumber();
 
             method.cond(not(call("startsWith", Builtin.BOOL, read(MatchingVars.STRING),
                             getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)))))
@@ -918,26 +1009,57 @@ class DFAClassBuilder extends ClassBuilder {
             }
         }
 
-        method.loop(DFAMethodComponents.isLiveState(), List.of(
-                cond(DFAMethodComponents.atStringEnd())
-                        .withBody(List.of(compilerOptions.debugOptions.trackStates ?
-                                        callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
-                                        new NoOpStatement(),
-                                returnValue(DFAMethodComponents.wasAccepted(spec)))),
-                set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                spec.compilationPolicy.useByteClassesForAllStates ? cond(
-                        gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
-                        returnValue(false)) : new NoOpStatement(),
-                spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                DFAMethodComponents.incrementIndex()
-                ));
-
+        if (nonAscii) {
+            method.loop(isLiveState(), List.of(
+                    cond(DFAMethodComponents.atStringEnd()).withBody(returnValue(DFAMethodComponents.wasAccepted(spec))),
+                    set(CHAR, DFAMethodComponents.readChar()),
+                    set(HIGH_BYTE, shiftR(read(CHAR), literal(8))),
+                    set(CHAR, bitAnd(literal(0xFF), read(CHAR))),
+                    setByteClass(HIGH_BYTE),
+                    buildStateLookupFromByteClass(spec),
+                    setByteClass(CHAR),
+                    // TODO: we probably want to avoid this check for a negative state by construction
+                    cond(eq(-1, read(MatchingVars.STATE))).withBody(escape()),
+                    buildStateLookupFromByteClass(spec),
+                    DFAMethodComponents.incrementIndex()
+            ));
+        }
+        else {
+            method.loop(isLiveState(), List.of(
+                    cond(DFAMethodComponents.atStringEnd())
+                            .withBody(List.of(compilerOptions.debugOptions.trackStates ?
+                                            callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
+                                            new NoOpStatement(),
+                                    returnValue(DFAMethodComponents.wasAccepted(spec)))),
+                    set(CHAR, DFAMethodComponents.readChar()),
+                    spec.compilationPolicy.useByteClassesForAllStates ? cond(
+                            gt(read(CHAR), (int) spec.dfa.maxChar())).withBody(
+                            returnValue(false)) : new NoOpStatement(),
+                    spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                    spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                    DFAMethodComponents.incrementIndex()
+            ));
+        }
         if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "returnWasAccepted", Void.VOID, read(MatchingVars.STATE));
         }
         method.returnValue(DFAMethodComponents.wasAccepted(spec));
         return method;
+    }
+
+    private String transformAffix(String prefix) {
+        if (nonAscii) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < prefix.length(); i++) {
+                char c = prefix.charAt(i);
+                char high = (char) (c >> 8);
+                char low = (char) (c & 255);
+                sb.append(high);
+                sb.append(low);
+            }
+            return sb.toString();
+        }
+        return prefix;
     }
 
     private CodeElement buildStateSwitch(FindMethodSpec spec, int onFailure) {
@@ -953,7 +1075,7 @@ class DFAClassBuilder extends ClassBuilder {
             for (var i = 0; i < spec.statesCount(); i += CompilationPolicy.LARGE_STATE_COUNT) {
                 stateSwitchStatement.setCase(i / CompilationPolicy.LARGE_STATE_COUNT,
                         set(MatchingVars.STATE,
-                                call(stateGroupName(spec, i), Builtin.I, thisRef(), read(MatchingVars.CHAR), read(MatchingVars.STATE))));
+                                call(stateGroupName(spec, i), Builtin.I, thisRef(), read(CHAR), read(MatchingVars.STATE))));
             }
         }
         else {
@@ -962,14 +1084,14 @@ class DFAClassBuilder extends ClassBuilder {
                 if (compilerOptions.debugOptions.trackStates) {
                     stateSwitchStatement.setCase(i,
                             List.of(set(MatchingVars.STATE,
-                                    call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))),
+                                    call(methodName, Builtin.I, thisRef(), read(CHAR))),
                             callStatic(DFADebugUtils.class, "debugStateTransition", Void.VOID,
                                     read(MatchingVars.STATE))));
                 }
                 else {
                     stateSwitchStatement.setCase(i,
                             set(MatchingVars.STATE,
-                                    call(methodName, Builtin.I, thisRef(), read(MatchingVars.CHAR))));
+                                    call(methodName, Builtin.I, thisRef(), read(CHAR))));
                 }
             }
         }
@@ -977,7 +1099,7 @@ class DFAClassBuilder extends ClassBuilder {
         stateSwitchStatement.setDefault(List.of(set(MatchingVars.STATE, onFailure)));
         if (spec.compilationPolicy.usedByteClasses) {
             var dfaMaxChar = spec.dfa.maxChar();
-            var c = cond(gt(read(MatchingVars.CHAR), (int) dfaMaxChar)).withBody(
+            var c = cond(gt(read(CHAR), (int) dfaMaxChar)).withBody(
                     set(MatchingVars.STATE, onFailure));
             c.orElse(stateSwitchStatement);
             return c;
@@ -991,6 +1113,9 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setByteClassVar(varIndex++);
         if (spec.compilationPolicy.useMaxStart) {
             vars.setMaxStartVar(varIndex++);
+        }
+        if (nonAscii) {
+            vars.setHighByte(varIndex++);
         }
         var method = mkMethod("containedIn", new ArrayList<>(), "Z", vars);
 
@@ -1008,12 +1133,12 @@ class DFAClassBuilder extends ClassBuilder {
             method.loop(DFAMethodComponents.inBoundsForStart(), outerLoopBody);
         }
         else {
-            method.loop(DFAMethodComponents.inBounds(), outerLoopBody);
+            method.loop(inBounds(), outerLoopBody);
         }
 
         if (spec.compilationPolicy.usePrefix) {
             var prefix = spec.compilationPolicy.getPrefix().orElseThrow();
-            int postPrefixState = spec.dfa.after(prefix).orElseThrow().getStateNumber();
+            int postPrefixState = spec.dfa.after(transformAffix(prefix)).orElseThrow().getStateNumber();
 
             outerLoopBody.add(set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(PREFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
@@ -1033,25 +1158,47 @@ class DFAClassBuilder extends ClassBuilder {
         else {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         }
-        // TODO: sometimes emitting crap invocations of wasAccepted that can be statically known to be false
-        // see regex ad*g
-        Loop innerLoop = loop(and(
-                        inBounds(),
-                        isLiveState()),
-                        List.of(
-                                cond(DFAMethodComponents.wasAccepted(spec))
-                                        .withBody(returnValue(true)),
-                                set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
+        Loop innerLoop;
+        if (nonAscii) {
+            innerLoop = loop(and(
+                            inBounds(),
+                            isLiveState()),
+                    List.of(
+                            cond(DFAMethodComponents.wasAccepted(spec))
+                                    .withBody(returnValue(true)),
+                            set(CHAR, DFAMethodComponents.readChar()),
+                            set(HIGH_BYTE, shiftR(read(CHAR), literal(8))),
+                            set(CHAR, bitAnd(literal(0xFF), read(CHAR))),
+                            setByteClass(HIGH_BYTE),
+                            buildStateLookupFromByteClass(spec),
+                            // TODO: we probably want to avoid this check for a negative state by construction
+                            cond(eq(-1, read(MatchingVars.STATE))).withBody(escape()),
+                            setByteClass(CHAR),
+                            buildStateLookupFromByteClass(spec),
+                            DFAMethodComponents.incrementIndex()
+                    ));
+        }
+        else {
+            // TODO: sometimes emitting crap invocations of wasAccepted that can be statically known to be false
+            // see regex ad*g
+            innerLoop = loop(and(
+                            inBounds(),
+                            isLiveState()),
+                    List.of(
+                            cond(DFAMethodComponents.wasAccepted(spec))
+                                    .withBody(returnValue(true)),
+                            set(CHAR, DFAMethodComponents.readChar()),
 
-                                spec.compilationPolicy.useByteClassesForAllStates ? cond(
-                                        gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
-                                                List.of(set(MatchingVars.STATE, 0),
-                                                        DFAMethodComponents.incrementIndex(),
-                                                        escape())) : new NoOpStatement(),
-                                spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
-                                spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
-                                DFAMethodComponents.incrementIndex()
-                                ));
+                            spec.compilationPolicy.useByteClassesForAllStates ? cond(
+                                    gt(read(CHAR), (int) spec.dfa.maxChar())).withBody(
+                                    List.of(set(MatchingVars.STATE, 0),
+                                            DFAMethodComponents.incrementIndex(),
+                                            escape())) : new NoOpStatement(),
+                            spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                            spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                            DFAMethodComponents.incrementIndex()
+                    ));
+        }
         outerLoopBody.add(innerLoop);
         method.returnValue(DFAMethodComponents.wasAccepted(spec));
 
@@ -1067,17 +1214,17 @@ class DFAClassBuilder extends ClassBuilder {
         if (lookahead > 0) {
             targetChar = plus(lookahead, targetChar);
         }
-        elementsToAdd.add(set(MatchingVars.CHAR,
+        elementsToAdd.add(set(CHAR,
                 call("charAt", Builtin.C, read(MatchingVars.STRING),
                         targetChar)));
         var charRange = offset.charRange;
         Expression offsetCheck;
         if (charRange.isSingleCharRange()) {
-            offsetCheck = neq(read(MatchingVars.CHAR), literal((int) charRange.getStart()));
+            offsetCheck = neq(read(CHAR), literal((int) charRange.getStart()));
         }
         else {
-            offsetCheck = or(lt(read(MatchingVars.CHAR), literal((int) charRange.getStart())),
-                    gt(read(MatchingVars.CHAR), literal((int) charRange.getEnd())));
+            offsetCheck = or(lt(read(CHAR), literal((int) charRange.getStart())),
+                    gt(read(CHAR), literal((int) charRange.getEnd())));
         }
 
         elementsToAdd.add(cond(offsetCheck).withBody(onFailure));

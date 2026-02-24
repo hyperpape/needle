@@ -6,6 +6,22 @@ import java.util.List;
 class RangeGroup implements Comparable<RangeGroup> {
     final List<CharRange> ranges = new LinkedList<>();
 
+    public static int maxChar(List<RangeGroup> rangeGroups) {
+        int maxChar = 0;
+        for (RangeGroup rangeGroup : rangeGroups) {
+            for (var range : rangeGroup.ranges) {
+                if (range.getEnd() > maxChar) {
+                    var end = range.getEnd();
+                    if (end == Character.MAX_VALUE && range.getStart() <= 127) {
+                        end = 127;
+                    }
+                    maxChar = end;
+                }
+            }
+        }
+        return maxChar;
+    }
+
     @Override
     public int compareTo(RangeGroup o) {
         if (this == o) {

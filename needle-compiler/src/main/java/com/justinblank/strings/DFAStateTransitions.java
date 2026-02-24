@@ -8,6 +8,11 @@ import java.util.*;
 class DFAStateTransitions {
 
     protected ByteClasses byteClasses;
+    private boolean nonAscii;
+
+    protected DFAStateTransitions(boolean nonAscii) {
+        this.nonAscii = nonAscii;
+    }
 
     /**
      * Map from strings representing the search methods (e.g) "STATES_FORWARD" to sets of strings encoding
@@ -34,9 +39,9 @@ class DFAStateTransitions {
         Set<Byte> bytesWitnessed = new HashSet<>();
         for (var transition : dfaState.getTransitions()) {
             var largestSeenByteClass = 0;
-            for (var i = transition.getLeft().getStart(); i <= transition.getLeft().getEnd(); i++) {
+            for (var i = transition.getLeft().getStart(); i <= transition.getLeft().getEnd() && i < byteClasses.ranges.length; i++) {
                 byte byteClass;
-                if (i >= 128) {
+                if (i >= (nonAscii ? 256 : 128)) {
                     byteClass = byteClasses.catchAll;
                 }
                 else {
@@ -55,9 +60,6 @@ class DFAStateTransitions {
                     if (!(i > 128)) {
                         largestSeenByteClass = byteClass;
                     }
-                }
-                if (i > 128) {
-                    break;
                 }
             }
         }

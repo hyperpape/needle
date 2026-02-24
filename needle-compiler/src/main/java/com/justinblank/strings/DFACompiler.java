@@ -47,13 +47,15 @@ public class DFACompiler {
             Objects.requireNonNull(className, "name cannot be null");
             Node node = RegexParser.parse(regex, options.flags);
             Factorization factorization = Factorization.buildFactorization(node);
-            Objects.requireNonNull(className, "name cannot be null");
             boolean nonAscii = node.nonAscii();
+            boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
+
+            DFA alternateDFA = null;
             if (nonAscii) {
+                alternateDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest)), ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
                 node = node.toUTF16Bytes();
             }
 
-            boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
             NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
             NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
 
@@ -67,7 +69,7 @@ public class DFACompiler {
             }
             checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
 
-            var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options, nonAscii);
+            var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, alternateDFA, factorization, options, nonAscii);
             builder.initMethods();
             ClassCompiler compiler = new ClassCompiler(builder, options.debugOptions.isDebug(), System.out);
             byte[] classBytes = compiler.generateClassAsBytes();

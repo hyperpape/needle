@@ -46,6 +46,12 @@ public class LiteralNode extends Node {
 
     @Override
     public boolean nonAscii() {
+        for (int i = 0; i < this.string.length(); i++) {
+            char c = this.string.charAt(i);
+            if (c > 127) {
+                return true;
+            }
+        }
         return false;
     }
 

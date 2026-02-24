@@ -155,14 +155,16 @@ class NFAToDFACompiler {
     }
 
     protected List<CharRange> findCharRanges(Collection<Integer> nfas) {
-        List<CharRange> ranges = new ArrayList<>();
+        Set<CharRange> ranges = new HashSet<>();
         for (Integer state : nfas) {
             RegexInstr instr = nfa.regexInstrs[state];
             if (instr.opcode == CHAR_RANGE) {
                 ranges.add(CharRange.of(instr.start, instr.end));
             }
         }
-        return ranges;
+        var listRanges =  new ArrayList<>(ranges);
+        Collections.sort(listRanges);
+        return listRanges;
     }
 
     protected StateSet transition(StateSet nfaStates, char c) {

@@ -56,7 +56,7 @@ class SnapshotTests {
     }
 
     @Test
-    void generateExamples() {
+    void generategenerateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
         var compilationOptions = new CompilerOptions(Pattern.DOTALL, CharacterDistribution.DEFAULT, debugOptions);
         for (var pair : EXAMPLES) {
@@ -68,7 +68,6 @@ class SnapshotTests {
      * Temporarily enable this method to recreate snapshots.
      * @throws IOException
      */
-    @Disabled
     @Test
     void recordExamples() throws IOException {
         for (var pair : EXAMPLES) {

@@ -22,18 +22,20 @@ public class FindMethodSpec {
     public static final String FORWARDS = "Forwards";
 
     final DFA dfa;
+    final DFA alternateDFA;
     final String name;
     final boolean forwards;
     final CompilationPolicy compilationPolicy;
     private final CharacterDistribution distribution;
 
-    public FindMethodSpec(DFA dfa, String name, boolean forwards, Factorization factorization, CharacterDistribution distribution) {
+    FindMethodSpec(DFA dfa, DFA alternateDFA, String name, boolean forwards, Factorization factorization, CharacterDistribution distribution) {
         Objects.requireNonNull(dfa, "dfa cannot be null");
         Objects.requireNonNull(name, "name cannot be null)");
         Objects.requireNonNull(factorization, "Factorization cannot be null");
         Objects.requireNonNull(distribution, "CharacterDistribution cannot be null");
 
         this.dfa = dfa;
+        this.alternateDFA = alternateDFA;
         this.name = name;
         this.forwards = forwards;
         this.compilationPolicy = CompilationPolicy.create(factorization);
@@ -79,7 +81,8 @@ public class FindMethodSpec {
     // We check spec.dfa.isAccepting() here, because if we have a dfa that matches at zero, looping here doesn't
     // make sense, and getting the loop correct is annoying
     protected boolean canSeekForPredicate() {
-        return dfa.forwardTransitionIsPredicate(compilationPolicy) && dfa.allForwardTransitionsLeadToSameState() && !dfa.isAccepting();
+        var targetDFA = alternateDFA != null ? alternateDFA  : dfa;
+        return targetDFA.forwardTransitionIsPredicate(compilationPolicy) && targetDFA.allForwardTransitionsLeadToSameState() && !targetDFA.isAccepting();
     }
 
     public String indexMethod() {

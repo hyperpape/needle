@@ -13,7 +13,8 @@ import java.util.stream.Collectors;
  */
 class DFA {
 
-    public static final int MAX_CHAR_FOR_BYTECLASSES = 127;
+    public static final int MAX_CHAR_FOR_UTF_BYTECLASSES = 255;
+    public static final int MAX_CHAR_FOR_ASCII_BYTECLASSES = 127;
     private boolean accepting;
     private int stateNumber;
     private DFA root;
@@ -424,7 +425,14 @@ class DFA {
 
         byte byteClass = 1;
         byte catchAll = ByteClasses.CATCHALL_INVALID;
-        var ranges = new byte[129];
+        int size = RangeGroup.maxChar(rangeGroups);
+        if (size <= DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES) {
+            size = DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES;
+        }
+        else if (size > DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES + 2) {
+            size = DFA.MAX_CHAR_FOR_UTF_BYTECLASSES;
+        }
+        var ranges = new byte[size + 2];
         for (var rangeGroup : rangeGroups) {
             // This only should work because we're only calling this method after checking
             // DFA.maxDistinguishedChar <= 127
@@ -432,7 +440,7 @@ class DFA {
                 catchAll = byteClass;
             }
             for (var range : rangeGroup.ranges) {
-                for (var c = range.getStart(); c <= Math.min(range.getEnd(), MAX_CHAR_FOR_BYTECLASSES); c++) {
+                for (var c = range.getStart(); c <= Math.min(range.getEnd(), size); c++) {
                     ranges[c] = byteClass;
                 }
             }

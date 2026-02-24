@@ -18,6 +18,7 @@ class MatchingVars implements Vars {
     static final String WAS_ACCEPTED = "wasAccepted";
     static final String SUFFIX_INDEX = "suffixIndex";
     static final String MAX_START = "maxStart";
+    static final String HIGH_BYTE = "highByte";
     int lengthVar = -1;
     int stringVar = -1;
     int charVar = -1;
@@ -28,7 +29,7 @@ class MatchingVars implements Vars {
     int byteClassVar = -1;
     int suffixIndexVar = -1;
     int maxStartVar = -1;
-    int maxVar = 0;
+    int highByte = -1;
 
     MatchingVars(int charVar, int counterVar, int stateVar, int lengthVar, int stringVar) {
         this.charVar = charVar;
@@ -65,6 +66,9 @@ class MatchingVars implements Vars {
         if (maxStartVar != -1) {
             variables.add(Pair.of(MAX_START, maxStartVar));
         }
+        if (highByte != -1) {
+            variables.add(Pair.of(HIGH_BYTE, highByte));
+        }
         return variables;
     }
 
@@ -95,6 +99,11 @@ class MatchingVars implements Vars {
 
     public MatchingVars setByteClassVar(int byteClassVar) {
         this.byteClassVar = byteClassVar;
+        return this;
+    }
+
+    public MatchingVars setHighByte(int highByte) {
+        this.highByte = highByte;
         return this;
     }
 
@@ -140,6 +149,8 @@ class MatchingVars implements Vars {
                 return this.suffixIndexVar;
             case MAX_START:
                 return this.maxStartVar;
+            case HIGH_BYTE:
+                return this.highByte;
             default:
                 throw new IllegalArgumentException("Illegal argument for variable lookup: " + name);
         }
