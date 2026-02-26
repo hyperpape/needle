@@ -110,6 +110,7 @@ public class SearchMethodTestUtil {
     public static void match(Pattern method, String s) {
         assertTrue(method.matcher(s).matches(), "Failed match for string=\"" + s + "\"");
         assertTrue(method.matcher(s).matches(), "Failed match for string=\"" + s + "\"");
+        assertTrue(method.matcher(s).containedIn(), "ContainedIn failed for string \"" + s + "\"");
         assertEquals(MatchResult.success(0, s.length()), method.matcher(s).find(), "Failed find for string='" + s + "'");
         find(method, s);
     }
