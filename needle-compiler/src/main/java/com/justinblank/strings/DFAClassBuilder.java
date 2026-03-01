@@ -483,6 +483,9 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Expression generatePredicate(DFA dfa) {
         var forwardTransitions = dfa.getTransitionsLeavingZeroState();
+        if (forwardTransitions.isEmpty() || forwardTransitions.size() > 2) {
+            throw new IllegalStateException("Cannot create predicate for " + forwardTransitions.size() + " ranges");
+        }
         if (forwardTransitions.size() == 1) {
             var range = forwardTransitions.get(0).getLeft();
             if (range.isSingleCharRange()) {
