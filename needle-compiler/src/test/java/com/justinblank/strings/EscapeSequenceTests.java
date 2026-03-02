@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
 import static com.justinblank.strings.RegexParserMalformedRegexTest.expectError;
@@ -259,13 +258,13 @@ class EscapeSequenceTests {
     }
 
     private static void compareParsabilityToJdk(String regex) {
-        RegexSyntaxException parseFailure = null;
+        PatternSyntaxException parseFailure = null;
         Node node = null;
         java.util.regex.Pattern jdkPattern;
         try {
             node = RegexParser.parse(regex);
         }
-        catch (RegexSyntaxException e) {
+        catch (PatternSyntaxException e) {
             parseFailure = e;
         }
         try {
@@ -279,7 +278,7 @@ class EscapeSequenceTests {
             String jdkErrorMessage = "Generated haystack wasn't matched by the JDK, regex=" + regex + ", haystack=" + haystack;
             assertTrue(jdkPattern.matcher(haystack).matches(), jdkErrorMessage);
         }
-        catch (PatternSyntaxException e) {
+        catch (java.util.regex.PatternSyntaxException e) {
             if (parseFailure == null) {
                 Assertions.fail("Parsed an octal escape that the JDK rejected, regex=" + regex);
             }

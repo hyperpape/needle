@@ -14,7 +14,7 @@ public class TestUtil {
             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
             return node;
         }
-        catch (RegexSyntaxException e) {
+        catch (PatternSyntaxException e) {
             try {
                 java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
                 e.printStackTrace();
@@ -33,7 +33,7 @@ public class TestUtil {
             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
             return Optional.of(node);
         }
-        catch (RegexSyntaxException e) {
+        catch (PatternSyntaxException e) {
             try {
                 java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
             }

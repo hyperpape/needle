@@ -88,12 +88,12 @@ class RegexParser {
         try {
             return new RegexParser(regex, flags)._parse();
         }
-        catch (RegexSyntaxException e) {
+        catch (PatternSyntaxException e) {
             throw e;
         }
         catch (Exception e) {
             // Any other exception is a bug, wrap and rethrow
-            throw new RegexSyntaxException("Unknown error while parsing regex '" + regex + "' ", e);
+            throw new PatternSyntaxException("Unknown error while parsing regex '" + regex + "' ", e);
         }
     }
 
@@ -290,8 +290,8 @@ class RegexParser {
         }
     }
 
-    private RegexSyntaxException parseError(String message) {
-        return new RegexSyntaxException(message + ". Regex=" + regex);
+    private PatternSyntaxException parseError(String message) {
+        return new PatternSyntaxException(message + ". Regex=" + regex);
     }
 
     private void collapseLiterals() {

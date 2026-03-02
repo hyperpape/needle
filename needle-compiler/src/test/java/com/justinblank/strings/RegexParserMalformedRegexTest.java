@@ -2,7 +2,6 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.RegexAST.Node;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -13,194 +12,194 @@ public class RegexParserMalformedRegexTest {
 
     @Test
     void leftMismatchedBracket() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("["));
     }
 
     @Test
     void leftMismatchedBracketWithChars() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("[ab"));
     }
 
     @Test
     void leftUnbalancedBrackets() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("[[]"));
     }
 
     @Test
     void doubleBrackets() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             parse("[[]]");
         });
     }
 
     @Test
     void reversedRange() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             parse("[c-a]");
         });
     }
 
     @Test
     void insideOutBrackets() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("]["));
     }
 
     @Test
     void escapeInCharRange() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("[a-\\c]"));
     }
 
     @Test
     void badRepetitionCountRight() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{1,b}"));
     }
 
     @Test
     void badRepetitionLeft() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{b,1}"));
     }
 
     @Test
     void badRepetitionNoCommaOrBracket() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{b"));
     }
 
     @Test
     void badRepetitionNoCommaOrSecondNumber() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{b}"));
     }
 
     @Test
     void badRepetitionOnlyOneNumberThenBadChar() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{1a}"));
     }
 
     @Test
     void badRepetitionNoComma() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{b1}"));
     }
 
     @Test
     void badRepetitionNoBracket() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{b,}"));
     }
 
     @Test
     void badRepetitionBoth() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{b,1}"));
     }
 
     @Test
     void badRepetitionTrailingChar() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{1,2a}"));
     }
 
     @Test
     void badRepetitionTrailingCharNoBrace() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{1,2a"));
     }
 
     @Test
     void emptyBrace() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("{}"));
     }
 
     @Test
     void badRepetitionMissingBrace() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("a{1,2"));
     }
 
     @Test
     void leftUnbalancedParens() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("(((");
         });
     }
 
     @Test
     void rightUnbalancedParens() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse(")))");
         });
     }
 
     @Test
     void mixedUnbalancedParens() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("((())");
         });
     }
 
     @Test
     void sequenceOfBalancedParensWithExtraLeft() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("(()()"));
     }
 
     @Test
     void sequenceOfBalancedParensWithExtraRight() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("()())"));
     }
 
     @Test
     void malformedQuestionMarkEmpty() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("?");
         });
     }
 
     @Test
     void malformedQuestionMarkLeading() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("?a");
         });
     }
 
     @Test
     void plusEmpty() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("+");
         });
     }
 
     @Test
     void charClassWithTrailingDash() {
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
             parse("[-"));
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
                 parse("[a-"));
-        assertThrows(RegexSyntaxException.class, () ->
+        assertThrows(PatternSyntaxException.class, () ->
                 parse("[[a-]"));
     }
 
     @Test
     void starEmpty() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("*");
         });
     }
 
     @Test
     void plusLeading() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             Node node = parse("+a");
         });
     }
@@ -245,13 +244,13 @@ public class RegexParserMalformedRegexTest {
 
     @Test
     void bareReluctantQuantifiers() {
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             parse("??");
         });
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             parse("*?");
         });
-        assertThrows(RegexSyntaxException.class, () -> {
+        assertThrows(PatternSyntaxException.class, () -> {
             parse("+?");
         });
     }
@@ -274,7 +273,7 @@ public class RegexParserMalformedRegexTest {
     private void parseErrorOnJavaAcceptedRegex(String s) {
         try {
             Node node = RegexParser.parse(s);
-        } catch (RegexSyntaxException e) {
+        } catch (PatternSyntaxException e) {
             return;
         }
         fail("Expected an error parsing '" + s + "'");
@@ -284,7 +283,7 @@ public class RegexParserMalformedRegexTest {
         try {
             parse(regexString);
         }
-        catch (RegexSyntaxException e) {
+        catch (PatternSyntaxException e) {
             return;
         }
         fail("Expected RegexSyntaxException from regex: '" + regexString + "'");

@@ -27,9 +27,9 @@ public class DFACompiler {
             System.out.println("Compiling " + className + "(" + regex + ")");
         }
         byte[] classBytes = compileToBytes(regex, className, options);
-        Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
-        Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
         try {
+            Class<?> matcherClass = MyClassLoader.getInstance().loadClass(className, classBytes);
+            Class<? extends Pattern> c = createPatternClass(className, (Class<? extends Matcher>) matcherClass);
             return (Pattern) c.getDeclaredConstructors()[0].newInstance();
         } catch (Throwable t) {
             throw new PatternClassCompilationException("Failed to compile pattern from regex '" + regex + "'", t);
@@ -43,36 +43,41 @@ public class DFACompiler {
     }
 
     public static byte[] compileToBytes(String regex, String className, CompilerOptions options) {
-        Objects.requireNonNull(className, "name cannot be null");
-        Node node = RegexParser.parse(regex, options.flags);
-        Factorization factorization = Factorization.buildFactorization(node);
+        try {
+            Objects.requireNonNull(className, "name cannot be null");
+            Node node = RegexParser.parse(regex, options.flags);
+            Factorization factorization = Factorization.buildFactorization(node);
 
-        boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
-        NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
-        NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
+            boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
+            NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
+            NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
 
-        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
-        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs);
-        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
-        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
+            DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
+            DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs);
+            DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
+            DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
 
-        if (options.debugOptions.printDFAs) {
-            printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
+            if (options.debugOptions.printDFAs) {
+                printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
+            }
+            checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
+
+            var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options);
+            builder.initMethods();
+            ClassCompiler compiler = new ClassCompiler(builder, options.debugOptions.isDebug(), System.out);
+            byte[] classBytes = compiler.generateClassAsBytes();
+            return classBytes;
         }
-        checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
-
-        var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options);
-        builder.initMethods();
-        ClassCompiler compiler = new ClassCompiler(builder, options.debugOptions.isDebug(), System.out);
-        byte[] classBytes = compiler.generateClassAsBytes();
-        return classBytes;
+        catch (Exception e) {
+            throw new PatternClassCompilationException("Failed to create pattern class for regex '" + regex + "'", e);
+        }
     }
 
     private static void checkForOverLongDFAs(List<DFA> dfas) {
         for (var dfa : dfas) {
             // TODO: Why Short.MAX_VALUE / 2--not obvious why this wouldn't work with Short.MAX_VALUE or Short.MAX_VALUE - 1;
             if (dfa.statesCount() > Short.MAX_VALUE / 2) {
-                throw new IllegalArgumentException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
+                throw new IllegalStateException("Can't compile DFAs with more than " + (Short.MAX_VALUE / 2) + " states");
             }
         }
     }
