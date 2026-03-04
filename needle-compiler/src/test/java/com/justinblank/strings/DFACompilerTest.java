@@ -710,53 +710,53 @@ public class DFACompilerTest {
             int flags = generateFlags(spec);
             var pair = Pair.of(spec.pattern, flags);
             var pattern = patterns.computeIfAbsent(pair, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), flags));
-            var result = pattern.matcher(spec.target).find();
-            if (spec.successful) {
-                if (!result.matched) {
-                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
-                }
-                else {
-                    if (result.start != spec.start || result.end != spec.end) {
-                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
-                        nonMatches++;
+            try {
+                var result = pattern.matcher(spec.target).find();
+                if (spec.successful) {
+                    if (!result.matched) {
+                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
                     } else {
-                        correctMatches++;
-                    }
+                        if (result.start != spec.start || result.end != spec.end) {
+                            errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
+                            nonMatches++;
+                        } else {
+                            correctMatches++;
+                        }
 
-                    // Java doesn't support leftmost longest, so don't compare to it
-                    if ((flags & LEFTMOST_LONGEST) != LEFTMOST_LONGEST) {
-                        var javaPattern = java.util.regex.Pattern.compile(spec.pattern, flags &~LEFTMOST_LONGEST);
-                        var javaMatcher = javaPattern.matcher(spec.target);
-                        var javaFound = javaMatcher.find();
-                        if (javaFound) {
-                            var javaStart = javaMatcher.start();
-                            var javaEnd = javaMatcher.end();
-                            if (javaStart != result.start || javaEnd != result.end) {
-                                errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd);
+                        // Java doesn't support leftmost longest, so don't compare to it
+                        if ((flags & LEFTMOST_LONGEST) != LEFTMOST_LONGEST) {
+                            var javaPattern = java.util.regex.Pattern.compile(spec.pattern, flags & ~LEFTMOST_LONGEST);
+                            var javaMatcher = javaPattern.matcher(spec.target);
+                            var javaFound = javaMatcher.find();
+                            if (javaFound) {
+                                var javaStart = javaMatcher.start();
+                                var javaEnd = javaMatcher.end();
+                                if (javaStart != result.start || javaEnd != result.end) {
+                                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd);
+                                }
+                            } else {
+                                errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " matched, while the java regex did not match");
                             }
                         }
-                        else {
-                            errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " matched, while the java regex did not match");
-                        }
+                    }
+                    try {
+                        find(pattern, spec.target);
+                    } catch (Exception e) {
+                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had error in find " + e);
+                    } catch (AssertionError e) {
+                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
+                    }
+                } else {
+                    if (result.matched) {
+                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle='" + spec.target + "' incorrectly matched");
+                    } else {
+                        nonMatches++;
                     }
                 }
-                try {
-                    find(pattern, spec.target);
-                }
-                catch (Exception e) {
-                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had error in find " + e);
-                }
-                catch (AssertionError e) {
-                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
-                }
             }
-            else {
-                if (result.matched) {
-                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle='" + spec.target + "' incorrectly matched");
-                }
-                else {
-                    nonMatches++;
-                }
+            // Throwable to ExceptionInInitializerError
+            catch (Throwable t) {
+                errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " has error in find " + t);
             }
         }
         if (!errors.isEmpty()) {
