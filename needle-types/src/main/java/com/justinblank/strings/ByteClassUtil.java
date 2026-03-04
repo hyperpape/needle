@@ -2,26 +2,37 @@ package com.justinblank.strings;
 
 import java.util.Arrays;
 
+/**
+ * <p>Decodes a serialized representation of a DFA's transitions over the simplified byteclass language into a state
+ * transition array.</p>
+ * <p>Example encoding: 3:8-4;0:1-1;2:3-3;6:2-7;1:4-2;5:7-6;4:6-5;7:5-8</p>
+ * <ul>
+ *     <li>This has three states, separated by semicolon characters, e.g. 3:8-4,0:1-1 represents the transitions out of state 3.</li>
+ *     <li>Within a state, we have comma delineated mapping from a byteclass to the following state. e.g. 8-4 says that when we see byteclass 8, we go to   </li>
+ * </ul>
+ */
 public class ByteClassUtil {
 
     /**
-     * We encode a byteclass transitions with [byteclass]-[targetState], e.g. 2-3.
+     * We encode a byteclass transitions with [byteclass]-[targetState], e.g. 2-3 means on byteClass 2, move to state 3.
      */
     public static char STATE_TRANSITION_DELINEATOR = '-';
 
     /**
-     * Delineator that separates two byte class transitions for the same state. e.g. 2-3,4-5
+     * Delineator that separates two byte class transitions for the same state. e.g. 2-3,4-5 has transitions on byteclass 2 and 4.
      */
     public static char BYTE_CLASS_DELINEATOR = ',';
 
 
     /**
      * Delineator between a state and its transitions, [stateNumber]:[byteClass]-[targetState],[byteClass]-[targetState]...
-     * e.g. 2:1-2,2-3
+     * e.g. 4:1-2,2-3 represents the transitions taken from state 4 on the byteclasses 1 and 2.
      */
     public static char STATE_TO_TRANSITIONS_DELINEATOR = ':';
 
-    // TODO: wait, what do we use this for? 
+    /**
+     * Delineator between two states in the string.
+     */
     public static char STATE_DELINEATOR = ';';
 
     public static final java.util.regex.Pattern COMMA_REGEX = java.util.regex.Pattern.compile(String.valueOf(BYTE_CLASS_DELINEATOR));
@@ -62,13 +73,11 @@ public class ByteClassUtil {
                         }
                         int offset = state * length + byteClass;
                         stateTransitionArray[offset] = (byte) targetState;
-                    }
-                    catch (NumberFormatException e) {
+                    } catch (NumberFormatException e) {
                         throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
                     }
                 }
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + stateString);
             }
         }
@@ -100,13 +109,11 @@ public class ByteClassUtil {
                         }
                         int offset = state * length + byteClass;
                         stateTransitionArray[offset] = (short) targetState;
-                    }
-                    catch (NumberFormatException e) {
+                    } catch (NumberFormatException e) {
                         throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
                     }
                 }
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + stateString);
             }
         }
@@ -139,8 +146,7 @@ public class ByteClassUtil {
                     throw new IllegalStateException("Tried to store a state that's too large to fit in a byte. State=" + state);
                 }
                 byteClasses[byteClass] = (byte) state;
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Malformed string, could not parse integer. Component was: " + component);
             }
         }
