@@ -317,7 +317,11 @@ class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_STATIC | ACC_PRIVATE | ACC_FINAL, spec.statesConstant(), descriptor, null, null));
         var staticBlock = addStaticBlock();
 
-        staticBlock.push(spec.statesCount() * getEffectiveByteClassCount(stateTransitions.byteClasses.byteClassCount))
+        int stateTransitionArraySize = spec.statesCount() * getEffectiveByteClassCount(stateTransitions.byteClasses.byteClassCount);
+        if (stateTransitionArraySize <= 0) {
+            throw new PatternClassCompilationException("State transition array size must be positive");
+        }
+        staticBlock.push(stateTransitionArraySize)
                 // TODO: bit of a hack--should have a proper way of generating T_SHORT/T_BYTE
                 .newArray(getStateArrayType(spec).equals("S") ? T_SHORT : T_BYTE)
                 .putStatic(spec.statesConstant(), true, descriptor);
