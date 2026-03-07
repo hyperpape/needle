@@ -25,4 +25,11 @@ class RangeGroup implements Comparable<RangeGroup> {
         }
         return 0;
     }
+
+    @Override
+    public String toString() {
+        return "RangeGroup{" +
+                "ranges=" + ranges +
+                '}';
+    }
 }

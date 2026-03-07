@@ -437,7 +437,8 @@ class DFA {
         if (catchAll == ByteClasses.CATCHALL_INVALID) {
             catchAll = 0;
         }
-        return new ByteClasses(ranges, catchAll, byteClass);
+        // When we have > 127 byteclasses, the values roll over to negative, this converts them back to the proper int
+        return new ByteClasses(ranges, catchAll, (int) (byteClass & 0xFF));
     }
 
     List<RangeGroup> generateRangeGroups() {
