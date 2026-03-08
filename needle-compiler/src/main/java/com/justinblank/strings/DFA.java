@@ -54,16 +54,27 @@ class DFA {
         }
     }
 
+    // TODO: This method really should be reworked--sorting on every insert is a huge waste, even if it's small relative to the cost of creating a Java class.
     protected void addTransition(CharRange charRange, DFA dfa) {
         assert !charRange.isEmpty() : "cannot add an epsilon transition to a DFA";
-        for (var existingTransition : transitions) {
+        boolean added = false;
+        for (int i = 0; i < transitions.size(); i++) {
+            Pair<CharRange, DFA> existingTransition = transitions.get(i);
             if (existingTransition.getLeft().equals(charRange)) {
                 return;
+            } else if (existingTransition.getLeft().getEnd() + 1 == charRange.getStart()) {
+                if (existingTransition.getRight().equals(dfa)) {
+                    transitions.set(i, Pair.of(CharRange.of(existingTransition.getLeft().getStart(), charRange.getEnd()), dfa));
+                    added = true;
+                    break;
+                }
             }
         }
-        transitions.add(Pair.of(charRange, dfa));
-        // we trust that our character ranges don't overlap
-        transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
+        if (!added) {
+            transitions.add(Pair.of(charRange, dfa));
+            // we trust that our character ranges don't overlap
+            transitions.sort(Comparator.comparingInt(p -> p.getLeft().getStart()));
+        }
     }
 
     protected List<Pair<CharRange, DFA>> getTransitions() {
@@ -216,20 +227,17 @@ class DFA {
 
             if (next.isAccepting()) {
                 break;
-            }
-            else if (next.transitions.size() == 1) {
-                 var newNext = next.transitions.get(0).getRight();
-                 if (chain.contains(newNext)) {
-                     break;
-                 }
-                 else {
-                     if (next != this) {
-                         chain.add(newNext);
-                     }
-                     next = newNext;
-                 }
-            }
-            else {
+            } else if (next.transitions.size() == 1) {
+                var newNext = next.transitions.get(0).getRight();
+                if (chain.contains(newNext)) {
+                    break;
+                } else {
+                    if (next != this) {
+                        chain.add(newNext);
+                    }
+                    next = newNext;
+                }
+            } else {
                 Set<DFA> followers = new HashSet<>();
                 for (var transition : transitions) {
                     followers.add(transition.getRight());
@@ -265,13 +273,13 @@ class DFA {
 
     /**
      * Determine if we'll want to calculate offsets for a dfa state
-     *
+     * <p>
      * This code is very preliminary--need to find a better way to represent the entire issue of considering offsets.
-     *
+     * <p>
      * Normally, in a dfa like "abcd", we want to calculate offsets for the root state, but not the state after "a", as
      * it's "covered" by the previous offset (there is no point in checking multiple offsets that "look ahead at the
      * same place").
-     *
+     * <p>
      * However, in a dfa like "the [Cc]rown" the initial state has an offset of 9 characters, pointing to the 'n'.
      * In spite of that, we want to calculate an offset after the ' ' character, as we'll consume the initial prefix
      * "the ", then consider looking ahead 5 characters for the 'n' character.
@@ -381,12 +389,13 @@ class DFA {
 
     /**
      * Return the largest character that the DFA treats uniquely.
-     *
+     * <p>
      * Treating a character uniquely means that when we have a regex like "a." the regex can match characters larger
      * than "a", but it doesn't need byteclasses that distinguish those characters from each other.
-     *
+     * <p>
      * Recognizing that we can handle all characters larger than a certain size with the same byteclass should allow us
-     * to use byteclasses on some regexes that couldn't previously use them. 
+     * to use byteclasses on some regexes that couldn't previously use them.
+     *
      * @return
      */
     char maxDistinguishedChar() {
@@ -411,8 +420,9 @@ class DFA {
     /**
      * Calculate a byte[129] of byteClasses that are sufficient to distinguish characters in all transitions of this
      * DFA. Assumes that this DFA consists only of ascii characters.
-     *
+     * <p>
      * 0 is used to represent that the byte is not in any byteClass.
+     *
      * @return byteClasses
      */
     ByteClasses byteClasses() {
@@ -482,6 +492,7 @@ class DFA {
      * Create a minimal covering of all character ranges included in DFA with the property that if any two ranges in
      * the DFA disagree on some character, then the covering places those two characters in separate ranges.
      * E.g. [a-z][b-c][g-h] will produce five ranges: [a][b-c][d-f][g-h][i-z]
+     *
      * @return a list of non-overlapping character ranges that cover every character the DFA recognizes
      */
     List<CharRange> getDistinctCharRanges(List<CharRange> allTransitions) {
@@ -496,8 +507,7 @@ class DFA {
                 derivedRanges.add(CharRange.of(nextStart, nextEnd));
                 if (nextEnd == Character.MAX_VALUE) {
                     return derivedRanges;
-                }
-                else {
+                } else {
                     nextStart = (char) (nextEnd + 1);
                 }
             }
@@ -517,8 +527,7 @@ class DFA {
             }
             if (nextStart >= rightRange.getStart()) {
                 nextEnd = (char) Math.min(nextEnd, rightRange.getEnd());
-            }
-            else {
+            } else {
                 nextEnd = (char) (rightRange.getStart() - 1);
             }
         }
@@ -531,8 +540,7 @@ class DFA {
             var otherRange = allTransitions.get(i);
             if (startRange.overlaps(otherRange)) {
                 end = (char) Math.min(end, otherRange.getEnd());
-            }
-            else {
+            } else {
                 return end;
             }
         }
@@ -557,8 +565,7 @@ class DFA {
             var secondRange = allTransitions.get(j);
             if (secondRange.getStart() > end) {
                 break;
-            }
-            else if (secondRange.getStart() == start) {
+            } else if (secondRange.getStart() == start) {
                 end = (char) Math.min(end, secondRange.getEnd());
             }
         }
@@ -695,12 +702,10 @@ class DFA {
                 for (int i = range.getStart(); i <= range.getEnd(); i++) {
                     initialBytes[i] = true;
                 }
-            }
-            else {
+            } else {
                 if ((int) range.getStart() == 128 && range.getEnd() == '\uFFFF') {
                     initialBytes[128] = true;
-                }
-                else {
+                } else {
                     return Optional.empty();
                 }
             }
