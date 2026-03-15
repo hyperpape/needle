@@ -1032,8 +1032,8 @@ class DFAClassBuilder extends ClassBuilder {
         // TODO: sometimes emitting crap invocations of wasAccepted that can be statically known to be false
         // see regex ad*g
         Loop innerLoop = loop(and(
-                lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)),
-                        neq(-1, read(MatchingVars.STATE))),
+                        inBounds(),
+                        isLiveState()),
                         List.of(
                                 cond(DFAMethodComponents.wasAccepted(spec))
                                         .withBody(returnValue(true)),
