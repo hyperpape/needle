@@ -536,9 +536,9 @@ class DFAClassBuilder extends ClassBuilder {
         // We're overriding the meaning of the length variable, here it refers to the starting point of the backwards
         // match
         var vars = new MatchingVars(5, 1, 3, 2, 4);
-        vars.setWasAcceptedVar(5);
-        vars.setLastMatchVar(6);
-        vars.setByteClassVar(7);
+        var varIndex = 6;
+        vars.setLastMatchVar(varIndex++);
+        vars.setByteClassVar(varIndex++);
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
         String wasAcceptedMethod = spec.wasAcceptedName();
