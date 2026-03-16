@@ -74,6 +74,16 @@ public class Union extends Node {
         return new Union(left, right, withPriority);
     }
 
+    @Override
+    public boolean nonAscii() {
+        return left.nonAscii() || right.nonAscii();
+    }
+
+    @Override
+    public Node toUTF16Bytes() {
+        return of(left.toUTF16Bytes(), right.toUTF16Bytes(), false);
+    }
+
     public static Node ofChars(String s) {
         if (s.isEmpty()) {
             throw new IllegalArgumentException("Cannot create a union of zero characters");

@@ -44,6 +44,30 @@ public class LiteralNode extends Node {
         return new LiteralNode(StringUtils.reverse(this.string.toString()));
     }
 
+    @Override
+    public boolean nonAscii() {
+        return false;
+    }
+
+    @Override
+    public Node toUTF16Bytes() {
+        Node result = null;
+        for (int i = 0; i < this.string.length(); i++) {
+            var c = this.string.charAt(i);
+            var low = c & 0x00FF;
+            var high = (c & 0xFF00) >> 8;
+
+            var next = Concatenation.concatenate(fromChar((char) high), fromChar((char) (low)));
+            if (result == null) {
+                result = next;
+            }
+            else {
+                result = Concatenation.concatenate(result, next);
+            }
+        };
+        return result;
+    }
+
     public String getLiteral() {
         return string.toString();
     }

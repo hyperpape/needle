@@ -42,4 +42,14 @@ public class CountedRepetition extends Node {
     public Node reversed() {
         return new CountedRepetition(node.reversed(), min, max);
     }
+
+    @Override
+    public boolean nonAscii() {
+        return node.nonAscii();
+    }
+
+    @Override
+    public Node toUTF16Bytes() {
+        return new CountedRepetition(node.toUTF16Bytes(), min, max);
+    }
 }

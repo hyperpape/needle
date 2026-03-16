@@ -4,6 +4,9 @@ import com.justinblank.strings.Factorization;
 
 import java.util.Optional;
 
+/**
+ * That this class exists and is a Node is a hack, but I've not thought of a nicer way to handle it.
+ */
 public class LParenNode extends Node {
 
     private static final LParenNode NODE = new LParenNode();
@@ -36,6 +39,16 @@ public class LParenNode extends Node {
 
     @Override
     public Node reversed() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean nonAscii() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Node toUTF16Bytes() {
         throw new UnsupportedOperationException();
     }
 }

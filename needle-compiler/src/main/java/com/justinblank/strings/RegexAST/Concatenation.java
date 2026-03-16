@@ -60,5 +60,15 @@ public class Concatenation extends Node {
         return new Concatenation(tail.reversed(), head.reversed());
     }
 
+    @Override
+    public boolean nonAscii() {
+        return head.nonAscii() || tail.nonAscii();
+    }
+
+    @Override
+    public Node toUTF16Bytes() {
+        return concatenate(head.toUTF16Bytes(), tail.toUTF16Bytes());
+    }
+
 
 }

@@ -16,10 +16,7 @@ public abstract class Node {
 
     public boolean isFixedLength() {
         var maxLength = maxLength();
-        if (maxLength.isPresent()) {
-            return maxLength.get().equals(minLength());
-        }
-        return false;
+        return maxLength.map(integer -> integer.equals(minLength())).orElse(false);
     }
 
     protected abstract int height();
@@ -27,5 +24,9 @@ public abstract class Node {
     public abstract Factorization bestFactors();
 
     public abstract Node reversed();
+
+    public abstract boolean nonAscii();
+
+    public abstract Node toUTF16Bytes();
 }
 

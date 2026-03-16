@@ -36,4 +36,14 @@ public class Repetition extends Node {
     public Node reversed() {
         return new Repetition(node.reversed());
     }
+
+    @Override
+    public boolean nonAscii() {
+        return node.nonAscii();
+    }
+
+    @Override
+    public Node toUTF16Bytes() {
+        return new Repetition(node.toUTF16Bytes());
+    }
 }
