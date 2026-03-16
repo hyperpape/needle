@@ -47,6 +47,10 @@ public class DFACompiler {
             Objects.requireNonNull(className, "name cannot be null");
             Node node = RegexParser.parse(regex, options.flags);
             Factorization factorization = Factorization.buildFactorization(node);
+            Objects.requireNonNull(className, "name cannot be null");
+            if (node.nonAscii()) {
+                node = node.toUTF16Bytes();
+            }
 
             boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
             NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
