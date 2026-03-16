@@ -26,7 +26,6 @@ class DFAClassBuilderTest {
         var builder = new DFAClassBuilder("testContainedIn", dfa,
                 dfa, dfa, dfa, dfa, factorization, CompilerOptions.defaultOptions(), false);
         builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, dfa, "", true, factorization, CharacterDistribution.DEFAULT)));
-        builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);
         byte[] classBytes = compiler.generateClassAsBytes();
@@ -85,15 +84,6 @@ class DFAClassBuilderTest {
     @Test
     void rangeWithOffset() {
         testCompilable("[X-k]{3,6}}");
-    }
-
-    @Test
-    void stateMethodIsCompilable() throws Exception {
-        var dfa = DFA.createDFA("a");
-        var builder = new DFAClassBuilder("testStateMethod",
-                dfa, dfa, dfa, dfa, dfa, Factorization.fromChar('a'), CompilerOptions.defaultOptions(), false);
-        builder.addStateMethods();
-        Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }
 
     @Test

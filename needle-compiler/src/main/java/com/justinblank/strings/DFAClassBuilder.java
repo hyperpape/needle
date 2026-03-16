@@ -99,7 +99,6 @@ class DFAClassBuilder extends ClassBuilder {
 
     void initMethods() {
         addStateTransitionStrings();
-        addStateMethods();
         if (shouldInitByteClasses()) {
             addByteClasses();
             if (shouldPopulateByteClassArrays()) {
@@ -837,25 +836,6 @@ class DFAClassBuilder extends ClassBuilder {
         }
     }
 
-    // TODO: validate if we can remove this after fixing Unicode limitations
-    void addStateMethods() {
-        if (!allSpecs().stream().allMatch(spec -> spec.compilationPolicy.useByteClassesForAllStates)) {
-            for (var spec : allSpecs()) {
-                for (DFA dfaState : spec.dfa.allStates()) {
-                    // TODO: decide if this is necessary? 
-                    // addStateMethod(dfaState, spec);
-                }
-
-                var statesCount = spec.statesCount();
-                if (statesCount > CompilationPolicy.LARGE_STATE_COUNT) {
-                    for (var i = 0; i < statesCount; i += CompilationPolicy.LARGE_STATE_COUNT) {
-                        addStateGroupMethod(spec, i, Math.min(i + CompilationPolicy.LARGE_STATE_COUNT, statesCount));
-                    }
-                }
-            }
-        }
-    }
-
     private void addStateTransitionStrings() {
         for (var spec : allSpecs()) {
             for (var dfaState : spec.dfa.allStates()) {
@@ -902,57 +882,6 @@ class DFAClassBuilder extends ClassBuilder {
 
     boolean usesOffsetCalculation(int stateNumber) {
         return forwardOffsets.containsKey(stateNumber) && isUsefulOffset(forwardOffsets.get(stateNumber));
-    }
-
-    private void addStateMethod(DFA dfaState, FindMethodSpec spec) {
-        String name = stateMethodName(spec, dfaState.getStateNumber());
-        List<String> arguments = Arrays.asList("C");
-        Vars vars = new GenericVars("c", "byteClass", "stateTransitions", "state");
-        var method = mkMethod(name, arguments, "I", vars, ACC_PRIVATE);
-
-        if (compilerOptions.debugOptions.trackStates) {
-            method.callStatic(CompilerUtil.internalName(DFADebugUtils.class), "debugState", Void.VOID,
-                    literal(dfaState.getStateNumber()), read("c"));
-        }
-        if (stateTransitions.willUseByteClasses()) {
-            Type stateTransitionsType = useShorts(spec) ? ArrayType.of(ArrayType.of(Builtin.S)) : ArrayType.of(ArrayType.of(Builtin.OCTET));
-            Type byteClassesType = ArrayType.of(Builtin.OCTET);
-            method.cond(gt(read("c"), 127)).withBody(set("byteClass", catchAllByteClass)).orElse(
-                set("byteClass", arrayRead(getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), byteClassesType), read("c")))
-            );
-            method.set("stateTransitions", arrayRead(
-                    getStatic(spec.statesConstant(), ReferenceType.of(getClassName()), stateTransitionsType),
-                    dfaState.getStateNumber()));
-            method.returnValue(arrayRead(read("stateTransitions"), read("byteClass")));
-        }
-        else {
-
-            List<Pair<CharRange, Integer>> transitions = dfaState.getTransitions().
-                    stream().
-                    map(t -> Pair.of(t.getLeft(), t.getRight().getStateNumber())).
-                    collect(Collectors.toList());
-            if (transitions.size() == 1 && transitions.get(0).getLeft().isSingleCharRange()) {
-                var transition = transitions.get(0);
-                var charToRecognize = transition.getLeft().getStart();
-                method.cond(eq(read("c"), (int) charToRecognize)).withBody(returnValue(transition.getRight()))
-                        .orElse(returnValue(-1));
-            }
-            else {
-                for (var transition : transitions) {
-                    var charRange = transition.getLeft();
-                    var charToRecognize = transition.getLeft().getStart();
-                    if (charRange.isSingleCharRange()) {
-                        method.cond(eq(read("c"), (int) charToRecognize)).withBody(returnValue(transition.getRight()));
-                    }
-                    else {
-                        method.cond(and(
-                                gte(read("c"), (int) charRange.getStart()),
-                                lte(read("c"), (int) charRange.getEnd()))).withBody(returnValue(transition.getRight()));
-                    }
-                }
-                method.returnValue(-1);
-            }
-        }
     }
 
     private boolean shouldSeekBackwards(FindMethodSpec spec) {
