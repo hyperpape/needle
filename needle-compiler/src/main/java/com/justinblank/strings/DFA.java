@@ -6,6 +6,11 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * A representation of a DFA. While this class supports matches and search methods which are helpful for testing, the
+ * actual implementation of matching is not efficient, and generally exhibits poor performance. In practice, this class
+ * is used just for constructing the class files that implement each DFA.
+ */
 class DFA {
 
     public static final int MAX_CHAR_FOR_BYTECLASSES = 127;
@@ -355,17 +360,6 @@ class DFA {
         for (var i = 0; i < forwardTransitions.size() - 1; i++) {
             if (forwardTransitions.get(i).getRight() != forwardTransitions.get(i + 1).getRight()) {
                 return false;
-            }
-        }
-        return true;
-    }
-
-    protected boolean isAllAscii() {
-        for (var dfa : states) {
-            for (var transition : dfa.transitions) {
-                if ((int) transition.getLeft().getEnd() > 127) {
-                    return false;
-                }
             }
         }
         return true;
