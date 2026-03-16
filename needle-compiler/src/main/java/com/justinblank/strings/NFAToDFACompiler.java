@@ -18,10 +18,10 @@ class NFAToDFACompiler {
     }
 
     public static DFA compile(NFA nfa, ConversionMode mode) {
-        return compile(nfa, mode, false);
+        return compile(nfa, mode, false, false);
     }
 
-    protected static DFA compile(NFA nfa, ConversionMode mode, boolean debug) {
+    protected static DFA compile(NFA nfa, ConversionMode mode, boolean debug, boolean unicode) {
         DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa, mode);
         dfa.pruneDeadStates();
         if (debug) {

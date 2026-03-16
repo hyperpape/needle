@@ -52,17 +52,17 @@ public class DFACompiler {
 
             DFA alternateDFA = null;
             if (nonAscii) {
-                alternateDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest)), ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
+                alternateDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest)), ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs, false);
                 node = node.toUTF16Bytes();
             }
 
             NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
             NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
 
-            DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
-            DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs);
-            DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
-            DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
+            DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs, nonAscii);
+            DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs, nonAscii);
+            DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs, nonAscii);
+            DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs, nonAscii);
 
             if (options.debugOptions.printDFAs) {
                 printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);

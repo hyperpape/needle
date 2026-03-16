@@ -622,8 +622,8 @@ public class DFACompilerTest {
 
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node));
 
-        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, false);
-        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, false);
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, false, false);
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, false, false);
         assertTrue(dfa.statesCount() <= Byte.MAX_VALUE);
         assertTrue(dfaSearch.statesCount() > Byte.MAX_VALUE);
 
