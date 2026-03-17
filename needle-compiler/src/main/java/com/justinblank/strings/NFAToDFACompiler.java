@@ -12,9 +12,11 @@ class NFAToDFACompiler {
     private int nextState = 1; // root will always be zero
     private DFA root;
     private final NFA nfa;
+    private final boolean unicode;
 
-    NFAToDFACompiler(NFA nfa) {
+    NFAToDFACompiler(NFA nfa, boolean unicode) {
         this.nfa = nfa;
+        this.unicode = unicode;
     }
 
     public static DFA compile(NFA nfa, ConversionMode mode) {
@@ -22,7 +24,7 @@ class NFAToDFACompiler {
     }
 
     protected static DFA compile(NFA nfa, ConversionMode mode, boolean debug, boolean unicode) {
-        DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa, mode);
+        DFA dfa = new NFAToDFACompiler(nfa, unicode)._compile(nfa, mode);
         dfa.pruneDeadStates();
         if (debug) {
             System.out.println("Pre-minimization dfa");
