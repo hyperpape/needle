@@ -30,7 +30,12 @@ class NFAToDFACompiler {
             System.out.println("Pre-minimization dfa");
             System.out.println(GraphViz.toGraphviz(dfa));
         }
-        return MinimizeDFA.minimizeDFA(dfa, debug);
+        dfa = MinimizeDFA.minimizeDFA(dfa, debug);
+        if (unicode) {
+            dfa = new DFAToByteDFATransformer().toByteDFA(dfa);
+            dfa = MinimizeDFA.minimizeDFA(dfa, debug);
+        }
+        return dfa;
     }
 
     DFA _compile(NFA nfa, ConversionMode mode) {

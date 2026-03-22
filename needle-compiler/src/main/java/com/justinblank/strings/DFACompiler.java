@@ -53,7 +53,6 @@ public class DFACompiler {
             DFA alternateDFA = null;
             if (nonAscii) {
                 alternateDFA = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest)), ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs, false);
-                node = node.toUTF16Bytes();
             }
 
             NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));

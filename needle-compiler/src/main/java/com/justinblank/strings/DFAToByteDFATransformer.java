@@ -29,11 +29,10 @@ public class DFAToByteDFATransformer {
                 char end = transition.getLeft().getEnd();
 
                 char firstHighChar = (char) (start >> 8);
-                char finalHighChar = (char) (start >> 8);
+                char finalHighChar = (char) (end >> 8);
                 // Only problem is we have no transitions from odds to dead state
                 if (firstHighChar == finalHighChar) {
-                    DFA afterFirstByte = new DFA(transformed, false, stateCount.incrementAndGet());
-                    nextState.addTransition(new CharRange(firstHighChar, finalHighChar), afterFirstByte);
+                    DFA afterFirstByte = determineFirstByteTransition(nextState, firstHighChar, transformed, stateCount, finalHighChar);
                     afterFirstByte.addTransition(new CharRange((char) (start & 0xFF), (char) (end & 0xFF)), transitionTarget);
                 }
                 else {
@@ -57,5 +56,14 @@ public class DFAToByteDFATransformer {
             seen.add(next);
         }
         return transformed;
+    }
+
+    private static DFA determineFirstByteTransition(DFA nextState, char firstHighChar, DFA transformed, AtomicInteger stateCount, char finalHighChar) {
+        DFA afterFirstByte = nextState.transition(firstHighChar);
+        if (afterFirstByte == null) {
+            afterFirstByte = new DFA(transformed, false, stateCount.incrementAndGet());
+            nextState.addTransition(new CharRange(firstHighChar, finalHighChar), afterFirstByte);
+        }
+        return afterFirstByte;
     }
 }
