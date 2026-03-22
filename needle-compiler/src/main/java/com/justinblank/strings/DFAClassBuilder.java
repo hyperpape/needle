@@ -115,7 +115,9 @@ class DFAClassBuilder extends ClassBuilder {
         findMethods.add(createFindMethod());
         findMethods.add(createFindMethodInternal());
         findMethods.add(createIndexMethod(dfaSearchFindMethodSpec));
-        findMethods.add(createIndexMethodReversed(reversedFindMethodSpec));
+        if (!factorization.canOnlyHaveOneLength()) {
+            findMethods.add(createIndexMethodReversed(reversedFindMethodSpec));
+        }
         for (var spec : allSpecs()) {
             addWasAcceptedMethod(spec);
         }
