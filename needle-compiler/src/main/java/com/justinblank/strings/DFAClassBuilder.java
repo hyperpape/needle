@@ -469,7 +469,7 @@ class DFAClassBuilder extends ClassBuilder {
                             // TODO: consider an entirely separate version if we're using byteclasses
                             // current implementation seems overcomplicated
 
-                            spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                            needToCheckMaxCharacter(spec) ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                     set(MatchingVars.STATE, -1),
                                     cond(DFAMethodComponents.hasLastMatch()).withBody(
                                             returnValue(read(MatchingVars.LAST_MATCH))
@@ -505,7 +505,7 @@ class DFAClassBuilder extends ClassBuilder {
                             // TODO: consider an entirely separate version if we're using byteclasses
                             // current implementation seems overcomplicated
 
-                            spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                            needToCheckMaxCharacter(spec) ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                     set(MatchingVars.STATE, -1),
                                     cond(DFAMethodComponents.hasLastMatch()).withBody(
                                             returnValue(read(MatchingVars.LAST_MATCH))
@@ -526,6 +526,10 @@ class DFAClassBuilder extends ClassBuilder {
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
+    }
+
+    private boolean needToCheckMaxCharacter(FindMethodSpec spec) {
+        return !nonAscii && spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates;
     }
 
     private boolean isInnerLoopMustCallWasAccepted(FindMethodSpec spec) {
@@ -667,7 +671,7 @@ class DFAClassBuilder extends ClassBuilder {
                             // TODO: this should be ok regardless of whether we're using byteclasses?
                             // TODO: consider an entirely separate version if we're using byteclasses
                             // current implementation seems overcomplicated
-                            spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                            needToCheckMaxCharacter(spec) ? cond(gt(read(CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                     returnValue(read(MatchingVars.LAST_MATCH))
                             )) : new NoOpStatement(),
                             spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
