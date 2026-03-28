@@ -630,7 +630,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         if (shouldSeekBackwards(spec)) {
             var suffix = spec.compilationPolicy.getSuffix().get();
-            var postSuffixState = spec.dfa.after(StringUtils.reverse(transformAffix(suffix))).orElseThrow(()
+            var postSuffixState = spec.dfa.after(transformAffix(StringUtils.reverse(suffix))).orElseThrow(()
                     -> new IllegalStateException("No DFA state available after consuming suffix. This should be impossible"));
             int state = postSuffixState.getStateNumber();
             method.set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), suffix.length()));
@@ -650,11 +650,11 @@ class DFAClassBuilder extends ClassBuilder {
                             set(CHAR, DFAMethodComponents.readChar()),
                             set(HIGH_BYTE, shiftR(read(CHAR), literal(8))),
                             set(CHAR, bitAnd(literal(0xFF), read(CHAR))),
-                            setByteClass(CHAR),
+                            setByteClass(HIGH_BYTE),
                             buildStateLookupFromByteClass(spec),
                             // TODO: we probably want to update how we generate states, to remove this conditional
                             cond(eq(-1, read(MatchingVars.STATE))).withBody(escape()),
-                            setByteClass(HIGH_BYTE),
+                            setByteClass(CHAR),
                             buildStateLookupFromByteClass(spec),
 
                             DFAMethodComponents.returnLastMatchIfDeadState(),
