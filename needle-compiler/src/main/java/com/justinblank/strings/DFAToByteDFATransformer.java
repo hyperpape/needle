@@ -5,17 +5,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DFAToByteDFATransformer {
 
-    DFA toByteDFA(DFA root) {
-        DFA transformed = DFA.root(root.isAccepting());
-        DFA allDead = new DFA(transformed, false, 1);
+    private final DFA root;
+    private final AtomicInteger stateCount = new AtomicInteger(1);
+    private final Map<Integer, DFA> transformationMap = new HashMap<>();
+    private final DFA transformed;
 
-        Map<Integer, DFA> transformationMap = new HashMap<>();
+    DFAToByteDFATransformer(DFA root) {
+        this.root = root;
+        transformed = DFA.root(root.isAccepting());
+    }
+
+
+    static DFA toByteDFA(DFA root) {
+        return new DFAToByteDFATransformer(root).convert();
+    }
+
+    DFA convert() {
+        DFA allDead = new DFA(transformed, false, 1);
 
         Queue<DFA> pending = new ArrayDeque<>();
         Set<DFA> seen = new HashSet<>();
         pending.add(root);
         transformationMap.put(0, transformed);
-        AtomicInteger stateCount = new AtomicInteger(1);
         while (!pending.isEmpty()) {
             DFA next = pending.poll();
             if (seen.contains(next)) {
@@ -32,7 +43,7 @@ public class DFAToByteDFATransformer {
                 char finalHighChar = (char) (end >> 8);
                 // Only problem is we have no transitions from odds to dead state
                 if (firstHighChar == finalHighChar) {
-                    DFA afterFirstByte = determineFirstByteTransition(nextState, firstHighChar, transformed, stateCount, finalHighChar);
+                    DFA afterFirstByte = determineFirstByteTransition(nextState, firstHighChar, finalHighChar);
                     afterFirstByte.addTransition(new CharRange((char) (start & 0xFF), (char) (end & 0xFF)), transitionTarget);
                 }
                 else {
@@ -58,7 +69,7 @@ public class DFAToByteDFATransformer {
         return transformed;
     }
 
-    private static DFA determineFirstByteTransition(DFA nextState, char firstHighChar, DFA transformed, AtomicInteger stateCount, char finalHighChar) {
+    private DFA determineFirstByteTransition(DFA nextState, char firstHighChar, char finalHighChar) {
         DFA afterFirstByte = nextState.transition(firstHighChar);
         if (afterFirstByte == null) {
             afterFirstByte = new DFA(transformed, false, stateCount.incrementAndGet());

@@ -19,7 +19,7 @@ class NFAToDFACompiler {
         this.unicode = unicode;
     }
 
-    public static DFA compile(NFA nfa, ConversionMode mode) {
+    static DFA compile(NFA nfa, ConversionMode mode) {
         return compile(nfa, mode, false, false);
     }
 
@@ -32,7 +32,8 @@ class NFAToDFACompiler {
         }
         dfa = MinimizeDFA.minimizeDFA(dfa, debug);
         if (unicode) {
-            dfa = new DFAToByteDFATransformer().toByteDFA(dfa);
+            dfa = DFAToByteDFATransformer.toByteDFA(dfa);
+            // TODO: decide if we need to prune dead states
             dfa = MinimizeDFA.minimizeDFA(dfa, debug);
         }
         return dfa;
