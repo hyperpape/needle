@@ -48,18 +48,15 @@ public class DFAToByteDFATransformer {
                 }
                 else {
                     {
-                        DFA afterFirstByte = new DFA(transformed, false, stateCount.incrementAndGet());
-                        nextState.addTransition(new CharRange(firstHighChar, firstHighChar), afterFirstByte);
+                        DFA afterFirstByte = determineFirstByteTransition(nextState, firstHighChar, firstHighChar);
                         afterFirstByte.addTransition(new CharRange((char) (start & 0xFF), (char) 255), transitionTarget);
                     }
                     if (firstHighChar + 1 < finalHighChar) {
-                        DFA afterFirstByte = new DFA(transformed, false, stateCount.incrementAndGet());
-                        nextState.addTransition(new CharRange((char) (firstHighChar + 1), (char) (finalHighChar - 1)), afterFirstByte);
+                        DFA afterFirstByte = determineFirstByteTransition(nextState, (char) (firstHighChar + 1), (char) (finalHighChar - 1));
                         afterFirstByte.addTransition(new CharRange((char) 0, (char) 255), transitionTarget);
                     }
                     {
-                        DFA afterFirstByte = new DFA(transformed, false, stateCount.incrementAndGet());
-                        nextState.addTransition(new CharRange(finalHighChar, finalHighChar), afterFirstByte);
+                        DFA afterFirstByte = determineFirstByteTransition(nextState, finalHighChar, finalHighChar);
                         afterFirstByte.addTransition(new CharRange((char) 0, (char) (end & 0xFF)), transitionTarget);
                     }
                 }

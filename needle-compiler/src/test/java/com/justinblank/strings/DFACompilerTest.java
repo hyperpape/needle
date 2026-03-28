@@ -3,6 +3,8 @@ package com.justinblank.strings;
 import com.justinblank.strings.RegexAST.Node;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
 
@@ -689,6 +691,24 @@ public class DFACompilerTest {
         var pattern = anonymousPattern(regex);
         compareResultsToStandardLibrary(hayStack, pattern, java.util.regex.Pattern.compile(regex));
     }
+
+    @Test
+    void reduceH() {
+        // String escape = "[^\t\u00A0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]";
+        // String escape = "[^\t\u00A0\u1680]";
+        String escape = "[^\u00A0]";
+
+        Optional<Node> node = TestUtil.compareParseToJava(escape);
+        node.ifPresent(n -> {
+            Pattern pattern = DFACompilerTest.anonymousPattern(escape);
+            java.util.regex.Pattern javaPattern = java.util.regex.Pattern.compile(escape);
+            for (char c = 0; c < Character.MAX_VALUE; c++) {
+                String needle = String.valueOf(c);
+                assertEquals(pattern.matcher(needle).matches(), javaPattern.matcher(needle).matches(), "Match failure for escape sequence " + 72 + " on needle " + (int) c);
+            }
+        });
+    }
+
 
     /**
      * Compare a regex against the JDK standard library implementation, by ensuring that the compiled DFA finds the same
