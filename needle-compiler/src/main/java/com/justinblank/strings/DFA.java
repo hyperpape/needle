@@ -196,8 +196,8 @@ class DFA {
         return states.size();
     }
 
-    public Set<DFA> allStates() {
-        return new HashSet<>(states);
+    public List<DFA> allStates() {
+        return new ArrayList<>(states);
     }
 
     protected Set<DFA> acceptingStates() {

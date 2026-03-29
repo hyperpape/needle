@@ -1,9 +1,6 @@
 package com.justinblank.strings;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Processes data for the state transition arrays that map byteClasses to target states.
@@ -16,10 +13,10 @@ class DFAStateTransitions {
      * Map from strings representing the search methods (e.g) "STATES_FORWARD" to sets of strings encoding
      * state transitions. For the encoding, see {@link ByteClassUtil}.
      */
-    protected Map<String, Set<String>> byteClassStringMaps = new HashMap<>();
+    protected Map<String, List<String>> byteClassStringMaps = new HashMap<>();
 
     protected void addStateTransitionString(FindMethodSpec spec, DFA dfaState) {
-        byteClassStringMaps.computeIfAbsent(spec.statesConstant(), (s) -> new HashSet<>());
+        byteClassStringMaps.computeIfAbsent(spec.statesConstant(), (s) -> new ArrayList<>());
         StringBuilder sb = buildByteClassString(dfaState);
         if (sb.length() != 0) {
             byteClassStringMaps.get(spec.statesConstant()).add(sb.toString());

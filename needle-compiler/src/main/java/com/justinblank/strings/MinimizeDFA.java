@@ -112,7 +112,7 @@ class MinimizeDFA {
             partition.add(null);
         }
         Set<DFA> accepting = dfa.acceptingStates();
-        Set<DFA> nonAccepting = dfa.allStates();
+        Set<DFA> nonAccepting = new HashSet<>(dfa.allStates());
         nonAccepting.removeAll(accepting);
         List<DFAGroup> dfaGroups = new ArrayList<>();
         if (!accepting.isEmpty()) {

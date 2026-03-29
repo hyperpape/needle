@@ -650,7 +650,7 @@ public class DFACompilerTest {
         // This calculation and assert are pretty tied to the details of the string encoding, but copy some of the
         // logic, which is a bit annoying.
         // TODO: try to simplify this and make it less brittle
-        Set<String> byteTransitionStrings = stateTransitions.byteClassStringMaps.get(spec.statesConstant());
+        Collection<String> byteTransitionStrings = stateTransitions.byteClassStringMaps.get(spec.statesConstant());
         int totalLength = byteTransitionStrings.stream().mapToInt(String::length).sum() + byteTransitionStrings.size();
         assertTrue(totalLength > 65535);
 
