@@ -592,6 +592,7 @@ class DFA {
         return "DFA{" +
                 "accepting=" + accepting +
                 ", stateNumber=" + stateNumber +
+                (isRoot() ? (", stateCount=" + statesCount()) : "") +
                 '}';
     }
 
