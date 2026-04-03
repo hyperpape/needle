@@ -35,7 +35,7 @@ class NFAToDFACompiler {
         StateSet states = new StateSet();
         states.add(0, 0, RegexInstrBuilder.STARTING_PRIORITY);
         states = getEpsilonClosure(states);
-        root = DFA.root(nfa.hasAcceptingState(states));
+        root = DFA.root(nfa.hasAcceptingState(states.getStates()));
         states.seenAccepting = root.isAccepting();
         storeDFA(states, root);
         addNFAStatesToDFA(states, mode);
@@ -77,7 +77,7 @@ class NFAToDFACompiler {
                 //     epsilonClosure.add(state, initialStates.getDistance(state);
                 // }
             }
-            List<CharRange> ranges = CharRange.coverAllChars(CharRange.minimalCovering(findCharRanges(epsilonClosure)));
+            List<CharRange> ranges = CharRange.coverAllChars(CharRange.minimalCovering(findCharRanges(epsilonClosure.getStates())));
             for (CharRange range : ranges) {
                 // any element of the range is equally good here, getStart()/getEnd() doesn't matter
                 StateSet postTransitionStates = getEpsilonClosure(transition(epsilonClosure, range.getStart()));
@@ -85,7 +85,7 @@ class NFAToDFACompiler {
                 // enable restarting when we reach an empty state
                 // but we want to avoid doing that when we've reached an accepting state
                 if (!postTransitionStates.seenAccepting) {
-                    postTransitionStates.seenAccepting = epsilonClosure.seenAccepting || nfa.hasAcceptingState(postTransitionStates);
+                    postTransitionStates.seenAccepting = epsilonClosure.seenAccepting || nfa.hasAcceptingState(postTransitionStates.getStates());
                 }
                 // TODO: Pruning should be a no-op for ConversionMode.BASIC, but in fact, removing the mode check will
                 //  cause test failures
@@ -93,7 +93,7 @@ class NFAToDFACompiler {
                     boolean removed;
                     do {
                         removed = false;
-                        for (var state : postTransitionStates) {
+                        for (var state : postTransitionStates.getStates()) {
                             if (nfa.isAcceptingState(state)) {
                                 var distance = postTransitionStates.getDistance(state);
                                 var priority = postTransitionStates.getPriority(state);
@@ -113,7 +113,7 @@ class NFAToDFACompiler {
                 DFA targetDfa = getDFA(postTransitionStates);
                 if (targetDfa == null) {
                     pending.add(postTransitionStates);
-                    targetDfa = new DFA(root, nfa.hasAcceptingState(postTransitionStates), nextState++);
+                    targetDfa = new DFA(root, nfa.hasAcceptingState(postTransitionStates.getStates()), nextState++);
                     storeDFA(postTransitionStates, targetDfa);
                 }
                 dfa.addTransition(range, targetDfa);
@@ -127,7 +127,7 @@ class NFAToDFACompiler {
             return null;
         }
         for (var pair : stateDFAPairs) {
-            if (states.size() == 1 || (states.seenAccepting == pair.getLeft().seenAccepting)) {
+            if (states.getStates().size() == 1 || (states.seenAccepting == pair.getLeft().seenAccepting)) {
                 return pair.getRight();
             }
         }
@@ -136,13 +136,13 @@ class NFAToDFACompiler {
 
     private StateSet getEpsilonClosure(StateSet states) {
         StateSet closure = new StateSet();
-        for (Integer state : states) {
+        for (Integer state : states.getStates()) {
             var priority = nfa.regexInstrs[state].priority;
             for (Integer epsilonTransitionState : nfa.epsilonClosure(state)) {
                 if (nfa.isAcceptingState(epsilonTransitionState)) {
                     closure.seenAccepting = true;
                 }
-                if (states.contains(epsilonTransitionState)) {
+                if (states.getStates().contains(epsilonTransitionState)) {
                     closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState), priority);
                 }
                 else {
@@ -167,7 +167,7 @@ class NFAToDFACompiler {
 
     protected StateSet transition(StateSet nfaStates, char c) {
         StateSet transitionStates = new StateSet();
-        for (Integer state : nfaStates) {
+        for (Integer state : nfaStates.getStates()) {
             RegexInstr instr = nfa.regexInstrs[state];
             var priority = instr.priority;
             if (instr.opcode == CHAR_RANGE && instr.start <= c && instr.end >= c) {

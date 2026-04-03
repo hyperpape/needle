@@ -2,21 +2,16 @@ package com.justinblank.strings;
 
 import java.util.*;
 
-class StateSet extends HashSet<Integer> {
+class StateSet {
     /**
      * Maps NFA states to the distance we could have traversed to reach that state. This is necessary for handling
      * search modes (see Russ Cox's article, and incorporate a better explanation). 
      */
     Map<Integer, StateData> stateStarts = new HashMap<>();
+    Set<Integer> states = new HashSet<>();
 
     // TODO: fix up how this is set
     boolean seenAccepting;
-
-    @Override
-    public boolean add(Integer integer) {
-        // TODO: decide if this is lazy...could just not extend hashset
-        throw new UnsupportedOperationException("");
-    }
 
     public boolean add(Integer integer, Integer distance, int priority) {
         var currentState = stateStarts.get(integer);
@@ -28,7 +23,7 @@ class StateSet extends HashSet<Integer> {
         else {
             stateStarts.put(integer, new StateData(distance, priority));
         }
-        return super.add(integer);
+        return states.add(integer);
     }
 
     public Integer getDistance(Integer state) {
@@ -41,7 +36,7 @@ class StateSet extends HashSet<Integer> {
 
     public boolean prune(Integer acceptingState, Integer boundary, int priority) {
         boolean removed = false;
-        Iterator<Integer> it = this.iterator();
+        Iterator<Integer> it = states.iterator();
         while (it.hasNext()) {
             var state = it.next();
             if (state.equals(acceptingState)) {
@@ -59,13 +54,13 @@ class StateSet extends HashSet<Integer> {
 
     @Override
     public String toString() {
-        if (isEmpty()) {
+        if (states.isEmpty()) {
             return "{}";
         }
         StringBuilder sb = new StringBuilder();
         sb.append('{');
         boolean first = true;
-        for (var state : this) {
+        for (var state : states) {
             if (!first) {
                 sb.append(", ");
             }
@@ -74,6 +69,22 @@ class StateSet extends HashSet<Integer> {
         }
         sb.append('}');
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        StateSet stateSet = (StateSet) o;
+        return Objects.equals(states, stateSet.states);
+    }
+
+    @Override
+    public int hashCode() {
+        return states.hashCode();
+    }
+
+    public Collection<Integer> getStates() {
+        return states;
     }
 
     static class StateData {
