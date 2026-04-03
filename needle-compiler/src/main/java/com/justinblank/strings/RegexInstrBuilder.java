@@ -151,14 +151,14 @@ class RegexInstrBuilder {
 
             int firstAlternativePriority = maxPriority;
             createPartial(a.left, instrs);
-            if (!leftMostLongest) {
+            if (!leftMostLongest && a.withPriority) {
                 maxPriority++;
             }
             int firstJumpIndex = instrs.size();
             instrs.add(null);
             int secondSplitTarget = instrs.size();
             createPartial(a.right, instrs);
-            if (!leftMostLongest) {
+            if (!leftMostLongest && a.withPriority) {
                 maxPriority++;
             }
 

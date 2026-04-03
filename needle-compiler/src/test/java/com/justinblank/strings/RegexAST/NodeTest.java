@@ -35,7 +35,7 @@ class NodeTest {
     void minMaxLengthaSTARAORb() {
         // a*(a|b);
         var rep = new Repetition(new LiteralNode("a"));
-        var union = Union.of(new LiteralNode("a"), new LiteralNode("b"));
+        var union = Union.orderedChoice(new LiteralNode("a"), new LiteralNode("b"));
         var node = new Concatenation(rep, union);
 
         assertEquals(1, node.minLength());
@@ -53,7 +53,7 @@ class NodeTest {
     @Test
     void minMaxLengthUnionContainingRepetition() {
         // (ab)|(a*);
-        var node = Union.of(new LiteralNode("ab"), new Repetition(new LiteralNode("a")));
+        var node = Union.orderedChoice(new LiteralNode("ab"), new Repetition(new LiteralNode("a")));
         assertEquals(0, node.minLength());
         assertEquals(Optional.empty(), node.maxLength());
     }
@@ -61,7 +61,7 @@ class NodeTest {
     @Test
     void minMaxLengthUnionFollowedByChar() {
         // (a|b)a
-        var node = new Concatenation(Union.of(new LiteralNode("a"), new LiteralNode("b")), new LiteralNode("a"));
+        var node = new Concatenation(Union.orderedChoice(new LiteralNode("a"), new LiteralNode("b")), new LiteralNode("a"));
         assertEquals(2, node.minLength());
         assertEquals(Optional.of(2), node.maxLength());
     }
@@ -69,7 +69,7 @@ class NodeTest {
     @Test
     void minMaxLengthUnionOfDifferentLengths() {
         // (ab)|b
-        Node node = Union.of(new LiteralNode("ab"), new LiteralNode("b"));
+        Node node = Union.orderedChoice(new LiteralNode("ab"), new LiteralNode("b"));
         assertEquals(1, node.minLength());
         assertEquals(Optional.of(2), node.maxLength());
     }
@@ -77,14 +77,14 @@ class NodeTest {
     @Test
     void concatentionHeightIsSumOfNodesPlus1() {
         // (a|b)a
-        var node = new Concatenation(Union.of(new CharRangeNode('a', 'c'), new LiteralNode("f")), new LiteralNode("g"));
+        var node = new Concatenation(Union.orderedChoice(new CharRangeNode('a', 'c'), new LiteralNode("f")), new LiteralNode("g"));
         assertEquals(2, node.height());
     }
 
     @Test
     void unionHeightIsMaxOfNodesPlus1() {
         // (ab)|b
-        Node node = Union.of(new LiteralNode("ab"), new LiteralNode("b"));
+        Node node = Union.orderedChoice(new LiteralNode("ab"), new LiteralNode("b"));
         assertEquals(1, node.height());
     }
 
@@ -101,7 +101,7 @@ class NodeTest {
     void repetition_height_is1_plus_node_height() {
         // a*(a|b);
         var rep = new Repetition(new LiteralNode("a"));
-        var union = Union.of(new LiteralNode("a"), new LiteralNode("b"));
+        var union = Union.orderedChoice(new LiteralNode("a"), new LiteralNode("b"));
         var node = new Concatenation(rep, union);
 
         assertEquals(1, node.minLength());
@@ -116,7 +116,7 @@ class NodeTest {
 
     @Test
     void isFixedLength_handlesUnions() {
-        var node = Union.of(new LiteralNode("Abc"), new LiteralNode("def"));
+        var node = Union.orderedChoice(new LiteralNode("Abc"), new LiteralNode("def"));
         assertTrue(node.isFixedLength());
     }
 

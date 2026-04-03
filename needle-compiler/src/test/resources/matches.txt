@@ -110,8 +110,10 @@ http://.+\.com      http://www.google.com       y   0   21
 http://.+\.com      http://www.google.co.uk     n
 
 # leftmost longest and leftmost first semantics
-samwise|sam         samwise                 y       0       7
+samwise|sam         samwise                 y       0       7           0
+samwise|sam         samwise                 y       0       7           2
 sam|samwise         samwise                 y       0       3           0
+sam|samwise         samwise                 y       0       3           2
 samwise|sam         samwise                 y       0       7           800000
 sam|samwise         samwise                 y       0       7           800000
 

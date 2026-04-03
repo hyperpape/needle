@@ -11,12 +11,14 @@ public class Union extends Node {
 
     public final Node left;
     public final Node right;
+    public final boolean withPriority;
 
-    Union(Node left, Node right) {
+    Union(Node left, Node right, boolean withPriority) {
         Objects.requireNonNull(left, "Cannot union nothing");
         // Objects.requireNonNull(right, "Cannot union nothing");
         this.left = left;
         this.right = right;
+        this.withPriority = withPriority;
     }
 
     public int minLength() {
@@ -42,10 +44,18 @@ public class Union extends Node {
 
     @Override
     public Node reversed() {
-        return Union.of(left.reversed(), right.reversed());
+        return Union.unorderedChoice(left.reversed(), right.reversed());
     }
 
-    public static Node of(Node left, Node right) {
+    public static Node orderedChoice(Node left, Node right) {
+        return of(left, right, true);
+    }
+
+    public static Node unorderedChoice(Node left, Node right) {
+        return of(left, right, false);
+    }
+
+    static Node of(Node left, Node right, boolean withPriority) {
         if (left.equals(right)) {
             return left;
         }
@@ -61,7 +71,7 @@ public class Union extends Node {
                 return right;
             }
         }
-        return new Union(left, right);
+        return new Union(left, right, withPriority);
     }
 
     public static Node ofChars(String s) {
@@ -85,7 +95,7 @@ public class Union extends Node {
                         union = range;
                     }
                     else {
-                        union = Union.of(union, range);
+                        union = Union.unorderedChoice(union, range);
                     }
                     start = i + 1;
                 }
@@ -96,7 +106,7 @@ public class Union extends Node {
                     union = range;
                 }
                 else {
-                    union = Union.of(union, range);
+                    union = Union.unorderedChoice(union, range);
                 }
             }
             i++;
@@ -132,9 +142,9 @@ public class Union extends Node {
         complementedNodes.add(new CharRangeNode(low, '\uFFFF'));
         CharRangeNode first = complementedNodes.get(0);
         CharRangeNode second = complementedNodes.get(1);
-        Node union = Union.of(first, second);
+        Node union = Union.unorderedChoice(first, second);
         for (int i = 2; i < complementedNodes.size(); i++) {
-            union = Union.of(union, complementedNodes.get(i));
+            union = Union.unorderedChoice(union, complementedNodes.get(i));
         }
         return union;
     }

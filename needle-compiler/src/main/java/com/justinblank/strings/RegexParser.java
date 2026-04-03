@@ -107,7 +107,7 @@ class RegexParser {
                         nodes.push(new CharRangeNode(CharRange.ALL_CHARS));
                     }
                     else {
-                        nodes.push(Union.of(new CharRangeNode((char) 0, '\u0009'), Union.of(new CharRangeNode('\u000B', '\u000C'), new CharRangeNode('\u000E', '\uFFFF'))));
+                        nodes.push(Union.unorderedChoice(new CharRangeNode((char) 0, '\u0009'), Union.unorderedChoice(new CharRangeNode('\u000B', '\u000C'), new CharRangeNode('\u000E', '\uFFFF'))));
                     }
                     break;
                 case '^':
@@ -200,7 +200,7 @@ class RegexParser {
                     assertNonEmpty("'|' cannot be the final character in a regex");
                     collapseLiterals();
                     Node last = nodes.pop();
-                    nodes.push(Union.of(last, null));
+                    nodes.push(Union.orderedChoice(last, null));
                     break;
                 case '\\':
                     nodes.push(parseEscapeSequence());
@@ -220,7 +220,7 @@ class RegexParser {
                                         union = LiteralNode.fromChar(caseChar);
                                     }
                                     else {
-                                        union = Union.of(union, LiteralNode.fromChar(caseChar));
+                                        union = Union.unorderedChoice(union, LiteralNode.fromChar(caseChar));
                                     }
                                 }
                                 nodes.push(union);
@@ -233,10 +233,10 @@ class RegexParser {
                             var node = LiteralNode.fromChar(c);
                             if ('A' <= c && c <= 'Z') {
                                 char other = (char) (((int) c) + 32);
-                                nodes.push(Union.of(node, LiteralNode.fromChar(other)));
+                                nodes.push(Union.unorderedChoice(node, LiteralNode.fromChar(other)));
                             } else if ('a' <= c && c <= 'z') {
                                 char other = (char) (((int) c) - 32);
-                                nodes.push(Union.of(node, LiteralNode.fromChar(other)));
+                                nodes.push(Union.unorderedChoice(node, LiteralNode.fromChar(other)));
                             } else {
                                 nodes.push(node);
                             }
@@ -258,7 +258,7 @@ class RegexParser {
             Node next = nodes.pop();
             if (next instanceof Union && ((Union) next).right == null) {
                 Union union = (Union) next;
-                node = Union.of(union.left, node);
+                node = Union.orderedChoice(union.left, node);
             }
             else if (next instanceof LiteralNode && node instanceof LiteralNode) {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
@@ -307,7 +307,7 @@ class RegexParser {
                 Union union = (Union) previous;
                 if (union.right == null) {
                     nodes.pop();
-                    last = Union.of(union.left, last);
+                    last = Union.orderedChoice(union.left, last);
                 }
                 else {
                     last = Concatenation.concatenate(nodes.pop(), last);
@@ -338,10 +338,10 @@ class RegexParser {
                 Node nextNext = nodes.peek();
                 if (nextNext instanceof LParenNode) {
                     nodes.pop(); // Remove lParen
-                    nodes.push(Union.of(union.left, node));
+                    nodes.push(Union.orderedChoice(union.left, node));
                     return;
                 }
-                node = Union.of(union.left, node);
+                node = Union.orderedChoice(union.left, node);
             }
             else {
                 node = concatenate(previous, node);
@@ -458,7 +458,7 @@ class RegexParser {
                     var alpha1 = new CharRangeNode('a', 'z');
                     var alpha2 = new CharRangeNode('A', 'Z');
                     var underscore = new CharRangeNode('_', '_');
-                    return Union.of(digits, Union.of(underscore, Union.of(alpha1, alpha2)));
+                    return Union.unorderedChoice(digits, Union.unorderedChoice(underscore, Union.unorderedChoice(alpha1, alpha2)));
                 }
             }
             case 'W': {
@@ -672,7 +672,7 @@ class RegexParser {
                             rangeNode = new CharRangeNode(range);
                         }
                         else {
-                            rangeNode = Union.of(rangeNode, new CharRangeNode(range));
+                            rangeNode = Union.unorderedChoice(rangeNode, new CharRangeNode(range));
                         }
                     }
                     ranges.clear();
@@ -714,7 +714,7 @@ class RegexParser {
     private Optional<Node> withAlternate(Optional<Node> node, Node alternate) {
         var union = node.map(n -> {
             if (alternate != null) {
-                return Union.of(alternate, n);
+                return Union.unorderedChoice(alternate, n);
             } else {
                 return n;
             }
@@ -751,9 +751,9 @@ class RegexParser {
             }
             CharRangeNode first = new CharRangeNode(sortedCharRanges.get(0));
             CharRangeNode second = new CharRangeNode(sortedCharRanges.get(1));
-            Node node = Union.of(first, second);
+            Node node = Union.unorderedChoice(first, second);
             for (int i = 2; i < sortedCharRanges.size(); i++) {
-                node = Union.of(node, new CharRangeNode(sortedCharRanges.get(i)));
+                node = Union.unorderedChoice(node, new CharRangeNode(sortedCharRanges.get(i)));
             }
             return node;
         }

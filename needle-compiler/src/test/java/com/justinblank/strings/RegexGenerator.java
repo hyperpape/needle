@@ -44,7 +44,7 @@ class RegexGenerator {
             case 2:
                 child1 = generate();
                 child2 = generate();
-                return Union.of(child1, child2);
+                return Union.orderedChoice(child1, child2);
             case 3:
             case 4:
             case 5:
