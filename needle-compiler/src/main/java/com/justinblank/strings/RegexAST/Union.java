@@ -12,7 +12,7 @@ public class Union extends Node {
     public final Node left;
     public final Node right;
 
-    public Union(Node left, Node right) {
+    Union(Node left, Node right) {
         Objects.requireNonNull(left, "Cannot union nothing");
         // Objects.requireNonNull(right, "Cannot union nothing");
         this.left = left;
@@ -42,7 +42,7 @@ public class Union extends Node {
 
     @Override
     public Node reversed() {
-        return new Union(left.reversed(), right.reversed());
+        return Union.of(left.reversed(), right.reversed());
     }
 
     public static Node of(Node left, Node right) {

@@ -200,7 +200,7 @@ class RegexParser {
                     assertNonEmpty("'|' cannot be the final character in a regex");
                     collapseLiterals();
                     Node last = nodes.pop();
-                    nodes.push(new Union(last, null));
+                    nodes.push(Union.of(last, null));
                     break;
                 case '\\':
                     nodes.push(parseEscapeSequence());
@@ -233,10 +233,10 @@ class RegexParser {
                             var node = LiteralNode.fromChar(c);
                             if ('A' <= c && c <= 'Z') {
                                 char other = (char) (((int) c) + 32);
-                                nodes.push(new Union(node, LiteralNode.fromChar(other)));
+                                nodes.push(Union.of(node, LiteralNode.fromChar(other)));
                             } else if ('a' <= c && c <= 'z') {
                                 char other = (char) (((int) c) - 32);
-                                nodes.push(new Union(node, LiteralNode.fromChar(other)));
+                                nodes.push(Union.of(node, LiteralNode.fromChar(other)));
                             } else {
                                 nodes.push(node);
                             }
@@ -258,7 +258,7 @@ class RegexParser {
             Node next = nodes.pop();
             if (next instanceof Union && ((Union) next).right == null) {
                 Union union = (Union) next;
-                node = new Union(union.left, node);
+                node = Union.of(union.left, node);
             }
             else if (next instanceof LiteralNode && node instanceof LiteralNode) {
                 node = new LiteralNode(((LiteralNode) next).getLiteral() + ((LiteralNode) node).getLiteral());
@@ -307,7 +307,7 @@ class RegexParser {
                 Union union = (Union) previous;
                 if (union.right == null) {
                     nodes.pop();
-                    last = new Union(union.left, last);
+                    last = Union.of(union.left, last);
                 }
                 else {
                     last = Concatenation.concatenate(nodes.pop(), last);
@@ -338,10 +338,10 @@ class RegexParser {
                 Node nextNext = nodes.peek();
                 if (nextNext instanceof LParenNode) {
                     nodes.pop(); // Remove lParen
-                    nodes.push(new Union(union.left, node));
+                    nodes.push(Union.of(union.left, node));
                     return;
                 }
-                node = new Union(union.left, node);
+                node = Union.of(union.left, node);
             }
             else {
                 node = concatenate(previous, node);
@@ -672,7 +672,7 @@ class RegexParser {
                             rangeNode = new CharRangeNode(range);
                         }
                         else {
-                            rangeNode = new Union(rangeNode, new CharRangeNode(range));
+                            rangeNode = Union.of(rangeNode, new CharRangeNode(range));
                         }
                     }
                     ranges.clear();
@@ -714,7 +714,7 @@ class RegexParser {
     private Optional<Node> withAlternate(Optional<Node> node, Node alternate) {
         var union = node.map(n -> {
             if (alternate != null) {
-                return new Union(alternate, n);
+                return Union.of(alternate, n);
             } else {
                 return n;
             }
@@ -751,9 +751,9 @@ class RegexParser {
             }
             CharRangeNode first = new CharRangeNode(sortedCharRanges.get(0));
             CharRangeNode second = new CharRangeNode(sortedCharRanges.get(1));
-            Node node = new Union(first, second);
+            Node node = Union.of(first, second);
             for (int i = 2; i < sortedCharRanges.size(); i++) {
-                node = new Union(node, new CharRangeNode(sortedCharRanges.get(i)));
+                node = Union.of(node, new CharRangeNode(sortedCharRanges.get(i)));
             }
             return node;
         }
