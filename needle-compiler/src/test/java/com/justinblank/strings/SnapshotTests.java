@@ -51,6 +51,8 @@ class SnapshotTests {
         // No prefix or suffix, just transitions using byteClasses
         EXAMPLES.add(Pair.of("(ab|a|bcdef|g)+", "RepeatingUnionOfShortStrings"));
 
+        EXAMPLES.add(Pair.of("Èïìíåó.{0,15}×áôóïî|×áôóïî.{0,15}Èïìíåó|Áäìåò.{0,15}Óèåòìïãë|Óèåòìïãë.{0,15}Áäìåò", "LongUnicode"));
+        EXAMPLES.add(Pair.of("[á-úÁ-Ú]+éîç", "SimpleUnicode"));
         // Large dfa with dot character including unicode
         LARGE_EXAMPLES.add(Pair.of("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson"));
     }
