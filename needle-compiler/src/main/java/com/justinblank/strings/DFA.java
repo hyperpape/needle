@@ -365,6 +365,22 @@ class DFA {
         return true;
     }
 
+    Optional<Set<Character>> firstStateCharacters() {
+        Set<Character> characters = new HashSet<>();
+        for (var transition : getTransitions()) {
+            if (transition.getLeft().getStart() == transition.getLeft().getEnd()) {
+                characters.add(transition.getLeft().getStart());
+            }
+            else {
+                return Optional.empty();
+            }
+        }
+        if (characters.size() < 2) {
+            return Optional.of(characters);
+        }
+        return Optional.empty();
+    }
+
     char maxChar() {
         char maxChar = 0;
         for (var dfa : states) {
