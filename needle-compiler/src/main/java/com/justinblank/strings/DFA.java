@@ -812,5 +812,18 @@ class DFA {
         }
         return false;
     }
+
+    public boolean hasNonPrefix(String infix) {
+        for (var state : this.states) {
+            if (state == this) {
+                continue;
+            }
+            var afterInfix = state.after(infix);
+            if (afterInfix.isPresent()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 

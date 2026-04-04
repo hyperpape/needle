@@ -26,7 +26,6 @@ class DFATest {
         assertThat(dfa.after("b")).isEmpty();
     }
 
-
     @Test
     void after() {
         var dfa = DFA.createDFA("ab*[0-9]c");
@@ -399,5 +398,18 @@ class DFATest {
     public void testHasNonSuffixMatchesSuffixWhenItAppearsAsInfix() {
         var dfa = DFA.createDFA("PrefixSuffixSuffix");
         assertTrue(dfa.hasNonSuffix("Suffix"));
+    }
+
+    @Test
+    void hasNonPrefix_returnsFalseForNotContainedString() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertFalse(dfa.hasNonPrefix("h"));
+    }
+
+    @Test
+    void hasNonPrefix_returnsTrue_forStringContainedAsNonPrefix() {
+        var dfa = DFA.createDFA("PrefixPrefixSuffix");
+        assertTrue(dfa.hasNonPrefix("P"));
+        assertTrue(dfa.hasNonPrefix("Prefix"));
     }
 }
