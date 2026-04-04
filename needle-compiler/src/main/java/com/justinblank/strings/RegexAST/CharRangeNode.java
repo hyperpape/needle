@@ -77,9 +77,9 @@ public class CharRangeNode extends Node implements Comparable<CharRangeNode> {
             Node result = singleCharRangeUTF(startHigh, startLow, 255);
             if (startHigh + 1 < endHigh) {
                 Node middle = Concatenation.concatenate(new CharRangeNode((char) (startHigh + 1), (char) (endHigh - 1)), new CharRangeNode((char) 0, (char) 255));
-                result = Union.of(result, middle);
+                result = Union.of(result, middle, false);
             }
-            result = Union.of(result, singleCharRangeUTF((char) endHigh, (char) 0, (char) endLow));
+            result = Union.of(result, singleCharRangeUTF((char) endHigh, (char) 0, (char) endLow), false);
             return result;
         }
     }
