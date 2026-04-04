@@ -592,10 +592,17 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private CodeElement setByteClass(String variable) {
-        int byteClassMax = nonAscii ? DFA.MAX_CHAR_FOR_UTF_BYTECLASSES + 1 : DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES + 1;
+        Expression byteClassLookup;
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
-        var byteClassLookup = arrayRead(byteClassRef, callStatic(ReferenceType.of(Math.class), "min", Builtin.I,
-                literal(byteClassMax), cast(Builtin.I, read(variable))));
+        if (nonAscii) {
+            byteClassLookup = arrayRead(byteClassRef, cast(Builtin.I, read(variable)));
+        }
+        else {
+            int byteClassMax = DFA.MAX_CHAR_FOR_ASCII_BYTECLASSES + 1;
+            byteClassLookup = arrayRead(byteClassRef, callStatic(ReferenceType.of(Math.class), "min", Builtin.I,
+                    literal(byteClassMax), cast(Builtin.I, read(variable))));
+        }
+
 
         return set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup);
     }
