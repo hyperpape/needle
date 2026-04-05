@@ -373,16 +373,12 @@ class DFA {
         Set<Character> characters = new HashSet<>();
         for (var transition : getTransitions()) {
             if (transition.getLeft().getStart() == transition.getLeft().getEnd()) {
-                characters.add(transition.getLeft().getStart());
-            }
-            else {
-                return Optional.empty();
+                for (var c = transition.getLeft().getStart(); c <= transition.getLeft().getEnd(); c++) {
+                    characters.add(c);
+                }
             }
         }
-        if (characters.size() < 2) {
-            return Optional.of(characters);
-        }
-        return Optional.empty();
+        return Optional.of(characters);
     }
 
     char maxChar() {
