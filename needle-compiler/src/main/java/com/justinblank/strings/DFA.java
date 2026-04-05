@@ -366,6 +366,10 @@ class DFA {
     }
 
     Optional<Set<Character>> firstStateCharacters() {
+        // Otherwise, we'll trigger this method for a*
+        if (states.size() == 1) {
+            return Optional.empty();
+        }
         Set<Character> characters = new HashSet<>();
         for (var transition : getTransitions()) {
             if (transition.getLeft().getStart() == transition.getLeft().getEnd()) {

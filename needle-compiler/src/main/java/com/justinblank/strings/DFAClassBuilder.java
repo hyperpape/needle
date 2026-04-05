@@ -116,7 +116,7 @@ class DFAClassBuilder extends ClassBuilder {
         findMethods.add(createFindMethodInternal());
         findMethods.add(createIndexMethod(dfaSearchFindMethodSpec));
         if (!factorization.canOnlyHaveOneLength()) {
-            findMethods.add(createIndexMethodReversed(reversedFindMethodSpec));
+            findMethods.add(createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa));
         }
         for (var spec : allSpecs()) {
             addWasAcceptedMethod(spec);
@@ -534,7 +534,11 @@ class DFAClassBuilder extends ClassBuilder {
         return set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup);
     }
 
-    private Method createIndexMethodReversed(FindMethodSpec spec) {
+    private Method createIndexMethodReversed(FindMethodSpec spec, DFA forwardDFA) {
+        var simpleReverseMethod = generateSingleCharacterReverseScan(spec, forwardDFA);
+        if (simpleReverseMethod.isPresent()) {
+            return simpleReverseMethod.get();
+        }
         // We're overriding the meaning of the length variable, here it refers to the starting point of the backwards
         // match
         var vars = new MatchingVars(5, 1, 3, 2, 4);
@@ -591,6 +595,34 @@ class DFAClassBuilder extends ClassBuilder {
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
+    }
+
+    private Optional<Method> generateSingleCharacterReverseScan(FindMethodSpec spec, DFA forwardDFA) {
+        // It's important that we use the matching DFA here, as the self-transitions for the initial state on the
+        // search DFA ruin the check
+        return forwardDFA.firstStateCharacters().flatMap(cs -> {
+            // This check handles a{0,1}, which we could handle with an extension of this method, but haven't yet.
+            if (factorization.getMinLength() == 0) {
+                return Optional.empty();
+            }
+            if (cs.size() != 1) {
+                return Optional.empty();
+            }
+            char c = cs.iterator().next();
+            if (forwardDFA.hasNonPrefix(String.valueOf(cs.iterator().next()))) {
+                return Optional.empty();
+            }
+            var vars = new MatchingVars(5, 1, 3, 2, 4);
+            var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
+            method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
+            method.loop(gte(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)), List.of(
+                    cond(eq(literal((int) c), DFAMethodComponents.readChar()))
+                            .withBody(returnValue(read(MatchingVars.INDEX)))
+                            .orElse(set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1)))
+            ));
+            method.returnValue(Integer.MAX_VALUE);
+            return Optional.of(method);
+        });
     }
 
     private CodeElement buildStateLookup(FindMethodSpec spec) {
