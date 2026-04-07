@@ -18,6 +18,8 @@ import static com.justinblank.classcompiler.lang.BinaryOperator.*;
 import static com.justinblank.classcompiler.lang.CodeElement.*;
 import static com.justinblank.classcompiler.lang.Literal.literal;
 import static com.justinblank.classcompiler.lang.UnaryOperator.not;
+import static com.justinblank.strings.DFAMethodComponents.max;
+import static com.justinblank.strings.DFAMethodComponents.min;
 import static org.objectweb.asm.Opcodes.*;
 
 class DFAClassBuilder extends ClassBuilder {
@@ -62,17 +64,16 @@ class DFAClassBuilder extends ClassBuilder {
         this.factorization = factorization;
         this.compilerOptions = options;
         this.forwardOffsets = dfa.calculateOffsets(factorization);
-        if (dfa.maxDistinguishedChar() <= 127) {
-            // TODO: test whether it matters that the four DFAs can have different byteClasses
-            ByteClasses byteClasses = dfa.byteClasses();
-            stateTransitions.byteClasses = byteClasses;
+        // TODO: test whether it matters that the four DFAs can have different byteClasses
+        Optional<ByteClasses> byteClasses = dfaSearch.byteClasses();
+        byteClasses.ifPresent((bc) -> {
+            stateTransitions.byteClasses = bc;
             for (var spec : allSpecs()) {
                 spec.compilationPolicy.useByteClassesForAllStates = true;
             }
-            catchAllByteClass = byteClasses.catchAll;
-        } else {
-            stateTransitions.byteClasses = null;
-        }
+            catchAllByteClass = bc.catchAll;
+
+        });
     }
 
     boolean useShorts(FindMethodSpec spec) {
@@ -283,7 +284,7 @@ class DFAClassBuilder extends ClassBuilder {
 
         // Identify runs of characters that are mapped to the same byte class. For each of these runs, we emit a call to
         // ByteClassUtil#fillBytes() to fill the array with the number representing that byte class.
-        while (end < 129) {
+        while (end < DFA.MAX_CHAR_FOR_BYTECLASSES + 2) {
             if (stateTransitions.byteClasses.ranges[end] != byteClass) {
                 if (byteClass != 0) {
                     staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
@@ -299,8 +300,8 @@ class DFAClassBuilder extends ClassBuilder {
         }
         staticBlock.readStatic(BYTE_CLASSES_CONSTANT, "[B")
                 .push(stateTransitions.byteClasses.catchAll)
-                .push(128)
-                .push(128)
+                .push(DFA.MAX_CHAR_FOR_BYTECLASSES + 1)
+                .push(DFA.MAX_CHAR_FOR_BYTECLASSES + 1)
                 .callStatic("fillBytes", CompilerUtil.internalName(ByteClassUtil.class), "([BBII)V");
     }
 
@@ -456,7 +457,7 @@ class DFAClassBuilder extends ClassBuilder {
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
 
-                        spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                        maxCharacterCheckIsRequired(spec) ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 set(MatchingVars.STATE, -1),
                                 cond(DFAMethodComponents.hasLastMatch()).withBody(
                                         returnValue(read(MatchingVars.LAST_MATCH))
@@ -476,6 +477,10 @@ class DFAClassBuilder extends ClassBuilder {
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
         return method;
+    }
+
+    private static boolean maxCharacterCheckIsRequired(FindMethodSpec spec) {
+        return spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates;
     }
 
     private boolean isInnerLoopMustCallWasAccepted(FindMethodSpec spec) {
@@ -514,7 +519,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Expression matchDFAInitialByte() {
         return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
-                callStatic(ReferenceType.of(Math.class), "min", Builtin.I, cast(Builtin.I, read(MatchingVars.CHAR)), literal(128)));
+                min(cast(Builtin.I, read(MatchingVars.CHAR)), literal(128)));
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
@@ -528,8 +533,7 @@ class DFAClassBuilder extends ClassBuilder {
 
     private CodeElement setByteClass() {
         var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
-        var byteClassLookup = arrayRead(byteClassRef, callStatic(ReferenceType.of(Math.class), "min", Builtin.I,
-                literal(DFA.MAX_CHAR_FOR_BYTECLASSES + 1), cast(Builtin.I, read(MatchingVars.CHAR)))); // read(MatchingVars.CHAR));
+        var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
 
         return set(DFAClassBuilder.BYTE_CLASS_FIELD, byteClassLookup);
     }
@@ -582,7 +586,7 @@ class DFAClassBuilder extends ClassBuilder {
                         // TODO: this should be ok regardless of whether we're using byteclasses?
                         // TODO: consider an entirely separate version if we're using byteclasses
                         // current implementation seems overcomplicated
-                        spec.dfa.maxChar() < Character.MAX_VALUE && spec.compilationPolicy.useByteClassesForAllStates ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
+                        maxCharacterCheckIsRequired(spec) ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 returnValue(read(MatchingVars.LAST_MATCH))
                         )) : new NoOpStatement(),
                         spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
@@ -1071,7 +1075,7 @@ class DFAClassBuilder extends ClassBuilder {
                                         .withBody(returnValue(true)),
                                 set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
 
-                                spec.compilationPolicy.useByteClassesForAllStates ? cond(
+                                spec.compilationPolicy.useByteClassesForAllStates && spec.dfa.maxChar() < Character.MAX_VALUE ? cond(
                                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
                                                 List.of(set(MatchingVars.STATE, 0),
                                                         DFAMethodComponents.incrementIndex(),
@@ -1117,9 +1121,6 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Statement updateIndexBasedOnSuffixIndex() {
-        return set(MatchingVars.INDEX, callStatic(ReferenceType.of(Math.class), "max", Builtin.I,
-                sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX)));
+        return set(MatchingVars.INDEX, max(sub(read(MatchingVars.SUFFIX_INDEX), factorization.getMaxLength().orElseThrow()), read(MatchingVars.INDEX)));
     }
-
-
 }

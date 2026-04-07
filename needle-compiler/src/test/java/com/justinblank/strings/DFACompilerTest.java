@@ -641,7 +641,7 @@ public class DFACompilerTest {
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
         FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, Factorization.empty(), CharacterDistribution.DEFAULT);
         DFAStateTransitions stateTransitions = new DFAStateTransitions();
-        stateTransitions.byteClasses = dfaSearch.byteClasses();
+        stateTransitions.byteClasses = dfaSearch.byteClasses().get();
 
         for (var state : dfaSearch.allStates()) {
             stateTransitions.addStateTransitionString(spec, state);

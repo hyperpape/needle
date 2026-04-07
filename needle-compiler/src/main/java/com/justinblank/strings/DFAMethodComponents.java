@@ -1,10 +1,7 @@
 package com.justinblank.strings;
 
 import com.justinblank.classcompiler.Method;
-import com.justinblank.classcompiler.lang.Builtin;
-import com.justinblank.classcompiler.lang.Conditional;
-import com.justinblank.classcompiler.lang.Expression;
-import com.justinblank.classcompiler.lang.Statement;
+import com.justinblank.classcompiler.lang.*;
 
 import static com.justinblank.classcompiler.lang.BinaryOperator.*;
 import static com.justinblank.classcompiler.lang.BinaryOperator.gt;
@@ -38,6 +35,14 @@ public class DFAMethodComponents {
         return call("charAt", Builtin.C,
                 read(MatchingVars.STRING),
                 read(MatchingVars.INDEX));
+    }
+
+    static Expression min(Expression left, Expression right) {
+        return callStatic(ReferenceType.of(Math.class), "min", Builtin.I, left, right);
+    }
+
+    static Expression max(Expression left, Expression right) {
+        return callStatic(ReferenceType.of(Math.class), "max", Builtin.I, left, right);
     }
 
     protected static Statement incrementIndex() {

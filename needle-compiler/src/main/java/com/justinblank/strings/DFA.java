@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  */
 class DFA {
 
-    public static final int MAX_CHAR_FOR_BYTECLASSES = 127;
+    public static final int MAX_CHAR_FOR_BYTECLASSES = 65535;
     private boolean accepting;
     private int stateNumber;
     private DFA root;
@@ -435,30 +435,31 @@ class DFA {
      *
      * @return byteClasses
      */
-    ByteClasses byteClasses() {
+    Optional<ByteClasses> byteClasses() {
         List<RangeGroup> rangeGroups = generateRangeGroups();
 
-        byte byteClass = 1;
+        int byteClass = 1;
         byte catchAll = ByteClasses.CATCHALL_INVALID;
-        var ranges = new byte[129];
+        var ranges = new byte[65537];
         for (var rangeGroup : rangeGroups) {
             // This only should work because we're only calling this method after checking
             // DFA.maxDistinguishedChar <= 127
             if (rangeGroup.ranges.get(rangeGroup.ranges.size() - 1).getEnd() == '\uFFFF') {
-                catchAll = byteClass;
+                catchAll = (byte) byteClass;
             }
             for (var range : rangeGroup.ranges) {
-                for (var c = range.getStart(); c <= Math.min(range.getEnd(), MAX_CHAR_FOR_BYTECLASSES); c++) {
-                    ranges[c] = byteClass;
-                }
+                Arrays.fill(ranges, range.getStart(), Math.min(range.getEnd() + 1, MAX_CHAR_FOR_BYTECLASSES), (byte) byteClass);
             }
             byteClass++;
+            if (byteClass > 255) {
+                return Optional.empty();
+            }
         }
         if (catchAll == ByteClasses.CATCHALL_INVALID) {
             catchAll = 0;
         }
         // When we have > 127 byteclasses, the values roll over to negative, this converts them back to the proper int
-        return new ByteClasses(ranges, catchAll, (int) (byteClass & 0xFF));
+        return Optional.of(new ByteClasses(ranges, catchAll, (int) (byteClass & 0xFF)));
     }
 
     List<RangeGroup> generateRangeGroups() {

@@ -34,14 +34,10 @@ class DFAStateTransitions {
         Set<Byte> bytesWitnessed = new HashSet<>();
         for (var transition : dfaState.getTransitions()) {
             var largestSeenByteClass = 0;
+            // Although the transition goes to the same target state on all its characters, we have to consider them
+            // each individually--because two characters in a single transition may map to different byteClasses
             for (var i = transition.getLeft().getStart(); i <= transition.getLeft().getEnd(); i++) {
-                byte byteClass;
-                if (i >= 128) {
-                    byteClass = byteClasses.catchAll;
-                }
-                else {
-                    byteClass = byteClasses.ranges[i];
-                }
+                byte byteClass = byteClasses.ranges[i];
                 if (byteClass == 0 || byteClass > largestSeenByteClass) {
                     var state = transition.getRight().getStateNumber();
                     if (!bytesWitnessed.contains(byteClass)) {
@@ -52,11 +48,8 @@ class DFAStateTransitions {
                         first = false;
                         sb.append(ByteClassUtil.encode(byteClass)).append(ByteClassUtil.STATE_TRANSITION_DELINEATOR).append(ByteClassUtil.encode(state));
                     }
-                    if (!(i > 128)) {
-                        largestSeenByteClass = byteClass;
-                    }
                 }
-                if (i > 128) {
+                if (i == Character.MAX_VALUE) {
                     break;
                 }
             }
