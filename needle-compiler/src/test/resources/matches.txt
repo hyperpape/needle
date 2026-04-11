@@ -167,9 +167,13 @@ sam|samwise         samwise                 y       0       7           800000
 []]         [                           n
 
 # unicode haystacks
-a.c                 aεc                 y       0       3
-[^c]                ε                   y       0       1
-[á-úÁ-Ú]+éîç        ÁÚéîç               y       0       5
+a.c                 aεc                             y       0       3
+[^c]                ε                               y       0       1
+[á-úÁ-Ú]+éîç        ÁÚéîç                           y       0       5
+[á-úÁ-Ú]+éîç        áúÁÚéîç                         y       0       7
+[á-úÁ-Ú]+éîç        lmnáúÁÚéîç                      y       3       10
+[á-úÁ-Ú]+éîç        εmnáúÁÚéîç                      y       3       10
+[á-úÁ-Ú]+éîç        îìåïóôéîç                       y       0       9
 
 # case insensitive matches
 [$-a]               B                   y       0       1               0
