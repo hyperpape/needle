@@ -61,8 +61,8 @@ public class DFAMethodComponents {
         return cond(eq(-1, read(MatchingVars.STATE))).withBody(returnValue(read(MatchingVars.LAST_MATCH)));
     }
 
-    static Conditional setLastMatchIfAccepted(String wasAcceptedMethod) {
-        return cond(call(wasAcceptedMethod, Builtin.BOOL, thisRef(), read(MatchingVars.STATE))).withBody(
+    static Conditional setLastMatchIfAccepted(FindMethodSpec spec) {
+        return cond(wasAccepted(spec)).withBody(
                 set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
         );
     }

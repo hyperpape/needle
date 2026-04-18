@@ -347,8 +347,6 @@ class DFAClassBuilder extends ClassBuilder {
         }
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
-        String wasAcceptedMethod = spec.wasAcceptedName();
-
         DFAMethodComponents.setLengthLocalVariable(method);
         if (spec.compilationPolicy.useMaxStart) {
             method.set(MatchingVars.MAX_START, sub(read(MatchingVars.LENGTH), factorization.getMinLength()));
@@ -446,7 +444,7 @@ class DFAClassBuilder extends ClassBuilder {
         }
         Loop innerLoop = loop(innerLoopBoundary,
                 List.of(
-                        innerLoopMustCallWasAccepted ? DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod) : new NoOpStatement(),
+                        innerLoopMustCallWasAccepted ? DFAMethodComponents.setLastMatchIfAccepted(spec) : new NoOpStatement(),
 
                         set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
                         DFAMethodComponents.incrementIndex(),
@@ -470,7 +468,7 @@ class DFAClassBuilder extends ClassBuilder {
                         DFAMethodComponents.returnLastMatchIfDeadState(),
                         spec.doByteCheckForFirstCharacter() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
                         (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
-                        DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod)
+                        DFAMethodComponents.setLastMatchIfAccepted(spec)
                 ));
         outerLoopBody.add(innerLoop);
 
@@ -551,8 +549,6 @@ class DFAClassBuilder extends ClassBuilder {
         vars.setByteClassVar(varIndex++);
         var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "I", vars);
 
-        String wasAcceptedMethod = spec.wasAcceptedName();
-
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
         if (spec.dfa.isAccepting()) {
             method.set(MatchingVars.LAST_MATCH, read(vars.LENGTH));
@@ -592,7 +588,7 @@ class DFAClassBuilder extends ClassBuilder {
                         spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
                         spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         DFAMethodComponents.returnLastMatchIfDeadState(),
-                        DFAMethodComponents.setLastMatchIfAccepted(wasAcceptedMethod),
+                        DFAMethodComponents.setLastMatchIfAccepted(spec),
                         set(MatchingVars.INDEX, sub(read(MatchingVars.INDEX), 1))
                 ));
 
