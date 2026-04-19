@@ -55,13 +55,12 @@ public class FindMethodSpec {
         return "wasAccepted" + name;
     }
 
-    public String wasAcceptedSetName() {
-
+    public String wasAcceptedArrayName() {
         if (name.isEmpty()) {
-            return "ACCEPTED_SET";
+            return "ACCEPTED_ARRAY";
         }
         else {
-            return "ACCEPTED_SET_" + name;
+            return "ACCEPTED_ARRAY_" + name;
         }
     }
 

@@ -12,6 +12,7 @@ import static com.justinblank.classcompiler.lang.Literal.literal;
 public class DFAMethodComponents {
 
     static Expression wasAccepted(FindMethodSpec spec) {
+        // TODO: we could inline the checks here, rather than using a method, but we're blocked by a mako bug
         return call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE));
     }
 
