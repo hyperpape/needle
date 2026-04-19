@@ -498,13 +498,14 @@ public class IntegrationTest {
             var pattern = patterns.computeIfAbsent(spec.pattern, (p) -> NFA.createNFA(spec.pattern));
             if (spec.successful) {
                 // TODO: record failures, rather than dying immediately,
-                var result = pattern.matcher(spec.target).find();
-                if (!result.matched) {
+                var matcher = pattern.matcher(spec.target);
+                var found = matcher.find();
+                if (!found) {
                     errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
                 }
                 else {
-                    if (result.start != spec.start || result.end != spec.end) {
-                        errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
+                    if (matcher.start() != spec.start || matcher.end() != spec.end) {
+                        errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + matcher.start() + ", actualEnd=" + matcher.end());
                         nonMatches++;
                     } else {
                         correctMatches++;

@@ -30,6 +30,9 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String INDEX_FIELD = "index";
     protected static final String BYTE_CLASS_FIELD = "byteClass";
     protected static final String NEXT_START_FIELD = "nextStart";
+    protected static final String START_FIELD = "start";
+    protected static final String END_FIELD = "end";
+    protected static final String MATCHED_FIELD = "matched";
     protected static final String BYTE_CLASSES_CONSTANT = "BYTE_CLASSES";
     protected static final String PREFIX_CONSTANT = "PREFIX";
     protected static final String SUFFIX_CONSTANT = "SUFFIX";
@@ -119,9 +122,11 @@ class DFAClassBuilder extends ClassBuilder {
         for (var spec : allSpecs()) {
             addWasAcceptedMethod(spec);
         }
+        addStartAndEndMethods();
         addConstructor();
         addFields();
     }
+
 
     private void addAffixConstants() {
         // Although we have a separate compilationPolicy for each spec, they share prefix/suffix/infix
@@ -620,8 +625,8 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Method createFindMethod() {
 
-        var method = mkMethod("find", List.of(), descriptor(MatchResult.class));
-        method.returnValue(call("find", MatchResult.class, thisRef(),
+        var method = mkMethod("find", List.of(), "Z");
+        method.returnValue(call("find", Builtin.BOOL, thisRef(),
                 get(NEXT_START_FIELD, Builtin.I, thisRef()),
                 get(LENGTH_FIELD, Builtin.I, thisRef())));
         return method;
@@ -629,13 +634,14 @@ class DFAClassBuilder extends ClassBuilder {
 
     private Method createFindMethodInternal() {
         var vars = new GenericVars("FROM", "TO", MatchingVars.INDEX, INDEX_BACKWARDS);
-        var method = mkMethod("find", List.of("I", "I"), descriptor(MatchResult.class), vars);
+        var method = mkMethod("find", List.of("I", "I"), "Z", vars);
 
         method.cond(eq(get(NEXT_START_FIELD, Builtin.I, thisRef()), -1
-        )).withBody(returnValue(createFailureObject()));
+        )).withBody(returnValue(literal(false)));
         method.set(MatchingVars.INDEX,
                 call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                         read("FROM"), read("TO")));
+        method.fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
         method.fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
         if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(ReferenceType.of(DFADebugUtils.class), "debugIndexForwards", Void.VOID, read(MatchingVars.INDEX));
@@ -645,28 +651,29 @@ class DFAClassBuilder extends ClassBuilder {
             // If the string can only have one length, no need to search backwards, we can just compute the starting point
             method.cond(neq(-1, read(MatchingVars.INDEX))).withBody(
                             List.of(
-                                    returnValue(
-                                            callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
-                                                    sub(read(MatchingVars.INDEX), factorization.getMinLength()), read(MatchingVars.INDEX))
-                                    )))
-                    .orElse(List.of(returnValue(createFailureObject())));
+                                    fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), sub(read(MatchingVars.INDEX), factorization.getMinLength())),
+                                    returnValue(literal(true))))
+                    .orElse(List.of(returnValue(literal(false))));
         } else {
             method.cond(neq(-1, read(MatchingVars.INDEX))).
                     withBody(List.of(
-                            returnValue(
-                                    callStatic(MatchResult.class, "success", ReferenceType.of(MatchResult.class),
-                                            call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
-                                                    sub(read(MatchingVars.INDEX), 1), read("FROM")),
-                                            read(MatchingVars.INDEX)))))
+                            // TODO: adding local variables here is a workaround for mako breaking when we inline them
+                            set(INDEX_BACKWARDS, call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
+                                    sub(read(MatchingVars.INDEX), 1), read("FROM"))),
+                            fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(INDEX_BACKWARDS)),
+                            returnValue(literal(true))))
                     .orElse(List.of(
-                            returnValue(createFailureObject())));
+                            returnValue(literal(false))));
         }
         return method;
     }
 
-    private static Expression createFailureObject() {
-        return callStatic(MatchResult.class, "failure",
-                ReferenceType.of(MatchResult.class));
+    private void addStartAndEndMethods() {
+        var startMethod = mkMethod("start", List.of(), "I", new GenericVars());
+        startMethod.returnValue(get(START_FIELD, Builtin.I, thisRef()));
+
+        var endMethod = mkMethod("end", List.of(), "I", new GenericVars());
+        endMethod.returnValue(get(END_FIELD, Builtin.I, thisRef()));
     }
 
     private void addConstructor() {
@@ -692,6 +699,9 @@ class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_PRIVATE, STRING_FIELD, CompilerUtil.STRING_DESCRIPTOR, null, null));
         addField(new Field(ACC_PRIVATE, LENGTH_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, NEXT_START_FIELD, "I", null, 0));
+        addField(new Field(ACC_PRIVATE, START_FIELD, "I", null, -1));
+        addField(new Field(ACC_PRIVATE, END_FIELD, "I", null, -1));
+        addField(new Field(ACC_PRIVATE, MATCHED_FIELD, "Z", null, 0));
         if (compilerOptions.debugOptions.trackStates) {
             addConstant("CURRENT_STATE", CompilerUtil.STRING_DESCRIPTOR, "CURRENT_STATE");
             addConstant("INDEX", CompilerUtil.STRING_DESCRIPTOR, "INDEX");

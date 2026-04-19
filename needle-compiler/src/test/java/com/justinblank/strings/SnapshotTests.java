@@ -48,6 +48,7 @@ class SnapshotTests {
         // Unicode needles
         EXAMPLES.add(Pair.of("ε", "SingleCharacterUnicode"));
         EXAMPLES.add(Pair.of("ε|λ", "UnicodeUnion"));
+        EXAMPLES.add(Pair.of("the\\s+\\w+", "TheSpaceWord"));
         // No prefix or suffix, just transitions using byteClasses
         EXAMPLES.add(Pair.of("(ab|a|bcdef|g)+", "RepeatingUnionOfShortStrings"));
 

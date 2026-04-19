@@ -16,7 +16,11 @@ public interface Matcher {
     // TODO: this is a really weird interface
     boolean containedIn();
 
-    MatchResult find();
+    boolean find();
 
-    MatchResult find(int start, int end);
+    boolean find(int start, int end);
+
+    int start();
+
+    int end();
 }

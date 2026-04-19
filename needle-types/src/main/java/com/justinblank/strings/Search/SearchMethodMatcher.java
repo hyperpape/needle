@@ -9,6 +9,8 @@ public class SearchMethodMatcher implements Matcher {
 
     private final SearchMethod method;
     private final String s;
+    private int start;
+    private int end;
 
     public SearchMethodMatcher(SearchMethod method, String s) {
         Objects.requireNonNull(method, s);
@@ -27,12 +29,40 @@ public class SearchMethodMatcher implements Matcher {
     }
 
     @Override
-    public MatchResult find() {
-        return method.find(s);
+    public boolean find() {
+        MatchResult matchResult = method.find(s);
+        if (matchResult.matched) {
+            this.start = matchResult.start;
+            this.end = matchResult.end;
+        }
+        else {
+            this.start = -1;
+            this.end = -1;
+        }
+        return matchResult.matched;
     }
 
     @Override
-    public MatchResult find(int start, int end) {
-        return method.find(s, start, end);
+    public boolean find(int start, int end) {
+        MatchResult matchResult = method.find(s, start, end);
+        if (matchResult.matched) {
+            this.start = matchResult.start;
+            this.end = matchResult.end;
+        }
+        else {
+            this.start = -1;
+            this.end = -1;
+        }
+        return matchResult.matched;
+    }
+
+    @Override
+    public int start() {
+        return start;
+    }
+
+    @Override
+    public int end() {
+        return end;
     }
 }

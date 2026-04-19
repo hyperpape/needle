@@ -47,14 +47,15 @@ public class SearchMethodTestUtil {
      */
     public static void find(Pattern method, String s, int start, int end) {
         assertTrue(method.matcher(s).containedIn(), "Wrong result for containedIn on string=\"" + s + "\"");
-        MatchResult result = method.matcher(s).find(start, end);
+        var matcher = method.matcher(s);
+        boolean found = matcher.find(start, end);
         // Property #1 -- we'll find substring using the find method
-        assertTrue(result.matched, "Failed to find in string=\"" + s + "\", start=" + start + ",end=" + end);
+        assertTrue(found, "Failed to find in string=\"" + s + "\", start=" + start + ",end=" + end);
         // Property #2 -- that substring will match using the matches method
-        assertTrue(method.matcher(s.substring(result.start, result.end)).matches(),
-                "Failed to match substring of string=\"" + s + "\", start=" + result.start + ",end=" + result.end);
+        assertTrue(method.matcher(s.substring(matcher.start(), matcher.end())).matches(),
+                "Failed to match substring of string=\"" + s + "\", start=" + matcher.start() + ",end=" + matcher.end());
 
-        var prefix = s.substring(start, result.start);
+        var prefix = s.substring(start, matcher.start());
         // Property #3
         assertTrue(method.matcher("").matches() && prefix.isEmpty() || !method.matcher(prefix).matches(), "violated prefix condition for prefix condition on find, prefix=" + prefix + ", string=" + s);
 
@@ -70,14 +71,14 @@ public class SearchMethodTestUtil {
 //        }
         // Property #5 -- no string that starts earlier will match
         // TODO: we could also remove from end
-        if (result.start > start) {
-            QuickTheory.qt().forAll(new IntegersDSL().between(start, result.start - 1)).check(
-                    prefixTrimLength -> !method.matcher(s.substring(prefixTrimLength, result.end)).matches()
+        if (matcher.start() > start) {
+            QuickTheory.qt().forAll(new IntegersDSL().between(start, matcher.start() - 1)).check(
+                    prefixTrimLength -> !method.matcher(s.substring(prefixTrimLength, matcher.end())).matches()
             );
         }
         // Property 6 -- string that matches empty substring must be anchored at zero
         if (method.matcher("").matches()) {
-            assertEquals(start, result.start, "Method matches empty string but match was not at start of needle");
+            assertEquals(start, matcher.start(), "Method matches empty string but match was not at start of needle");
         }
     }
 
@@ -111,7 +112,10 @@ public class SearchMethodTestUtil {
         assertTrue(method.matcher(s).matches(), "Failed match for string=\"" + s + "\"");
         assertTrue(method.matcher(s).matches(), "Failed match for string=\"" + s + "\"");
         assertTrue(method.matcher(s).containedIn(), "ContainedIn failed for string \"" + s + "\"");
-        assertEquals(MatchResult.success(0, s.length()), method.matcher(s).find(), "Failed find for string='" + s + "'");
+        var matcher = method.matcher(s);
+        assertTrue(matcher.find(), "Failed find for string='" + s + "'");
+        assertEquals(0, matcher.start(), "Failed find for string='" + s + "'");
+        assertEquals(s.length(), matcher.end(), "Failed find for string='" + s + "'");
         find(method, s);
     }
 }

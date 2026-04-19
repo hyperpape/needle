@@ -65,13 +65,16 @@ public class DFACompilerTest {
     @Test
     void multipleFindSingleCharLiteralRegex() {
         Pattern pattern = DFACompiler.compile("a", "SingleCharRegexMultipleFind");
-        var matcher = pattern.matcher("aba");
-        find(pattern, "ab");
-        assertEquals(MatchResult.success(0, 1), pattern.matcher("ab").find());
+        find(pattern, "ab", 0, 1);
         find(pattern, "aba");
-        assertEquals(MatchResult.success(0, 1), matcher.find());
-        assertEquals(MatchResult.success(2, 3), matcher.find());
-        assertFalse(matcher.find().matched);
+        var matcher = pattern.matcher("aba");
+        assertTrue(matcher.find());
+        assertEquals(0, matcher.start());
+        assertEquals(1, matcher.end());
+        assertTrue(matcher.find());
+        assertEquals(2, matcher.start());
+        assertEquals(3, matcher.end());
+        assertFalse(matcher.find());
     }
 
 
@@ -524,18 +527,16 @@ public class DFACompilerTest {
         Matcher matcher = pattern.matcher("http://www.google.com");
         matcher.matches();
         matcher.containedIn();
-        MatchResult matchResult = matcher.find();
-        assertTrue(matchResult.matched);
-        assertEquals(0, matchResult.start);
-        assertEquals(21, matchResult.end);
+        assertTrue(matcher.find());
+        assertEquals(0, matcher.start());
+        assertEquals(21, matcher.end());
 
         matcher = pattern.matcher("http://Γειά σου.com");
         matcher.matches();
         matcher.containedIn();
-        matchResult = matcher.find();
-        assertTrue(matchResult.matched);
-        assertEquals(0, matchResult.start);
-        assertEquals(19, matchResult.end);
+        assertTrue(matcher.find());
+        assertEquals(0, matcher.start());
+        assertEquals(19, matcher.end());
     }
 
     @Test
@@ -606,7 +607,7 @@ public class DFACompilerTest {
         var pattern = DFACompiler.compile(regexString, "ingregex");
         var count = 0;
         var m = pattern.matcher(hayStack);
-        while (m.find().matched) {
+        while (m.find()) {
             count++;
         }
         assertEquals(2, count);
@@ -679,21 +680,21 @@ public class DFACompilerTest {
         java.util.regex.Matcher jdkMatcher = jdkPattern.matcher(hayStack);
         int index = 0;
         while (true) {
-            var matchResult = matcher.find();
+            var found = matcher.find();
             var jdkMatched = jdkMatcher.find();
             var jdkMatchResult = jdkMatcher.toMatchResult();
-            if (matchResult.matched && jdkMatched) {
-                var comparison = "patternStart=" + matchResult.start + ", patternEnd=" + matchResult.end + ", jdkStart=" + jdkMatchResult.start() + ", jdkEnd=" + jdkMatchResult.end();
-                assertEquals(matchResult.start, jdkMatchResult.start(), "Match start was not equal at index=" + index + ", " + comparison);
-                assertEquals(matchResult.end, jdkMatchResult.end(), "Match end was not equal at index=" + index + ", " + comparison);
-            } else if (matchResult.matched) {
-                fail("Pattern matched and standard library didn't at index=" + index + ", patternStart=" + matchResult.start + ", patternEnd=" + matchResult.end);
+            if (found && jdkMatched) {
+                var comparison = "patternStart=" + matcher.start() + ", patternEnd=" + matcher.end() + ", jdkStart=" + jdkMatchResult.start() + ", jdkEnd=" + jdkMatchResult.end();
+                assertEquals(matcher.start(), jdkMatchResult.start(), "Match start was not equal at index=" + index + ", " + comparison);
+                assertEquals(matcher.end(), jdkMatchResult.end(), "Match end was not equal at index=" + index + ", " + comparison);
+            } else if (found) {
+                fail("Pattern matched and standard library didn't at index=" + index + ", patternStart=" + matcher.start() + ", patternEnd=" + matcher.end());
             } else if (jdkMatched) {
                 fail("Standard library matched and pattern didn't at index=" + index + ", stdLibStart=" + jdkMatchResult.start() + ", stdLibEnd=" + jdkMatchResult.end());
             } else {
                 return;
             }
-            index = matchResult.end + 1;
+            index = matcher.end() + 1;
         }
     }
 
@@ -711,13 +712,14 @@ public class DFACompilerTest {
             var pair = Pair.of(spec.pattern, flags);
             var pattern = patterns.computeIfAbsent(pair, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), flags));
             try {
-                var result = pattern.matcher(spec.target).find();
+                var matcher = pattern.matcher(spec.target);
+                var found = matcher.find();
                 if (spec.successful) {
-                    if (!result.matched) {
+                    if (!found) {
                         errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
                     } else {
-                        if (result.start != spec.start || result.end != spec.end) {
-                            errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + result.start + ", actualEnd=" + result.end);
+                        if (matcher.start() != spec.start || matcher.end() != spec.end) {
+                            errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + matcher.start() + ", actualEnd=" + matcher.end());
                             nonMatches++;
                         } else {
                             correctMatches++;
@@ -731,7 +733,7 @@ public class DFACompilerTest {
                             if (javaFound) {
                                 var javaStart = javaMatcher.start();
                                 var javaEnd = javaMatcher.end();
-                                if (javaStart != result.start || javaEnd != result.end) {
+                                if (javaStart != matcher.start() || javaEnd != matcher.end()) {
                                     errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd);
                                 }
                             } else {
@@ -747,7 +749,7 @@ public class DFACompilerTest {
                         errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
                     }
                 } else {
-                    if (result.matched) {
+                    if (found) {
                         errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle='" + spec.target + "' incorrectly matched");
                     } else {
                         nonMatches++;
@@ -784,10 +786,11 @@ public class DFACompilerTest {
         String regex = "a*baa";
         Pattern pattern = DFACompiler.compile(regex, "noOverbacktracking");
         String hayStack = "aaaabaa";
-        var result = pattern.matcher(hayStack).find(3, 7);
+        var matcher = pattern.matcher(hayStack);
+        var result = matcher.find(3, 7);
 
-        assertEquals(3, result.start);
-        assertEquals(7, result.end);
+        assertEquals(3, matcher.start());
+        assertEquals(7, matcher.end());
     }
 
     @Test
@@ -804,31 +807,37 @@ public class DFACompilerTest {
         String hayStack = "cgatgccgaa";
 
         var matcher = pattern.matcher(hayStack);
-        var result = matcher.find(6, 10);
-        assertEquals(6, result.start);
-        assertEquals(10, result.end);
+        matcher.find(6, 10);
+        assertEquals(6, matcher.start());
+        assertEquals(10, matcher.end());
     }
 
     @Test
     void findDoesntRollOver() {
         var pattern = DFACompiler.compile("a", "rolloverTestClass");
         var matcher = pattern.matcher("aa");
-        assertTrue(matcher.find().matched);
-        assertTrue(matcher.find().matched);
+        assertTrue(matcher.find());
+        assertTrue(matcher.find());
         // Question: is it arbitrary I did three failing matches?
-        assertFalse(matcher.find().matched);
-        assertFalse(matcher.find().matched);
-        assertFalse(matcher.find().matched);
+        assertFalse(matcher.find());
+        assertFalse(matcher.find());
+        assertFalse(matcher.find());
     }
 
     @Test
     void dotAll() {
         var pattern = DFACompiler.compile("a.*c", "aDotStarc");
         assertTrue(pattern.matcher("abc").matches());
-        assertEquals(MatchResult.success(0, 3), pattern.matcher("abc\nc").find());
+        var matcher = pattern.matcher("abc\nc");
+        matcher.find();
+        assertEquals(0, matcher.start());
+        assertEquals(3, matcher.end());
 
         pattern = DFACompiler.compile("a.*c", "aDotStarc_DOTALL", CompilerOptions.fromFlags(Pattern.DOTALL));
         assertTrue(pattern.matcher("abc").matches());
-        assertEquals(MatchResult.success(0, 5), pattern.matcher("abc\nc").find());
+        matcher = pattern.matcher("abc\nc");
+        matcher.find();
+        assertEquals(0, matcher.start());
+        assertEquals(5, matcher.end());
     }
 }
