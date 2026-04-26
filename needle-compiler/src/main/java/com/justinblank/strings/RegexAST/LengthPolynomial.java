@@ -57,6 +57,12 @@ public class LengthPolynomial {
     }
 
     public Optional<LengthPolynomial> multi(int min, int max) {
+        if (components.isEmpty()) {
+            var variables = new ArrayList<LengthComponent>();
+            variables.add(new LengthComponent(min, max, constant));
+            var polynomial = new LengthPolynomial(variables, 0);
+            return Optional.of(polynomial);
+        }
         return Optional.empty();
     }
 }
