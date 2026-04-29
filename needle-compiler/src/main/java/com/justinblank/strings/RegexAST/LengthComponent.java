@@ -31,13 +31,13 @@ public class LengthComponent implements Comparable<LengthComponent> {
 
     @Override
     public int compareTo(LengthComponent o) {
-        if (Integer.compare(size, o.size) != 0) {
+        if (size != o.size) {
             return Integer.compare(size, o.size);
         }
-        if (Integer.compare(min, o.min) != 0) {
+        if (min != o.min) {
             return Integer.compare(min, o.min);
         }
-        if (Integer.compare(max, o.max) != 0) {
+        if (max != o.max) {
             return Integer.compare(max, o.max);
         }
         return 0;
