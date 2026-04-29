@@ -57,12 +57,58 @@ public class LengthPolynomial {
     }
 
     public Optional<LengthPolynomial> multi(int min, int max) {
-        if (components.isEmpty()) {
-            var variables = new ArrayList<LengthComponent>();
-            variables.add(new LengthComponent(min, max, constant));
-            var polynomial = new LengthPolynomial(variables, 0);
-            return Optional.of(polynomial);
+        var variables = new ArrayList<LengthComponent>();
+        variables.add(new LengthComponent(min, max, constant));
+        for (var component : components) {
+            variables.add(new LengthComponent(component.min * min, component.max * max, component.size));
         }
-        return Optional.empty();
+        var polynomial = new LengthPolynomial(variables, 0);
+        return Optional.of(polynomial);
+    }
+
+    public int getConstant() {
+        return constant;
+    }
+
+    /**
+     * Return whether it's possible this polynomial blurp
+     * @param i
+     * @return
+     */
+    public boolean canMatch(int i) {
+        var remainingMin = i - constant;
+        var remainingMax = remainingMin;
+        if (remainingMin < 0) {
+            return false;
+        }
+        if (components.size() > 1) {
+            return true;
+        }
+        else if (components.size() == 1) {
+
+        }
+        return true;
+    }
+
+    public static int gcd(int x, int y) {
+        while (x != y) {
+            if (x > y) {
+                int tmp = x % y;
+                if (tmp == 0) {
+                    return y;
+                }
+                x = y;
+                y = tmp;
+            }
+            else {
+                int tmp = y % x;
+                if (tmp == 0) {
+                    return x;
+                }
+                y = x;
+                x = tmp;
+            }
+        }
+        return x;
     }
 }
