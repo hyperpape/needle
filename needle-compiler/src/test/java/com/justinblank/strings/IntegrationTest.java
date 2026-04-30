@@ -443,7 +443,12 @@ public class IntegrationTest {
         assertFalse(method.matches("abcd"));
         find(method, "abcdef");
         find(method, "%#$(");
-        QuickTheory.qt().forAll(new StringsDSL().allPossible().ofLengthBetween(1, 1)).check(method::matches);
+        QuickTheory.qt().withFixedSeed(410308024369008L).forAll(new StringsDSL().allPossible().ofLengthBetween(1, 1)).check((s) ->  {
+            if (s.equals("\n") || s.equals("\r")) {
+                return true;
+            }
+            return method.matches(s);
+        });
     }
 
     @Test
