@@ -48,8 +48,6 @@ class DFAClassBuilder extends ClassBuilder {
     private int catchAllByteClass;
     private final CompilerOptions compilerOptions;
 
-    final List<Method> findMethods = new ArrayList<>();
-
     /**
      * @param className the simple class name of the class to be created
      */
@@ -110,13 +108,13 @@ class DFAClassBuilder extends ClassBuilder {
             }
         });
 
-        findMethods.add(createMatchesMethod(forwardFindMethodSpec));
-        findMethods.add(createContainedInMethod(containedInFindMethodSpec));
-        findMethods.add(createFindMethod());
-        findMethods.add(createFindMethodInternal());
-        findMethods.add(createIndexMethod(dfaSearchFindMethodSpec));
+        createMatchesMethod(forwardFindMethodSpec);
+        createContainedInMethod(containedInFindMethodSpec);
+        createFindMethod();
+        createFindMethodInternal();
+        createIndexMethod(dfaSearchFindMethodSpec);
         if (!factorization.canOnlyHaveOneLength()) {
-            findMethods.add(createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa));
+            createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa);
         }
         for (var spec : allSpecs()) {
             addWasAcceptedMethod(spec);
