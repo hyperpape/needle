@@ -76,16 +76,15 @@ public class LengthPolynomial {
      * @return
      */
     public boolean canMatch(int i) {
-        var remainingMin = i - constant;
-        var remainingMax = remainingMin;
-        if (remainingMin < 0) {
+        var remaining = i - constant;
+        if (remaining < 0) {
             return false;
         }
         if (components.size() > 1) {
             return true;
         }
         else if (components.size() == 1) {
-
+            return remaining % components.get(0).size == 0;
         }
         return true;
     }
