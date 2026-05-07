@@ -1,0 +1,26 @@
+## 0.0.2
+
+- Added flag support for regex compilation
+    - case insensitive matching,
+    - unicode character classes
+    - leftmost longest semantics
+    - . to match \n characters
+- Support more escape sequences
+- Parse regexes with non-capturing and named groups (implemention still ignores grouping constructs)
+- Performance improvements
+    - search for first character using boolean[] array for valid first characters
+    - customizable character distributions to determine whether initial character searches are useful
+    - optimize backward scans for finding regex start when first character cannot contained in a proper infix
+    - use power of two sized byteclasses
+    - unify handling of unicode needles with non-unicode
+    - store match results on the `Matcher`, rather than creating `MatchResult` object per match.
+- Bug fixes
+    - parser edge cases
+    - reduce inconsistencies with the standard library and document remaining ones
+- More thorough testing
+    - roughly doubled the number of example based tests
+    - snapshot testing to track which compiled classes are changed by any given code change
+
+## 0.0.1
+
+- Initial release

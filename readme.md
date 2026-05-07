@@ -1,18 +1,22 @@
 # Needle
 
-![Badge](https://www.repostatus.org/badges/latest/wip.svg)
+![Badge](https://www.repostatus.org/badges/latest/active.svg)
 
-Needle is a fast regular expression library for the JVM. It works by compiling
-regular expressions to Deterministic Finite Automata (DFA) (meaning that the
-regular expressions are [non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and then compiles them those to
-JVM ByteCode. Each regex becomes a
+Needle is a fast regular expression library for the JVM.
+
+It works by compiling regular expressions to Deterministic Finite
+Automata (DFA) (meaning that the regular expressions are
+[non-backtracking](https://swtch.com/~rsc/regexp/regexp1.html)), and
+then compiles them those to JVM ByteCode. Each regex becomes a
 separate JVM class.
 
 ### Status
 
-This project has no users as of yet, but should be usable. It would
-probably be advisable to precompile a static set of regexes, test
-them for your use cases, and verify that they perform well.
+Needle is not feature complete, but supports a significant portion of
+the standard library syntax for regular expressions and performs well
+on them. Potential users should probably precompile a static set of
+regexes, test them for your use cases, and verify that they perform
+well.
 
 ### Usage
 
@@ -31,19 +35,18 @@ Each call to `DFACompiler.compile` will create a new class.
 
 ```java
 static final Pattern URL_PATTERN = DFACompiler.compile("http://.+", "OverSimplifiedURLMatcher");
-....
+
 Matcher matcher = URL_PATTERN.matcher("http://www.google.com");
 
 assertTrue(matcher.matches());
 
 assertTrue(matcher.containedIn());
-MatchResult matchResult = matcher.find();
 
-assertTrue(matchResult.matched);
+assertTrue(matcher.find());
 
-assertEquals(0,matchResult.start);
+assertEquals(0,matcher.start());
 
-assertEquals(21,matchResult.end);
+assertEquals(21,matcher.end());
 ```
 
 #### Precompilation
@@ -82,17 +85,17 @@ Inline flags are not yet supported.
 
 The following character classes are supported:
 
-    \a, \d, \D, \e, \f, \h, \H, \s, \S, \t, \w, \W, \x, \.
+    \a, \d, \D, \e, \f, \h, \H, \s, \S, \t, \w, \W, \x, \v, \V, \.
 
 ### Unicode
 
 The library supports searching against any string, however the needles
-that we search for are currently limited to the
-[Basic Multilingual Plane](https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane).
-Regexes containing non-ascii characters are currently likely to be much
-slower than ASCII regexes
-(see [Issue #16](https://github.com/hyperpape/needle/issues/16)). Testing of
-non-ascii regexes and non-ascii matches is currently less comprehensive.
+that we search for are currently limited to the [Basic Multilingual
+Plane](https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane),
+meaning some emoji, rare characters, and historical scripts are not
+supported.
+
+Testing of non-ascii regexes is currently less comprehensive.
 
 ### Java versions
 
