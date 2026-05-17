@@ -22,10 +22,6 @@ class NFA implements SearchMethod {
         this.regexInstrs = regexInstrs;
     }
 
-    protected NFA(NFA nfa) {
-        this.regexInstrs = nfa.regexInstrs;
-    }
-
     public static SearchMethod createNFA(String regex) {
         return createNFA(regex, 0);
     }
@@ -267,22 +263,5 @@ class NFA implements SearchMethod {
             }
         }
         return closure;
-    }
-
-    protected Set<Integer> epsilonClosure(Collection<Integer> nfaStates) {
-        Set<Integer> closure = new HashSet<>();
-        for (Integer state : nfaStates) {
-            closure.addAll(epsilonClosure(state));
-        }
-        return closure;
-    }
-
-    public NFA selfTransitioning() {
-        var list = new ArrayList<RegexInstr>();
-        for (var instr : regexInstrs) {
-            list.add(instr);
-        }
-
-        return new NFA(list.toArray(new RegexInstr[0]));
     }
 }

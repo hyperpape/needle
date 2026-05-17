@@ -98,10 +98,6 @@ public class Factorization {
         return new Factorization(null, null, null, null, new HashSet<>());
     }
 
-    static Factorization copy(Factorization factorization) {
-        return new Factorization(factorization.all, factorization.suffixes, factorization.prefixes, factorization.factors, factorization.requiredFactors);
-    }
-
     static Factorization buildFactorization(Node node) {
         var factorization = node.bestFactors();
         factorization.setMinLength(node.minLength());

@@ -45,9 +45,6 @@ public class FindMethodSpec {
     }
 
     String statesConstant() {
-        if (name.isEmpty()) {
-            return "STATES";
-        }
         return ("STATES_" + name).toUpperCase();
     }
 
@@ -56,21 +53,7 @@ public class FindMethodSpec {
     }
 
     public String wasAcceptedArrayName() {
-        if (name.isEmpty()) {
-            return "ACCEPTED_ARRAY";
-        }
-        else {
-            return "ACCEPTED_ARRAY_" + name;
-        }
-    }
-
-    public String stateArrayName(int stateNumber) {
-        if (name.isEmpty()) {
-            return "stateTransitions" + stateNumber;
-        }
-        else {
-            return "stateTransitions" + name + stateNumber;
-        }
+        return "ACCEPTED_ARRAY_" + name;
     }
 
     // TODO: could weaken the "allForwardTransitionsLeadToSameState" condition here, but it's not obvious to me whether
