@@ -9,6 +9,11 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <name>needle-types</name>
+    <description>Types and utility classes necessary to distribute standalone needle regular expressions without
+        shipping the compiler
+    </description>
+    <url>https://github.com/hyperpape/needle</url>
     <artifactId>needle-types</artifactId>
 
     <build>

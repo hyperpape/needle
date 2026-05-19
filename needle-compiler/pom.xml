@@ -9,6 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <name>needle-compiler</name>
+    <description>A regex library that compiles deterministic finite automata to Java bytecode</description>
+    <url>https://github.com/hyperpape/needle</url>
     <artifactId>needle-compiler</artifactId>
 
     <properties>
