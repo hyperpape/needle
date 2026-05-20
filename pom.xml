@@ -9,7 +9,7 @@
     <url>https://github.com/hyperpape/needle</url>
     <groupId>com.justinblank</groupId>
     <artifactId>needle</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3-SNAPSHOT</version>
 
     <packaging>pom</packaging>
     <modules>
