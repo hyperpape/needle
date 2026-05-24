@@ -613,16 +613,6 @@ class DFAClassBuilder extends ClassBuilder {
         });
     }
 
-    private CodeElement buildStateLookup(FindMethodSpec spec) {
-        Type type = useShorts(spec) ? Builtin.S : Builtin.OCTET;
-        var stateArrayRef = arrayRead(
-                getStatic(spec.statesConstant(), ReferenceType.of(getFQCN()), ArrayType.of(ArrayType.of(type))), read(MatchingVars.STATE));
-        var byteClassRef = getStatic(BYTE_CLASSES_CONSTANT, ReferenceType.of(getFQCN()), ArrayType.of(Builtin.OCTET));
-        var byteClassLookup = arrayRead(byteClassRef, read(MatchingVars.CHAR));
-        // TODO: using a cast here is a bit of a hack--we'll have to figure out the type inference story in mako
-        return set(MatchingVars.STATE, cast(Builtin.I, arrayRead(stateArrayRef, byteClassLookup)));
-    }
-
     private Method createFindMethod() {
 
         var method = mkMethod("find", List.of(), "Z");
