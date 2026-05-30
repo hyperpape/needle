@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RegexGeneratorTest {
 
@@ -35,7 +36,7 @@ class RegexGeneratorTest {
     void minimalGenerationComposite() {
         var generator = new RegexGenerator(new Random(), DUMMY);
         var s = generator.generateMinimalMatch("(a|b)a*");
-        assertEquals("a", s);
+        assertTrue("a".equals(s) || "b".equals(s), s);
     }
 
     @Test
