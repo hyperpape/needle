@@ -1,7 +1,11 @@
 package com.justinblank.strings;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -16,6 +20,12 @@ public class RegexTestSpecParser {
         return text.stream().filter(s ->
                 !s.isBlank() && !s.startsWith("#")
         ).map(String::trim).map(this::readSpec).collect(Collectors.toList());
+    }
+
+    List<CaptureTestSpec> readCaptureTests() throws Exception {
+        var resource = this.getClass().getClassLoader().getResource("captures.txt");
+        var text = Files.readAllLines(Path.of(resource.toURI()));
+        return text.stream().filter(s -> !s.isBlank() && !s.startsWith("#")).map(String::trim).map(this::readCaptureSpec).collect(Collectors.toList());
     }
 
     private RegexTestSpec readSpec(String s) {
@@ -40,6 +50,34 @@ public class RegexTestSpecParser {
         }
     }
 
+    private CaptureTestSpec readCaptureSpec(String s) {
+        try {
+            idx = 0;
+            var pattern = chomp(s);
+            var target = chomp(s);
+            var start = Integer.parseInt(chomp(s));
+            var end = Integer.parseInt(chomp(s));
+            var nextBit = readArray(s);
+            RegexTestSpec.Flags flags = null;
+            if (!nextBit.startsWith("[")) {
+                flags = new RegexTestSpec.Flags(Integer.parseInt(nextBit, 16));
+                nextBit = readArray(s);
+            }
+            nextBit = nextBit.replaceAll("\\[|\\]", "");
+            List<String> captures = Arrays.asList(nextBit.split(",")).stream().map(capture -> {
+                if ("null".equals(capture)) {
+                    return null;
+                }
+                return capture.replaceAll("'", "");
+            }).collect(Collectors.toList());
+            return new CaptureTestSpec(pattern, target, start, end, captures, flags);
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to parse spec '" + s + "'", e);
+        }
+
+    }
+
     private String unescapeEscapes(String target) {
         target = target.replaceAll("\\\\n", "\n");
         target = target.replaceAll("\\\\r", "\r");
@@ -54,6 +92,14 @@ public class RegexTestSpecParser {
     }
 
     private String chomp(String s) {
+        return chomp(s, false);
+    }
+
+    private String readArray(String s) {
+        return chomp(s, true);
+    }
+
+    private String chomp(String s, boolean array) {
         int start = idx;
         boolean seenChar = false;
         boolean inQuote = false;
@@ -62,6 +108,14 @@ public class RegexTestSpecParser {
             if (c == ' ' && !inQuote) {
                 if (seenChar) {
                     return s.substring(start, idx).trim();
+                }
+            }
+            else if (array && c == '[') {
+                idx++;
+                while (idx < s.length()) {
+                    if (s.charAt(idx++) == ']') {
+                        return s.substring(start, idx).trim();
+                    }
                 }
             }
             else if (c == '\'') {

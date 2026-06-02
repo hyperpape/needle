@@ -1,0 +1,33 @@
+# pattern           haystack        start    end     flags       captures
+
+(AB)+A              ABA             0        3                   [AB]
+(AB)+A              ABABABA         0        7                   [AB]
+((AB)+A)            ABABABA         0        7                   [ABABABA,AB]
+(A|AB)(A|BA)        ABA             0        3                   [A,BA]
+(A*)(A*)            AAAA            0        4                   [AAAA,'']
+
+(A*|B)*             AB              0        1                   ['']
+# note equivalence of the following as languages
+(A*|B)+             AB              0        1                   ['']
+(A*|B)(A*B)*        A               0        1                   [A,null]
+(A*|B)(A*B)*        AAAA            0        4                   [AAAA,null]
+(A*|B)(A*B)*        AB              0        2                   [A,B]
+
+# wat
+(A*|B)*A            ABA             0        3                   ['']
+
+# leftmost first matches and captures first option
+(AAA|AAAA)*         AAAA            0        3                   [AAA]
+(AAA|AAAA)*         AAAAA           0        3                   [AAA]
+(AAA|AAAA)*         AAAAAAA         0        6                   [AAA]
+
+# when anchored it captures the second option if need be
+(AAA|AAAA)*$        AAAA            0        4                   [AAAA]
+(AAA|AAAA)*$        AAAAAA          0        6                   [AAA]
+(AAA|AAAA)*$        AAAAAAA         0        7                   [AAAA]
+(AAA|AAAA)*$        AAAAAAAAAA      0        10                  [AAAA]
+
+# start capture then fail
+(AAB|BAA)           ABAA            1        4                   [BAA]
+(AAB|BAA)C          ABAAC           1        5                   [BAA]
+(AAB|BAAB)          ABAAB           1        5                   [BAAB]
