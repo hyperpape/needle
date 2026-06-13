@@ -31,3 +31,10 @@
 (AAB|BAA)           ABAA            1        4                   [BAA]
 (AAB|BAA)C          ABAAC           1        5                   [BAA]
 (AAB|BAAB)          ABAAB           1        5                   [BAAB]
+
+# edge cases
+()                  ''              0        0                   ['']
+(())                ''              0        0                   ['','']
+(()())              ''              0        0                   ['','','']
+(()(A)())           'A'             0        1                   [A,'',A,'']
+(()(A*)())           'A'             0        1                   [A,'',A,'']
