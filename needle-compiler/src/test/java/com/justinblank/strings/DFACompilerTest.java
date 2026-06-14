@@ -734,7 +734,7 @@ public class DFACompilerTest {
                                 var javaStart = javaMatcher.start();
                                 var javaEnd = javaMatcher.end();
                                 if (javaStart != matcher.start() || javaEnd != matcher.end()) {
-                                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd);
+                                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd + ", matcherStart=" + matcher.start() + ", matcherEnd=" + matcher.end());
                                 }
                             } else {
                                 errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " matched, while the java regex did not match");
