@@ -22,7 +22,7 @@ class NFAToDFACompiler {
     }
 
     protected static DFA compile(NFA nfa, ConversionMode mode, boolean debug) {
-        DFA dfa = new NFAToDFACompiler(nfa)._compile(nfa, mode);
+        DFA dfa = new NFAToDFACompiler(nfa)._compile(mode);
         dfa.pruneDeadStates();
         if (debug) {
             System.out.println("Pre-minimization dfa");
@@ -31,7 +31,7 @@ class NFAToDFACompiler {
         return MinimizeDFA.minimizeDFA(dfa, debug);
     }
 
-    DFA _compile(NFA nfa, ConversionMode mode) {
+    DFA _compile(ConversionMode mode) {
         StateSet states = new StateSet();
         states.add(0, 0, RegexInstrBuilder.STARTING_PRIORITY);
         states = getEpsilonClosure(states);
