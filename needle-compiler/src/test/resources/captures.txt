@@ -16,6 +16,10 @@
 # wat
 (A*|B)*A            ABA             0        3                   ['']
 
+# captures on separate branches are both part of the result
+([ab])|([cd])       a               0        1                   ['a',null]
+([ab])|([cd])       c               0        1                   [null,'c']
+
 # leftmost first matches and captures first option
 (AAA|AAAA)*         AAAA            0        3                   [AAA]
 (AAA|AAAA)*         AAAAA           0        3                   [AAA]
@@ -27,7 +31,7 @@
 (AAA|AAAA)*$        AAAAAAA         0        7                   [AAAA]
 (AAA|AAAA)*$        AAAAAAAAAA      0        10                  [AAAA]
 
-# start capture then fail
+# transition from one state to another inside capture
 (AAB|BAA)           ABAA            1        4                   [BAA]
 (AAB|BAA)C          ABAAC           1        5                   [BAA]
 (AAB|BAAB)          ABAAB           1        5                   [BAAB]
