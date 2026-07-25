@@ -23,15 +23,16 @@ class DFAClassBuilderTest {
     void containedIn() {
         var dfa = DFA.createDFA("abcd");
         var factorization = RegexParser.parse("abcd", 0).bestFactors();
-        var builder = new DFAClassBuilder("testContainedIn", dfa,
-                dfa, dfa, dfa, factorization, CompilerOptions.defaultOptions());
+        var compilerOptions = CompilerOptions.defaultOptions();
+        String className = "testContainedIn";
+        var builder = new DFAClassBuilder(className, DFACompiler.buildDFAs("abcd", compilerOptions), compilerOptions);
         builder.addMethod(builder.createContainedInMethod(new FindMethodSpec(dfa, "", true, factorization, CharacterDistribution.DEFAULT)));
         builder.addStateMethods();
 
         var compiler = new ClassCompiler(builder);
         byte[] classBytes = compiler.generateClassAsBytes();
 
-        MyClassLoader.getInstance().loadClass("testContainedIn", classBytes);
+        MyClassLoader.getInstance().loadClass(className, classBytes);
     }
 
     private Class<?> compileFromBuilder(DFAClassBuilder builder, String name) throws IOException {
@@ -43,16 +44,14 @@ class DFAClassBuilderTest {
     @Test
     void indexForwards() {
         try {
-            var dfa = DFA.createDFA("abc");
-            var node = RegexParser.parse("abc", 0);
-            var dfaReversed = NFAToDFACompiler.compile(new NFA(RegexInstrBuilder.createNFA(node.reversed())),
-                    ConversionMode.BASIC);
-            var builder = new DFAClassBuilder("indexForwards",
-                    dfa, dfa, dfaReversed, dfa, node.bestFactors(), CompilerOptions.defaultOptions());
+            var compilerOptions = CompilerOptions.defaultOptions();
+            String className = "indexForwards";
+            var builder = new DFAClassBuilder(className,
+                    DFACompiler.buildDFAs("abc", compilerOptions), compilerOptions);
             builder.initMethods();
-            Class<?> c = compileFromBuilder(builder, "indexForwards");
+            Class<?> c = compileFromBuilder(builder, className);
             Object o = c.getDeclaredConstructors()[0].newInstance("abca");
-            assertEquals(3, o.getClass().getDeclaredMethod("indexForwards", int.class, int.class).invoke(o, 0, 0));
+            assertEquals(3, o.getClass().getDeclaredMethod(className, int.class, int.class).invoke(o, 0, 0));
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException(t);
@@ -62,12 +61,13 @@ class DFAClassBuilderTest {
     @Test
     void indexForwardsSingleChar() {
         try {
-            var dfa = DFA.createDFA("a");
-            var node = RegexParser.parse("a", 0);
-            var builder = new DFAClassBuilder("indexForwardsSingleChar",
-                    dfa, dfa, dfa, dfa, node.bestFactors(), CompilerOptions.defaultOptions());
+            var compilerOptions = CompilerOptions.defaultOptions();
+            String className = "indexForwardsSingleChar";
+            var builder = new DFAClassBuilder(className,
+                    DFACompiler.buildDFAs("a", compilerOptions), compilerOptions);
+
             builder. initMethods();
-            Class<?> c = compileFromBuilder(builder, "indexForwardsSingleChar");
+            Class<?> c = compileFromBuilder(builder, className);
             Object o = c.getDeclaredConstructors()[0].newInstance("aba");
             assertEquals(1, o.getClass().getDeclaredMethod("indexForwards", int.class, int.class).invoke(o, 0, 0));
         } catch (Throwable t) {
@@ -89,9 +89,10 @@ class DFAClassBuilderTest {
 
     @Test
     void stateMethodIsCompilable() throws Exception {
-        var dfa = DFA.createDFA("a");
+        var compilerOptions = CompilerOptions.defaultOptions();
+
         var builder = new DFAClassBuilder("testStateMethod",
-                dfa, dfa, dfa, dfa, Factorization.fromChar('a'), CompilerOptions.defaultOptions());
+                DFACompiler.buildDFAs("a", compilerOptions), compilerOptions);
         builder.addStateMethods();
         Class<?> c = compileFromBuilder(builder, "testStateMethod");
     }

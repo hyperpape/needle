@@ -45,24 +45,9 @@ public class DFACompiler {
     public static byte[] compileToBytes(String regex, String className, CompilerOptions options) {
         try {
             Objects.requireNonNull(className, "name cannot be null");
-            Node node = RegexParser.parse(regex, options.flags);
-            Factorization factorization = Factorization.buildFactorization(node);
+            DFAs dfas = buildDFAs(regex, options);
 
-            boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
-            NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
-            NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
-
-            DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
-            DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs);
-            DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
-            DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
-
-            if (options.debugOptions.printDFAs) {
-                printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
-            }
-            checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
-
-            var builder = new DFAClassBuilder(className, dfa, containedInDFA, dfaReversed, dfaSearch, factorization, options);
+            var builder = new DFAClassBuilder(className, dfas, options);
             builder.initMethods();
             ClassCompiler compiler = new ClassCompiler(builder, options.debugOptions.isDebug(), System.out);
             byte[] classBytes = compiler.generateClassAsBytes();
@@ -71,6 +56,31 @@ public class DFACompiler {
         catch (Exception e) {
             throw new PatternClassCompilationException("Failed to create pattern class for regex '" + regex + "'", e);
         }
+    }
+
+    static DFAs buildDFAs(String regex, CompilerOptions options) {
+        Node node = RegexParser.parse(regex, options.flags);
+        Factorization factorization = Factorization.buildFactorization(node);
+
+        boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
+        NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
+        NFA reversedNFA = new NFA(RegexInstrBuilder.createNFA(node.reversed(), leftmostLongest));
+
+        DFA dfa = NFAToDFACompiler.compile(forwardNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
+        DFA containedInDFA = NFAToDFACompiler.compile(forwardNFA, ConversionMode.CONTAINED_IN, options.debugOptions.printDFAs);
+        DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
+        DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
+
+        if (options.debugOptions.printDFAs) {
+            printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
+        }
+        checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
+
+        var forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
+        var containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
+        var reversedFindMethodSpec = new FindMethodSpec(dfaReversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
+        var dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
+        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, factorization);
     }
 
     private static void checkForOverLongDFAs(List<DFA> dfas) {
@@ -108,6 +118,24 @@ public class DFACompiler {
 
         ClassCompiler compiler = new ClassCompiler(builder);
         return (Class<? extends Pattern>) MyClassLoader.getInstance().loadClass("Pattern" + name, compiler.writeClassAsBytes());
+    }
+
+    static class DFAs {
+        final FindMethodSpec forwardFindMethodSpec;
+        final FindMethodSpec reversedFindMethodSpec;
+        final FindMethodSpec containedInFindMethodSpec;
+        final FindMethodSpec dfaSearchFindMethodSpec;
+        final Factorization factorization;
+        final Map<Integer, Offset> forwardOffsets;
+
+        DFAs(FindMethodSpec forwardFindMethodSpec, FindMethodSpec reversedFindMethodSpec, FindMethodSpec containedInFindMethodSpec, FindMethodSpec dfaSearchFindMethodSpec, Factorization factorization) {
+            this.forwardFindMethodSpec = forwardFindMethodSpec;
+            this.reversedFindMethodSpec = reversedFindMethodSpec;
+            this.containedInFindMethodSpec = containedInFindMethodSpec;
+            this.dfaSearchFindMethodSpec = dfaSearchFindMethodSpec;
+            this.factorization = factorization;
+            this.forwardOffsets = forwardFindMethodSpec.dfa.calculateOffsets(factorization);
+        }
     }
 
 }

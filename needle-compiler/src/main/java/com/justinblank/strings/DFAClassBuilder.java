@@ -54,18 +54,17 @@ class DFAClassBuilder extends ClassBuilder {
     /**
      * @param className the simple class name of the class to be created
      */
-    DFAClassBuilder(String className, DFA dfa, DFA containedInDFA, DFA reversed, DFA dfaSearch,
-                    Factorization factorization, CompilerOptions options) {
+    DFAClassBuilder(String className, DFACompiler.DFAs dfas, CompilerOptions options) {
         super(className, "", "java/lang/Object", new String[]{"com/justinblank/strings/Matcher"});
-        this.forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
-        this.containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
-        this.reversedFindMethodSpec = new FindMethodSpec(reversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
-        this.dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
-        this.factorization = factorization;
+        this.forwardFindMethodSpec = dfas.forwardFindMethodSpec;
+        this.containedInFindMethodSpec = dfas.containedInFindMethodSpec;
+        this.reversedFindMethodSpec = dfas.reversedFindMethodSpec;
+        this.dfaSearchFindMethodSpec = dfas.dfaSearchFindMethodSpec;
+        this.factorization = dfas.factorization;
         this.compilerOptions = options;
-        this.forwardOffsets = dfa.calculateOffsets(factorization);
+        this.forwardOffsets = dfas.forwardOffsets;
         // TODO: test whether it matters that the four DFAs can have different byteClasses
-        Optional<ByteClasses> byteClasses = dfaSearch.byteClasses();
+        Optional<ByteClasses> byteClasses = dfaSearchFindMethodSpec.dfa.byteClasses();
         byteClasses.ifPresent((bc) -> {
             stateTransitions.byteClasses = bc;
             for (var spec : allSpecs()) {
