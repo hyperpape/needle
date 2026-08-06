@@ -1,5 +1,9 @@
 # pattern           haystack        start    end     flags       captures
 
+(A)                 A               0        1                   [A]
+(A|B)               A               0        1                   [A]
+(A|B)               B               0        1                   [B]
+
 (AB)+A              ABA             0        3                   [AB]
 (AB)+A              ABABABA         0        7                   [AB]
 ((AB)+A)            ABABABA         0        7                   [ABABABA,AB]
