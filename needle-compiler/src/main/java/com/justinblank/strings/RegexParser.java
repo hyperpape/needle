@@ -182,7 +182,7 @@ class RegexParser {
                         throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
                     }
                     Node lastNode = nodes.pop();
-                    nodes.push(concatenate(lastNode, new Repetition(lastNode)));
+                    nodes.push(new CountedRepetition(lastNode, 1, -1));
                     break;
                 case '*':
                     if (nodes.isEmpty()) {

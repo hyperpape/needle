@@ -12,7 +12,7 @@ public class CountedRepetition extends Node {
 
     public CountedRepetition(Node node, int min, int max) {
         Objects.requireNonNull(node, "Cannot repeat nothing");
-        if (min > max) {
+        if (max != -1 && min > max) {
             throw new IllegalArgumentException("Repetition with range of " + min + "," + max + " is invalid");
         }
         this.node = node;
@@ -25,6 +25,9 @@ public class CountedRepetition extends Node {
     }
 
     public Optional<Integer> maxLength() {
+        if (max == -1) {
+            return Optional.empty();
+        }
         return node.maxLength().map(n -> n * max);
     }
 

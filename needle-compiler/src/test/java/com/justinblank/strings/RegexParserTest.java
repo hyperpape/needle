@@ -105,7 +105,7 @@ class RegexParserTest {
     @Test
     void plusHasHighPrecedence() {
         Node node = parse("ab+");
-        check(node, "abb*");
+        check(node, "ab+");
     }
 
     @Test

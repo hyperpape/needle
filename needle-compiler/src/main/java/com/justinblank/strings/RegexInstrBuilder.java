@@ -125,19 +125,37 @@ class RegexInstrBuilder {
         else if (ast instanceof CountedRepetition) {
             CountedRepetition countedRepetition = (CountedRepetition) ast;
             int repetition = 0;
-            for (; repetition < countedRepetition.min; repetition++) {
-                createPartial(countedRepetition.node, instrs);
-            }
-            List<Integer> switchLocations = new ArrayList<>();
-            for (; repetition < countedRepetition.max; repetition++) {
-                switchLocations.add(instrs.size());
+
+            if (countedRepetition.max == -1) {
+                for (; repetition < countedRepetition.min; repetition++) {
+                    createPartial(countedRepetition.node, instrs);
+                }
+
+                int splitIndex = instrs.size();
                 instrs.add(null);
                 createPartial(countedRepetition.node, instrs);
+                instrs.add(RegexInstr.jump(splitIndex, maxPriority));
+                if (!leftMostLongest) {
+                    maxPriority++;
+                }
+                int postIndex = instrs.size();
+                instrs.set(splitIndex, RegexInstr.split(new int[] { splitIndex + 1, postIndex}, maxPriority));
             }
-            int finalLocation = instrs.size();
-            for (Integer switchLocation : switchLocations) {
-                RegexInstr newInstr = RegexInstr.split(new int[]{switchLocation + 1, finalLocation}, maxPriority);
-                instrs.set(switchLocation, newInstr);
+            else {
+                for (; repetition < countedRepetition.min; repetition++) {
+                    createPartial(countedRepetition.node, instrs);
+                }
+                List<Integer> switchLocations = new ArrayList<>();
+                for (; repetition < countedRepetition.max; repetition++) {
+                    switchLocations.add(instrs.size());
+                    instrs.add(null);
+                    createPartial(countedRepetition.node, instrs);
+                }
+                int finalLocation = instrs.size();
+                for (Integer switchLocation : switchLocations) {
+                    RegexInstr newInstr = RegexInstr.split(new int[]{switchLocation + 1, finalLocation}, maxPriority);
+                    instrs.set(switchLocation, newInstr);
+                }
             }
         }
         else if (ast instanceof Union) {

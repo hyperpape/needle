@@ -277,7 +277,7 @@ public class Factorization {
 
     public Factorization countedRepetition(int min, int max) {
         Factorization factorization = this;
-        if (max > CompilationPolicy.FACTORIZATION_MAX_REPETITION_COUNT) {
+        if (max == -1 || max > CompilationPolicy.FACTORIZATION_MAX_REPETITION_COUNT) {
             return empty();
         }
         if (min == 0) {
