@@ -58,6 +58,7 @@ class SnapshotTests {
         // Dot character including unicode
         EXAMPLES.add(Pair.of("a.c", "aDotc"));
         EXAMPLES.add(Pair.of("[0-9]+", "DigitPlus"));
+        EXAMPLES.add(Pair.of("a.*", "TrailingDot"));
         // Unicode needles
         EXAMPLES.add(Pair.of("ε", "SingleCharacterUnicode"));
         EXAMPLES.add(Pair.of("ε|λ", "UnicodeUnion"));
@@ -73,7 +74,7 @@ class SnapshotTests {
     @Test
     void generateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
-        var compilationOptions = new CompilerOptions(Pattern.DOTALL, CharacterDistribution.DEFAULT, debugOptions);
+        var compilationOptions = new CompilerOptions(0, CharacterDistribution.DEFAULT, debugOptions);
         for (var pair : EXAMPLES) {
             DFACompiler.compile(pair.getLeft(), pair.getRight(), compilationOptions);
         }

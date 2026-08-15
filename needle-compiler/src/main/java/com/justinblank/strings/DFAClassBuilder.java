@@ -506,6 +506,10 @@ class DFAClassBuilder extends ClassBuilder {
         if (spec.compilationPolicy.usePrefix || (!(spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes) && spec.canSeekForPredicate())) {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
+        var tailLoop = spec.dfa.tailLoop();
+        if (tailLoop.isPresent()) {
+            innerLoopBoundary = and(neq(tailLoop.get(), read(MatchingVars.STATE)), innerLoopBoundary);
+        }
         Loop innerLoop = loop(innerLoopBoundary,
                 List.of(
                         innerLoopMustCallWasAccepted ? DFAMethodComponents.setLastMatchIfAccepted(spec) : new NoOpStatement(),
@@ -535,6 +539,18 @@ class DFAClassBuilder extends ClassBuilder {
                         DFAMethodComponents.setLastMatchIfAccepted(spec)
                 ));
         outerLoopBody.add(innerLoop);
+
+        tailLoop.ifPresent(integer ->
+                outerLoopBody.add(
+                        cond(eq(read(MatchingVars.STATE), literal(integer)))
+                                .withBody(List.of(
+                                        loop(DFAMethodComponents.inBounds(),
+                                                List.of(
+                                                        set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
+                                                        DFAMethodComponents.incrementIndex(),
+                                                        cond(or(eq(read(MatchingVars.CHAR), literal((int) '\n')), eq(read(MatchingVars.CHAR), literal((int) '\r')))).withBody(returnValue(read(MatchingVars.INDEX))),
+                                                        set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)))
+                                        )))));
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
 

@@ -975,9 +975,34 @@ class DFA {
         for (var state : states) {
             if (state.isAccepting() && !state.transitions.isEmpty()) {
                 return true;
-           }
+            }
         }
         return false;
+    }
+
+    public Optional<Integer> tailLoop() {
+        var acceptingStates = acceptingStates();
+        if (acceptingStates.size() == 1) {
+            var acceptingState = acceptingStates.iterator().next();
+            if (acceptingState.isSelfLoopUntilNewline() && acceptingState.getStateNumber() + 1 == statesCount()) {
+                return Optional.of(acceptingState.getStateNumber());
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean isSelfLoopUntilNewline() {
+        var transitions = getTransitions();
+        if (transitions.size() != 3) {
+            return false;
+        }
+        if (!transitions.get(0).getLeft().equals(CharRange.of((char) 0, '\t')) || transitions.get(0).getRight() != this) {
+            return false;
+        }
+        if (!transitions.get(1).getLeft().equals(CharRange.of((char) 11, (char) 12)) || transitions.get(1).getRight() != this) {
+            return false;
+        }
+        return transitions.get(2).getLeft().equals(CharRange.of((char) 14, (char) 65535)) && transitions.get(2).getRight() == this;
     }
 }
 

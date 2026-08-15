@@ -492,4 +492,22 @@ class DFATest {
         // prefix "ababxyz" does not: extending the inner match to the outer match's start leaves the language
         assertTrue(DFA.createDFA("ab(abxyzq)*xyz").backwardsMatchFromSuffixCanMissEarlierMatches());
     }
+
+    void tailLoop_isEmptyForNormalDFA() {
+        var dfa = DFA.createDFA("string");
+        assertThat(dfa.tailLoop()).isEmpty();
+    }
+
+    @Test
+    void tailLoop_recognizesFinalLoop() {
+        var dfa = DFA.createDFA("string.*");
+        assertThat(dfa.tailLoop()).contains(6);
+    }
+
+    // Failing test because construction is not good
+    @Test
+    void tailLoop_recognizesFinalWithSplit() {
+        var dfa = DFA.createDFA("(PREFIX|TAG):.*");
+        assertThat(dfa.tailLoop()).isEmpty();
+    }
 }
