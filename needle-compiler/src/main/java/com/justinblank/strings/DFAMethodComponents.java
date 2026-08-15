@@ -50,12 +50,25 @@ public class DFAMethodComponents {
         return set(MatchingVars.INDEX, plus(read(MatchingVars.INDEX), 1));
     }
 
-    static Expression hasLastMatch() {
-        return gt(read(MatchingVars.LAST_MATCH), literal(-1));
+    // TODO: this and the following method are a bit awkward--we could consider smooshing more of the context in here,
+    //   and creating a method that either returns a conditional or inlines/deletes the body of the conditional in the case where return a literal(true)/literal(false)
+    //   It's quite possible that from a performance perspective, doing things this way is equally good, but it's at least uglier
+    static Expression hasLastMatch(FindMethodSpec spec) {
+        if (spec.dfa.canAdvanceFromAcceptingState()) {
+            return gt(read(MatchingVars.LAST_MATCH), literal(-1));
+        }
+        else {
+            return literal(false);
+        }
     }
 
-    static Expression doesNotHaveLastMatch() {
-        return eq(read(MatchingVars.LAST_MATCH), -1);
+    static Expression hasNoLastMatch(FindMethodSpec spec) {
+        if (spec.dfa.canAdvanceFromAcceptingState()) {
+            return eq(read(MatchingVars.LAST_MATCH), -1);
+        }
+        else {
+            return literal(true);
+        }
     }
 
     static Conditional returnLastMatchIfDeadState() {
@@ -64,7 +77,8 @@ public class DFAMethodComponents {
 
     static Conditional setLastMatchIfAccepted(FindMethodSpec spec) {
         return cond(wasAccepted(spec)).withBody(
-                set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX))
+                spec.dfa.canAdvanceFromAcceptingState() ?
+                        set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : returnValue(read(MatchingVars.INDEX))
         );
     }
 

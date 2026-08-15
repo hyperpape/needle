@@ -17,8 +17,7 @@ import static com.justinblank.classcompiler.lang.BinaryOperator.*;
 import static com.justinblank.classcompiler.lang.CodeElement.*;
 import static com.justinblank.classcompiler.lang.Literal.literal;
 import static com.justinblank.classcompiler.lang.UnaryOperator.not;
-import static com.justinblank.strings.DFAMethodComponents.max;
-import static com.justinblank.strings.DFAMethodComponents.min;
+import static com.justinblank.strings.DFAMethodComponents.*;
 import static org.objectweb.asm.Opcodes.*;
 
 class DFAClassBuilder extends ClassBuilder {
@@ -397,13 +396,13 @@ class DFAClassBuilder extends ClassBuilder {
             outerLoopBody.add(updateIndexBasedOnSuffixIndex());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         } else if (spec.canSeekForPredicate()) {
+            boolean canAdvanceFromAcceptingState = spec.dfa.canAdvanceFromAcceptingState();
+            var outerSeek = and(DFAMethodComponents.inBounds(), lte(read(MatchingVars.STATE), 0));
+            if (canAdvanceFromAcceptingState) {
+                outerSeek = and(hasNoLastMatch(spec), outerSeek);
+            }
             outerLoopBody.add(set(MatchingVars.STATE, 0));
-            outerLoopBody.add(loop(and(
-                            DFAMethodComponents.doesNotHaveLastMatch(),
-                            and(
-                                    DFAMethodComponents.inBounds(),
-                                    lte(read(MatchingVars.STATE), 0)
-                            )),
+            outerLoopBody.add(loop(outerSeek,
                     List.of(
                             set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
                             cond(generatePredicate(spec.dfa))
@@ -418,7 +417,7 @@ class DFAClassBuilder extends ClassBuilder {
                     )));
         } else if (spec.dfa.initialAsciiBytes().isPresent() && !spec.dfa.isAccepting()) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
-            outerLoopBody.add(loop(and(eq(read(MatchingVars.LAST_MATCH), -1),
+            outerLoopBody.add(loop(and(DFAMethodComponents.hasNoLastMatch(spec),
                             and(DFAMethodComponents.inBounds(),
                                     lte(read(MatchingVars.STATE), 0)))
                     , List.of(set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
@@ -449,7 +448,7 @@ class DFAClassBuilder extends ClassBuilder {
 
                         maxCharacterCheckIsRequired(spec) ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar()))).withBody(List.of(
                                 set(MatchingVars.STATE, -1),
-                                cond(DFAMethodComponents.hasLastMatch()).withBody(
+                                cond(DFAMethodComponents.hasLastMatch(spec)).withBody(
                                         returnValue(read(MatchingVars.LAST_MATCH))
                                 ),
                                 skip()
