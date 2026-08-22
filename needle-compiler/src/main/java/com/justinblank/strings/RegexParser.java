@@ -18,6 +18,14 @@ class RegexParser {
 
     private int index = 0;
     private int charRangeDepth = 1;
+
+    /**
+     * Upper bound on single-character parser operations (reads and peeks). This
+     * guarantees the parser terminates even on inputs where a parsing loop fails
+     * to advance, at the cost of one counter increment per operation.
+     */
+    static final int MAX_PARSER_OPERATIONS = 1 << 25;
+    private int operations = 0;
     private final boolean dotAll;
     private final boolean caseInsensitive;
     private final boolean unicodeCaseInsensitive;
@@ -64,6 +72,7 @@ class RegexParser {
 
     private final String regex;
     private final Stack<Node> nodes = new Stack<>();
+    private final Set<String> groupNames = new HashSet<>();
 
     protected RegexParser(String regex, int flags) {
         this.regex = regex;
@@ -121,6 +130,8 @@ class RegexParser {
                         takeChar();
                     }
                     else if (peekString("?<")) {
+                        takeChar();
+                        takeChar();
                         consumeNamedGroup();
                     }
                     break;
@@ -529,6 +540,9 @@ class RegexParser {
     }
 
     private char takeChar() {
+        if (++operations > MAX_PARSER_OPERATIONS) {
+            throw parseError("Parser exceeded " + MAX_PARSER_OPERATIONS + " operations without completing, aborting");
+        }
         return regex.charAt(index++);
     }
 
@@ -760,27 +774,45 @@ class RegexParser {
     }
 
     private Optional<String> consumeNamedGroup() {
-        int groupIndex = index + 2;
-        while (groupIndex < regex.length()) {
-            char c = regex.charAt(groupIndex);
-            if ('A' <= c && c <= 'Z' || 'a' <= c &&  c <= 'z' || '0' <= c && c <= '9') {
-                groupIndex++;
+        StringBuilder name = new StringBuilder();
+        while (index < regex.length()) {
+            char c = takeChar();
+            if ('A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9') {
+                name.append(c);
             }
             else if (c == '>') {
-                var name = regex.substring(index + 2, groupIndex - 1);
-                index = groupIndex + 1;
-                return Optional.of(name);
+                String groupName = name.toString();
+                if (groupName.isEmpty() || !('A' <= groupName.charAt(0) && groupName.charAt(0) <= 'Z'
+                    || 'a' <= groupName.charAt(0) && groupName.charAt(0) <= 'z')) {
+                    throw parseError("named capturing group '" + groupName + "' does not start with a Latin letter");
+                }
+                if (!groupNames.add(groupName)) {
+                    throw parseError("Cannot capture groups with the same name: '" + groupName + "'");
+                }
+                return Optional.of(groupName);
+            }
+            else {
+                throw parseError("named capturing group is missing trailing '>'");
             }
         }
-        return Optional.empty();
+        throw parseError("named capturing group is missing trailing '>'");
     }
 
     private boolean peekString(String s) {
+        countOperation();
         return regex.indexOf(s, index) == index;
     }
 
     private boolean peekChar(char c) {
+        countOperation();
         return (index < regex.length() && regex.charAt(index) == c);
+    }
+
+    /** Counts a parser operation, throwing if the total exceeds {@link #MAX_PARSER_OPERATIONS}. */
+    private void countOperation() {
+        if (++operations > MAX_PARSER_OPERATIONS) {
+            throw parseError("Parser exceeded " + MAX_PARSER_OPERATIONS + " operations without completing, aborting");
+        }
     }
 
     private boolean peekOctal() {

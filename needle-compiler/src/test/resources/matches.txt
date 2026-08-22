@@ -180,6 +180,15 @@ ab?c                abbc                n                       0
 (?<something>abc)+  abcabcabc               y       0       9
 (?<something>abc)+  defabcdef               y       3       6
 (?<something>abc)+  defdefdef               n
+(?<name>ab)         ab              y     0     2  0
+(?<name>ab)         a               n             0
+(?<n1>a|b)          a               y     0     1  0
+(?<n1>a|b)          b               y     0     1  0
+(?<n1>a|b)          c               n             0
+a(?<x>y)+z          ayyz            y     0     4  0
+a(?<x>y)+z          az              n             0
+a(?<x>y)+z          ayz             y     0     3  0
+(?<x>a)(?<y>b)      ab              y     0     2  0
 x()*y               xy                  y       0       2       0
 x()*y               xay                 n                       0
 ((ab))              ab                  y       0       2       0
