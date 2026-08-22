@@ -154,7 +154,14 @@ class RegexParser {
                     else if (next != ',') {
                         throw parseError("Expected ',' at " + index + ", but found " + next);
                     }
-                    int right = consumeInt();
+                    int right;
+                    if (peekChar('}')) {
+                        // open-ended repetition, e.g. 'a{2,}' is equivalent to 'a{2}a*'
+                        right = -1;
+                    }
+                    else {
+                        right = consumeInt();
+                    }
                     nodes.push(new CountedRepetition(nodes.pop(), left, right));
                     next = takeChar();
                     if (next != '}') {

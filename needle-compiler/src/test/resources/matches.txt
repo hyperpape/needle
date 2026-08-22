@@ -285,6 +285,7 @@ abc                 ABC                 y       0       3       42
 \w                  Γ                   y       0       1               100
 \w                  0                   y       0       1               0
 \w                  0                   y       0       1               100
+\H                  ' '                 n                       0
 \w                  _                   y       0       1       0
 \W                  ' '                 y       0       1       0
 \h                  ' '                 y       0       1       0
@@ -313,3 +314,9 @@ abc                 ABC                 y       0       3       42
 (a*)*               aaa                 y       0       3       0
 (a?)*               aa                  y       0       2       0
 \w+                 abc_123             y       0       7       0
+a{2,}               aa              y     0     2  0
+a{2,}               aaa             y     0     3  0
+a{2,}               a               n             0
+a{0,}               aaa             y     0     3  0
+(ab){2,}            abab            y     0     4  0
+(ab){2,}            ab              n             0
