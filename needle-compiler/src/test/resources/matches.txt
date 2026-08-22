@@ -13,6 +13,7 @@ abc                 a                   n
 abc                 b                   n
 abc                 abc                 y       0       3
 abc                 dabc                y       1       4
+abc                 ab                  n                       0
 abc                 abcc                y       0       3
 abc                 bac                 n
 a*                  ''                  y       0       0
@@ -47,6 +48,9 @@ a|bc*               b                   y       0       1
 (a|b)c|a            ac                  y       0       2
 a.c                 abc                 y       0       3
 a.c                 a.c                 y       0       3
+a.c                 ac                  n                       0
+a.c                 a\nc                n                       0
+a.c                 a\nc                y       0       3       20
 a.*c                ac                  y       0       2
 a.*c                axc                 y       0       3
 a.*c                axycc               y       0       5
@@ -54,6 +58,24 @@ a.*c                axycc               y       0       5
 [^c]                cd                  y       1       2
 [^c]                b                   y       0       1
 [^c]                d                   y       0       1
+[abc]               a                   y       0       1       0
+[abc]               d                   n                       0
+[A-Za-z0-9]         5                   y       0       1       0
+[A-Za-z0-9]         _                   n                       0
+[a-cx-z]            y                   y       0       1       0
+[a-cx-z]            d                   n                       0
+[\]]                ]                   y       0       1       0
+[\]]                a                   n                       0
+[a\-c]              -                   y       0       1       0
+[a\-c]              b                   n                       0
+[\d]                5                   y       0       1       0
+[\d]                a                   n                       0
+[\x41]              A                   y       0       1       0
+[a-]                -                   y       0       1       0
+[[:alpha:]]         a                   y       0       1       0
+[[:alpha:]]         :                   y       0       1       0
+[[:alpha:]]         b                   n                       0
+[[:alpha:]]         [                   n                       0
 ((I)|(S{0,4}))      I                   y       0       1
 ((I)|(S{0,4}))      ''                  y       0       0
 ((I)|(S{0,4}))      B                   y       0       0
@@ -81,6 +103,8 @@ a{0,1}              ''                  y       0       0
 a{1,2}              a                   y       0       1
 a{1,2}              aa                  y       0       2
 a{1,2}              aaa                 y       0       2
+a{2}                aa                  y       0       2       0
+a{2}                a                   n                       0
 \.                  .                   y       0       1
 \.                  a                   n
 \.                  ab.                 y       2       3
@@ -94,7 +118,6 @@ gc(g|a)*cg          gcgcgcg             y       0       5
 gc(g|a)*cg          gcggcgcg            y       0       6
 (a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag         y       0       6
 (a*tgc*|t*acg*)*(cg)(a|t)*  aacgatgccgaa    y       1       12
-(a*tgc*|t*acg*)*(cg)(a|t)*  atgcgag         y       0       6
 (t*acg*)*(cg)       acgggactcgcc            y       1       3
 
 # infix/suffix tests
@@ -136,7 +159,6 @@ sam|samwise         samwise                 y       0       7           800000
 
 # greedy quantifiers
 (a|ab|bc)+def       abcdef                  y       0       6
-(a|ab|bc)+def       abcdef                  y       0       6
 (ab|a|bc)+def       abcdef                  y       0       6
 (a|ab|bc)+c         abcc                    y       0       4           800000
 (a|ab|bc)+          abc                     y       0       3           800000
@@ -144,6 +166,12 @@ sam|samwise         samwise                 y       0       7           800000
 (a|ab)+(a|ab)+      abab                    y       0       4           800000
 (ab|a|bc)+          abc                     y       0       2           0
 (ab|a|bc)+          abc                     y       0       3           800000
+a*b                 b                   y       0       1       0
+a*b                 aaab                y       0       4       0
+a*b                 aaa                 n                       0
+ab?c                abc                 y       0       3       0
+ab?c                ac                  y       0       2       0
+ab?c                abbc                n                       0
 
 # named and non-capturing quantifiers
 (?:abc)+            abcabcabc               y       0       9
@@ -152,6 +180,13 @@ sam|samwise         samwise                 y       0       7           800000
 (?<something>abc)+  abcabcabc               y       0       9
 (?<something>abc)+  defabcdef               y       3       6
 (?<something>abc)+  defdefdef               n
+x()*y               xy                  y       0       2       0
+x()*y               xay                 n                       0
+((ab))              ab                  y       0       2       0
+((ab))              a                   n                       0
+a(b*)c              abc                 y       0       3       0
+a(b*)c              ac                  y       0       2       0
+a()b                ab                  y       0       2       0
 
 # considered special optimizations that touch this case
 \$\{[^}]*}             ${abcdef}        y       0       9
@@ -165,6 +200,22 @@ sam|samwise         samwise                 y       0       7           800000
 [-]         -                           y       0       1
 []]         ]                           y       0       1
 []]         [                           n
+\*                  *                   y       0       1       0
+\*                  a                   n                       0
+a\.b                a.b                 y       0       3       0
+a\.b                axb                 n                       0
+\\                  \                   y       0       1       0
+\+                  +                   y       0       1       0
+\?                  ?                   y       0       1       0
+\(                  (                   y       0       1       0
+\)                  )                   y       0       1       0
+\[                  [                   y       0       1       0
+\]                  ]                   y       0       1       0
+\{                  {                   y       0       1       0
+\}                  }                   y       0       1       0
+\|                  |                   y       0       1       0
+\^                  ^                   y       0       1       0
+\$                  $                   y       0       1       0
 
 # unicode haystacks
 a.c                 aεc                             y       0       3
@@ -180,6 +231,11 @@ a.c                 aεc                             y       0       3
 [$-a]               B                   y       0       1               2
 [$-A]               a                   n                               0
 [$-A]               a                   y       0       1               2
+abc                 abc                 y       0       3       2
+abc                 ABC                 y       0       3       2
+abc                 AbC                 y       0       3       2
+abc                 abd                 n                       2
+[a-c]+              AbC                 y       0       3       2
 [b-|]               B                   y       0       1               2
 [b-|]               Z                   y       0       1               2
 [b-|]               |                   y       0       1
@@ -198,6 +254,7 @@ a.c                 aεc                             y       0       3
 [Γ-Θ]               γ                   y       0       1               42
 [Γ-Θ]               δ                   y       0       1               42
 [Γ-Θ]               θ                   y       0       1               42
+abc                 ABC                 y       0       3       42
 
 # unicode character classes
 \d                  1                   y       0       1               0
@@ -205,15 +262,12 @@ a.c                 aεc                             y       0       3
 \d                  ६                   n                               0
 \d                  ६                   y       0       1               100
 \D                  1                   n                               0
-\D                  1                   n                               100
 \D                  ६                   y       0       1               0
-\D                  ६                   n                               100
 \s                  ' '                 y       0       1               0
 \s                  ' '                 y       0       1               100
 \s                                   n                               0
 \s                                   y       0       1               100
 \S                  ' '                 n                               0
-\S                  ' '                 n                               100
 \S                                   y       0       1               0
 \S                                   n                               100
 \w                  a                   y       0       1               0
@@ -222,9 +276,31 @@ a.c                 aεc                             y       0       3
 \w                  Γ                   y       0       1               100
 \w                  0                   y       0       1               0
 \w                  0                   y       0       1               100
+\w                  _                   y       0       1       0
+\W                  ' '                 y       0       1       0
+\h                  ' '                 y       0       1       0
+\h                  \n                  n                       0
+\H                  a                   y       0       1       0
+\v                  \n                  y       0       1       0
+\v                  a                   n                       0
+\V                  a                   y       0       1       0
+\V                  \n                  n                       0
+\n                  \n                  y       0       1       0
+\n                  a                   n                       0
+\r                  \r                  y       0       1       0
+\w+                 ab                  y       0       2       40
+\w+                 ab                  y       0       2       100
+\w                  ' '                 n                       0
+\H                  ' '                 n                       0
 
 # dot semantics
 .{5}                abc\nabc            n                               0
 .{5}                abc\nabc            y       0       5               20
 .{5}                abc\rabc            n                               0
 .{5}                abc\rabc            y       0       5               20
+.                   \n                  n                       0
+.                   \n                  y       0       1       20
+
+(a*)*               aaa                 y       0       3       0
+(a?)*               aa                  y       0       2       0
+\w+                 abc_123             y       0       7       0

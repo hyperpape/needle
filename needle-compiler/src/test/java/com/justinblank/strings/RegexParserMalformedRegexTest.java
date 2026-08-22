@@ -288,4 +288,9 @@ public class RegexParserMalformedRegexTest {
         }
         fail("Expected RegexSyntaxException from regex: '" + regexString + "'");
     }
+    @ParameterizedTest
+    @ValueSource(strings = {"a{2,1}", "[\\]", "*", "+a", "?a", "a{,2}", "[a-", "(?P<x>a)", "\\q", "[[", "[z-a]"})
+    void jdkRejectsTheseToo(String regex) {
+        assertThrows(PatternSyntaxException.class, () -> parse(regex));
+    }
 }
