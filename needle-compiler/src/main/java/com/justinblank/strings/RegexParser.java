@@ -510,7 +510,10 @@ class RegexParser {
                 }
             }
             case 'x': {
-                return parseHexadecimal();
+                return parseHexadecimal(2);
+            }
+            case 'u': {
+                return parseHexadecimal(4);
             }
             case 'V': {
                 return Union.complement("\n\u000B\f\r\u0085\u2028\u2029");
@@ -607,16 +610,15 @@ class RegexParser {
         return new CharRangeNode((char) i, (char) i);
     }
 
-    private Node parseHexadecimal() {
-        int count = 0;
+    /** Parses exactly {@code count} hex digits into a single-character node. */
+    private Node parseHexadecimal(int count) {
         var str = new StringBuilder();
-        while (count < 2 && peekHex()) {
+        while (str.length() < count && peekHex()) {
             var c = takeChar();
-            count++;
             str.append(c);
         }
-        if (count != 2) {
-            throw parseError("Wrong number of hex chars: " + count);
+        if (str.length() != count) {
+            throw parseError("Wrong number of hex chars: " + str.length());
         }
         int i = Integer.decode("0x" + str);
         return new CharRangeNode((char) i, (char) i);
@@ -887,6 +889,9 @@ class RegexParser {
             return true;
         }
         if (c >= 'A' && c <= 'F') {
+            return true;
+        }
+        if (c >= 'a' && c <= 'f') {
             return true;
         }
         return false;

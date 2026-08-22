@@ -329,3 +329,9 @@ a{0,}               aaa             y     0     3  0
 []a]                b               n             0
 
 \cA                 a               n             0
+
+\x41                A               y     0     1  0
+\x41                B               n             0
+\x7A                z               y     0     1  0
+\u0041              A               y     0     1  0
+\u0041              B               n             0
