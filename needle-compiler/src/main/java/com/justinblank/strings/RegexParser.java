@@ -419,7 +419,12 @@ class RegexParser {
                 throw parseError("\\b not supported yet");
             }
             case 'c': {
-                throw parseError("\\c not supported yet");
+                if (index >= regex.length()) {
+                    throw parseError("'\\c' with no following character at index " + (index - 1));
+                }
+                char control = takeChar();
+                // java.util.regex: \\cX denotes the character at code point X & 0x1F
+                return new CharRangeNode((char) (control & 0x1F), (char) (control & 0x1F));
             }
             case 'd': {
                 if (unicodeCharacterClass) {
