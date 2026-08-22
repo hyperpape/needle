@@ -219,7 +219,6 @@ class RegexParser {
                     nodes.push(new Repetition(nodes.pop()));
                     break;
                 case '|':
-                    assertNonEmpty("'|' cannot be the final character in a regex");
                     collapseLiterals();
                     Node last = nodes.pop();
                     nodes.push(Union.orderedChoice(last, null));
@@ -292,6 +291,11 @@ class RegexParser {
                 node = concatenate(next, node);
             }
         }
+        // A trailing alternation bar leaves an empty right branch: 'a|' == 'a|<empty>'
+        if (node instanceof Union && ((Union) node).right == null) {
+            Union union = (Union) node;
+            node = Union.orderedChoice(union.left, new LiteralNode(""));
+        }
         // node = concatenateAllLiterals(node);
         return node;
     }
@@ -317,6 +321,11 @@ class RegexParser {
     }
 
     private void collapseLiterals() {
+        // An empty left branch ('|a' or '(|a)') contributes the empty string
+        if (nodes.isEmpty() || nodes.peek() instanceof LParenNode) {
+            nodes.push(new LiteralNode(""));
+            return;
+        }
         Node last = nodes.pop();
 
         while (!nodes.isEmpty()) {

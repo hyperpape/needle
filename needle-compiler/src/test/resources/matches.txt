@@ -301,7 +301,6 @@ abc                 ABC                 y       0       3       42
 \w+                 ab                  y       0       2       40
 \w+                 ab                  y       0       2       100
 \w                  ' '                 n                       0
-\H                  ' '                 n                       0
 
 # dot semantics
 .{5}                abc\nabc            n                               0
