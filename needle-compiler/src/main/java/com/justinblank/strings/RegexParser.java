@@ -624,17 +624,26 @@ class RegexParser {
         int startingIndex = index;
         Node alternateNode = null;
         boolean complemented = false;
+        // Per java.util.regex (and POSIX), a ']' immediately after '[' (or '[^')
+        // is a literal rather than the end of the class.
+        boolean firstClassCharacter = true;
         while (index < regex.length()) {
             char c = takeChar();
-            if (c == '^' && index == startingIndex + 1) {
+            if (c == '^' && index == startingIndex + 1 && firstClassCharacter) {
                 complemented = true;
             } else if (c == ']') {
-                if (last != null) {
-                    ranges.add(CharRange.of(last, last));
+                if (!firstClassCharacter || last != null) {
+                    if (last != null) {
+                        ranges.add(CharRange.of(last, last));
+                    }
+                    charRangeDepth--;
+                    var node = buildNode(ranges, complemented);
+                    return withAlternate(node, alternateNode);
                 }
-                charRangeDepth--;
-                var node = buildNode(ranges, complemented);
-                return withAlternate(node, alternateNode);
+                else {
+                    // a ']' immediately following '[' or '[^' is a literal
+                    last = ']';
+                }
             } else if (c == '-') {
                 if (index == regex.length()) {
                     throw parseError("Unterminated character range");
@@ -644,10 +653,12 @@ class RegexParser {
                         ranges.add(CharRange.of(last, last));
                     }
                     last = '-';
+                    firstClassCharacter = false;
                     continue;
                 }
                 if (last == null) {
                     last = c;
+                    firstClassCharacter = false;
                     continue;
                 }
                 char next = takeChar();
@@ -741,6 +752,7 @@ class RegexParser {
                 }
                 last = c;
             }
+            firstClassCharacter = false;
         }
         throw parseError("Parsing failed, unmatched [");
     }
