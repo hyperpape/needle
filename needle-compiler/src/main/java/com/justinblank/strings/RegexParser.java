@@ -143,6 +143,7 @@ class RegexParser {
                     char next = takeChar();
                     if (next == '}') {
                         nodes.push(new CountedRepetition(nodes.pop(), left, left));
+                        assertNoMultipleQuantifier();
                         if (peekChar('?')) {
                             throw parseError(RELUCTANT_QUANTIFIERS_ARE_NOT_SUPPORTED);
                         }
@@ -184,6 +185,7 @@ class RegexParser {
                     if (peekChar('+')) {
                         throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
                     }
+                    assertNoMultipleQuantifier();
                     nodes.push(new CountedRepetition(nodes.pop(), 0, 1));
                     break;
                 case '[':
@@ -199,6 +201,7 @@ class RegexParser {
                     if (peekChar('+')) {
                         throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
                     }
+                    assertNoMultipleQuantifier();
                     Node lastNode = nodes.pop();
                     nodes.push(new CountedRepetition(lastNode, 1, -1));
                     break;
@@ -212,6 +215,7 @@ class RegexParser {
                     if (peekChar('+')) {
                         throw parseError(POSSESSIVE_QUANTIFIERS_ARE_NOT_SUPPORTED);
                     }
+                    assertNoMultipleQuantifier();
                     nodes.push(new Repetition(nodes.pop()));
                     break;
                 case '|':
@@ -819,6 +823,18 @@ class RegexParser {
     private void countOperation() {
         if (++operations > MAX_PARSER_OPERATIONS) {
             throw parseError("Parser exceeded " + MAX_PARSER_OPERATIONS + " operations without completing, aborting");
+        }
+    }
+
+    /**
+     * Rejects a second greedy quantifier applied directly to a quantified node
+     * ('a**', 'a+*', 'a?*', 'a{2}*'), which java.util.regex rejects with a
+     * "multiple repetition" error. Reluctant/possessive modifiers have already
+     * been consumed when this runs.
+     */
+    private void assertNoMultipleQuantifier() {
+        if (peekChar('*')) {
+            throw parseError("Multiple repetition");
         }
     }
 

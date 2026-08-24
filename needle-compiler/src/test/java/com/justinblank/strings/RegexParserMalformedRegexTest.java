@@ -236,10 +236,9 @@ public class RegexParserMalformedRegexTest {
 
     @Test
     void rejectsPossessiveQuantifiers() {
-        parseErrorOnJavaAcceptedRegex("X?+");
-        parseErrorOnJavaAcceptedRegex("X++");
-        parseErrorOnJavaAcceptedRegex("X*+");
-        parseErrorOnJavaAcceptedRegex("X{4,5}+");
+        for (String regex : new String[] {"X?+", "X++", "X*+", "X{4,5}+"}) {
+            parseErrorOnJavaAcceptedRegex(regex);
+        }
     }
 
     @Test
@@ -288,8 +287,9 @@ public class RegexParserMalformedRegexTest {
         }
         fail("Expected RegexSyntaxException from regex: '" + regexString + "'");
     }
+
     @ParameterizedTest
-    @ValueSource(strings = {"a{2,1}", "[\\]", "*", "+a", "?a", "a{,2}", "[a-", "(?P<x>a)", "\\q", "[[", "[z-a]", "(?<na me>ab)", "(?<na", "(?<", "(?<name>ab)(?<name>cd)", "(?<1name>ab)"})
+    @ValueSource(strings = {"a{2,1}", "[\\]", "*", "+a", "?a", "a{,2}", "[a-", "(?P<x>a)", "\\q", "[[", "[z-a]", "(?<na me>ab)", "(?<na", "(?<", "(?<name>ab)(?<name>cd)", "(?<1name>ab)", "a**", "a+*", "a?*", "a{2}*"})
     void jdkRejectsTheseToo(String regex) {
         assertThrows(PatternSyntaxException.class, () -> parse(regex));
     }

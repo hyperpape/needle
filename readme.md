@@ -87,6 +87,8 @@ The following character classes are supported:
 
     \a, \d, \D, \e, \f, \h, \H, \s, \S, \t, \w, \W, \x, \v, \V, \.
 
+Reluctant and greedy quantifiers are not supported. 
+
 ### Unicode
 
 The library supports searching against any string, however the needles
