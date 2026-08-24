@@ -2,8 +2,12 @@ package com.justinblank.strings;
 
 import com.justinblank.strings.precompile.Precompile;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +24,14 @@ import static org.junit.jupiter.api.Assertions.fail;
 // Generates classfiles for several regexes, and stores them in src/test/resources/snapshots.
 // Subsequent runs compare newly generated classes to the existing ones so that we can detect any drift.
 // Run record examples (it is ignored by default) to update the checked in classfiles.
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SnapshotTests {
+
+    /*
+     * When regenerating snapshots (-Dneedle.recordSnapshots=true),
+     * recordExamples must run before compareSnapshots, or the comparison
+     * would see stale snapshots and fail spuriously. @Order enforces that.
+     */
 
     private static final List<Pair<String, String>> EXAMPLES = new ArrayList<>();
 
@@ -56,6 +67,7 @@ class SnapshotTests {
         LARGE_EXAMPLES.add(Pair.of("Holmes.{0,25}Watson|Watson.{0,25}Holmes", "HolmesWithin25CharactersOfWatson"));
     }
 
+    @Order(3)
     @Test
     void generateExamples() {
         var debugOptions = DebugOptions.writeToFsOnly();
@@ -66,10 +78,13 @@ class SnapshotTests {
     }
 
     /**
-     * Temporarily enable this method to recreate snapshots.
-     * @throws IOException
+     * Recreates the checked-in snapshots; off by default because it overwrites
+     * them. Run explicitly with:
+     *   mvn -pl needle-compiler test -Dtest='SnapshotTests#recordExamples' -Dneedle.recordSnapshots=true
+     * Only do this after deliberately changing code generation.
      */
-    @Disabled
+    @Order(1)
+    @EnabledIfSystemProperty(named = "needle.recordSnapshots", matches = "true")
     @Test
     void recordExamples() throws IOException {
         for (var pair : EXAMPLES) {
@@ -77,6 +92,7 @@ class SnapshotTests {
         }
     }
 
+    @Order(4)
     @Disabled
     @Test
     void generateLargeExamples() {
@@ -87,6 +103,7 @@ class SnapshotTests {
         }
     }
 
+    @Order(2)
     @Test
     void compareSnapshots() throws Exception {
         for (var pair : EXAMPLES) {
