@@ -351,7 +351,19 @@ class DFAClassBuilder extends ClassBuilder {
 
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
         method.set(MatchingVars.STATE, 0);
-        method.set(MatchingVars.LAST_MATCH, spec.dfa.isAccepting() ? 0 : -1);
+        // A search starting past the end of the haystack can never match; without
+        // this guard, an empty-capable pattern would report a bogus match at the
+        // initial index forever.
+        // Note the INDEX local is initialized to the FROM parameter.
+        method.cond(gt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)))
+                .withBody(returnValue(-1));
+        if (spec.dfa.isAccepting()) {
+            // A pattern matching the empty string matches at FROM itself; record
+            // that before scanning so an empty match at the start is never skipped.
+            method.set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX));
+        } else {
+            method.set(MatchingVars.LAST_MATCH, -1);
+        }
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
@@ -629,17 +641,29 @@ class DFAClassBuilder extends ClassBuilder {
         method.set(MatchingVars.INDEX,
                 call(dfaSearchFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                         read("FROM"), read("TO")));
-        method.fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
-        method.fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
         if (compilerOptions.debugOptions.trackStates) {
             method.callStatic(ReferenceType.of(DFADebugUtils.class), "debugIndexForwards", Void.VOID, read(MatchingVars.INDEX));
         }
+
+        // A zero-length match at FROM is reported as (FROM, FROM), and the next
+        // search resumes at FROM + 1: like the JDK, an empty match doesn't stick.
+        // Without the bumped NEXT_START, repeated find() calls would loop forever
+        // returning the same empty match (and running the backwards scan with
+        // inverted bounds produces nonsense spans like (1, 0)).
+        method.cond(and(neq(-1, read(MatchingVars.INDEX)), eq(read(MatchingVars.INDEX), read("FROM"))))
+                .withBody(List.of(
+                        fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
+                        fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
+                        fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), plus(read(MatchingVars.INDEX), 1)),
+                        returnValue(literal(true))));
 
         if (factorization.canOnlyHaveOneLength()) {
             // If the string can only have one length, no need to search backwards, we can just compute the starting point
             method.cond(neq(-1, read(MatchingVars.INDEX))).withBody(
                             List.of(
+                                    fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
                                     fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), sub(read(MatchingVars.INDEX), factorization.getMinLength())),
+                                    fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
                                     returnValue(literal(true))))
                     .orElse(List.of(returnValue(literal(false))));
         } else {
@@ -648,7 +672,9 @@ class DFAClassBuilder extends ClassBuilder {
                             // TODO: adding local variables here is a workaround for mako breaking when we inline them
                             set(INDEX_BACKWARDS, call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
                                     sub(read(MatchingVars.INDEX), 1), read("FROM"))),
+                            fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
                             fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(INDEX_BACKWARDS)),
+                            fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
                             returnValue(literal(true))))
                     .orElse(List.of(
                             returnValue(literal(false))));

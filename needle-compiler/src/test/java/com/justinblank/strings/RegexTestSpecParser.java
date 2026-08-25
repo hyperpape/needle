@@ -28,6 +28,58 @@ public class RegexTestSpecParser {
         return text.stream().filter(s -> !s.isBlank() && !s.startsWith("#")).map(String::trim).map(this::readCaptureSpec).collect(Collectors.toList());
     }
 
+    List<IteratedMatchTestSpec> readIteratedMatchTests() throws Exception {
+        var resource = this.getClass().getClassLoader().getResource("iteratedMatches.txt");
+        var text = Files.readAllLines(Path.of(resource.toURI()));
+        return text.stream().filter(s -> !s.isBlank() && !s.startsWith("#")).map(String::trim).map(this::readIteratedMatchSpec).collect(Collectors.toList());
+    }
+
+    IteratedMatchTestSpec readIteratedMatchSpec(String s) {
+        try {
+            idx = 0;
+            var pattern = chomp(s);
+            var target = unescapeEscapes(chomp(s));
+            RegexTestSpec.Flags flags = null;
+            List<IteratedMatchTestSpec.Match> matches = new ArrayList<>();
+            var next = optionalChomp(s);
+            while (next.isPresent() && (next.get().startsWith("[") || next.get().matches("\\(\\d+,\\d+\\)"))) {
+                matches.addAll(parseMatches(next.get()));
+                next = optionalChomp(s);
+            }
+            if (next.isPresent()) {
+                flags = parseFlags(next.get());
+            }
+            return new IteratedMatchTestSpec(pattern, target, matches, flags);
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to parse spec '" + s + "'", e);
+        }
+    }
+
+    /**
+     * Parse a matches token: either a bracketed list like '[(0,1),(3,4)]', or a single unbracketed pair like '(0,1)'.
+     */
+    private List<IteratedMatchTestSpec.Match> parseMatches(String token) {
+        var inner = token.startsWith("[") ? token.substring(1, token.length() - 1) : token;
+        var matches = new ArrayList<IteratedMatchTestSpec.Match>();
+        var pairs = java.util.regex.Pattern.compile("\\(([^)]*)\\)").matcher(inner);
+        while (pairs.find()) {
+            var parts = pairs.group(1).split(",");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Expected a (start,end) match pair, got '" + pairs.group() + "'");
+            }
+            matches.add(new IteratedMatchTestSpec.Match(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim())));
+        }
+        if (matches.isEmpty() && !inner.isBlank()) {
+            throw new IllegalArgumentException("Expected a list of (start,end) match pairs, got '" + token + "'");
+        }
+        return matches;
+    }
+
+    private RegexTestSpec.Flags parseFlags(String s) {
+        return new RegexTestSpec.Flags(Integer.parseInt(s, 16));
+    }
+
     private RegexTestSpec readSpec(String s) {
         try {
             idx = 0;
