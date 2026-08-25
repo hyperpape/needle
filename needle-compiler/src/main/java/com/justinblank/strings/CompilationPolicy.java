@@ -37,6 +37,10 @@ class CompilationPolicy {
     // Whether to check that we have enough distance to fully match our string on each outer loop--if our regex is short
     // this almost certainly won't be worthwhile. If our regex is long, then we can avoid looking at many characters
     boolean useMaxStart;
+    // Whether find() should be driven from occurrences of the shared suffix, scanning backwards with the reversed DFA.
+    // Only applies when the regex has a shared suffix but no maximum length, so the suffix can't anchor the forwards
+    // search (that requires knowing how far back a match may start).
+    boolean useUnboundedSuffixSearch;
 
     protected CompilationPolicy() {
     }
@@ -49,6 +53,8 @@ class CompilationPolicy {
         ).orElse(false) && !factorization.getSharedSuffix().equals(factorization.getSharedPrefix());;
         compilationPolicy.useInfixes = !factorization.getRequiredInfixes().isEmpty() && factorization.getMaxLength().isPresent();
         compilationPolicy.useMaxStart = factorization.getMinLength() > THRESHOLD_FOR_CALCULATING_MAX_START;
+        compilationPolicy.useUnboundedSuffixSearch = factorization.getMaxLength().isEmpty()
+                && factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false);
 
         compilationPolicy.prefix = factorization.getSharedPrefix().orElse(null);
         compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);

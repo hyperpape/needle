@@ -372,11 +372,12 @@ class DFA {
         }
         Set<Character> characters = new HashSet<>();
         for (var transition : getTransitions()) {
-            if (transition.getLeft().getStart() == transition.getLeft().getEnd()) {
-                for (var c = transition.getLeft().getStart(); c <= transition.getLeft().getEnd(); c++) {
-                    characters.add(c);
-                }
+            if (transition.getLeft().getStart() != transition.getLeft().getEnd()) {
+                // A range transition means characters outside the single-char set can also start a match, so no
+                // single starting character can be searched for
+                return Optional.empty();
             }
+            characters.add(transition.getLeft().getStart());
         }
         return Optional.of(characters);
     }

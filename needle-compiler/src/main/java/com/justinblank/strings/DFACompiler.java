@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import org.apache.commons.lang3.StringUtils;
 import com.justinblank.classcompiler.ClassBuilder;
 import com.justinblank.classcompiler.ClassCompiler;
 import com.justinblank.classcompiler.Method;
@@ -71,16 +72,24 @@ public class DFACompiler {
         DFA dfaReversed = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
 
+        // A self-restarting reversed DFA: during a backwards scan from a suffix occurrence, a dead state means no
+        // match can exist further down, so the scan can stop instead of continuing to the search's lower bound.
+        DFA dfaReversedSearch = NFAToDFACompiler.compile(reversedNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
+
         if (options.debugOptions.printDFAs) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
         }
-        checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch));
+        checkForOverLongDFAs(List.of(dfa, containedInDFA, dfaReversed, dfaSearch, dfaReversedSearch));
 
         var forwardFindMethodSpec = new FindMethodSpec(dfa, FindMethodSpec.MATCHES, true, factorization, CharacterDistribution.DEFAULT);
         var containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
         var reversedFindMethodSpec = new FindMethodSpec(dfaReversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
         var dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
-        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, factorization);
+        FindMethodSpec suffixSearchFindMethodSpec = null;
+        if (factorization.getMaxLength().isEmpty() && factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false)) {
+            suffixSearchFindMethodSpec = new FindMethodSpec(dfaReversedSearch, FindMethodSpec.SUFFIX_SEARCH, false, factorization, CharacterDistribution.DEFAULT);
+        }
+        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, suffixSearchFindMethodSpec, factorization);
     }
 
     private static void checkForOverLongDFAs(List<DFA> dfas) {
@@ -125,14 +134,18 @@ public class DFACompiler {
         final FindMethodSpec reversedFindMethodSpec;
         final FindMethodSpec containedInFindMethodSpec;
         final FindMethodSpec dfaSearchFindMethodSpec;
+        // Non-null when the regex has a shared suffix but no maximum length
+        final FindMethodSpec suffixSearchFindMethodSpec;
         final Factorization factorization;
         final Map<Integer, Offset> forwardOffsets;
 
-        DFAs(FindMethodSpec forwardFindMethodSpec, FindMethodSpec reversedFindMethodSpec, FindMethodSpec containedInFindMethodSpec, FindMethodSpec dfaSearchFindMethodSpec, Factorization factorization) {
+        DFAs(FindMethodSpec forwardFindMethodSpec, FindMethodSpec reversedFindMethodSpec, FindMethodSpec containedInFindMethodSpec,
+             FindMethodSpec dfaSearchFindMethodSpec, FindMethodSpec suffixSearchFindMethodSpec, Factorization factorization) {
             this.forwardFindMethodSpec = forwardFindMethodSpec;
             this.reversedFindMethodSpec = reversedFindMethodSpec;
             this.containedInFindMethodSpec = containedInFindMethodSpec;
             this.dfaSearchFindMethodSpec = dfaSearchFindMethodSpec;
+            this.suffixSearchFindMethodSpec = suffixSearchFindMethodSpec;
             this.factorization = factorization;
             this.forwardOffsets = forwardFindMethodSpec.dfa.calculateOffsets(factorization);
         }
