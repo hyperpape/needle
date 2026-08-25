@@ -47,8 +47,10 @@ class SnapshotTests {
         EXAMPLES.add(Pair.of("[Ss]herlock", "SherlockInitialCharCaseInsensitive"));
         // Basic regexes, no prefix, should dispatch entirely with byteClasses
         EXAMPLES.add(Pair.of("Sherlock|Holmes|Watson|Irene|Adler|John|Baker", "UnionOfManyNames"));
-        // Suffix
+        // Suffix with max length
         EXAMPLES.add(Pair.of("anywhere|somewhere", "Suffix"));
+        // Suffix without max length
+        EXAMPLES.add(Pair.of("\\s+[Ss]herlock", "SherlockInitialCharCaseInsensitiveWithInitialWhitespaceSuffix"));
         // Infix
         EXAMPLES.add(Pair.of("Holmes.{1,10}Watson|Watson.{1,10}Holmes", "HolmesNearWatson"));
         // Predicate

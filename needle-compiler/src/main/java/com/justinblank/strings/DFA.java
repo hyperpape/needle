@@ -372,11 +372,12 @@ class DFA {
         }
         Set<Character> characters = new HashSet<>();
         for (var transition : getTransitions()) {
-            if (transition.getLeft().getStart() == transition.getLeft().getEnd()) {
-                for (var c = transition.getLeft().getStart(); c <= transition.getLeft().getEnd(); c++) {
-                    characters.add(c);
-                }
+            if (transition.getLeft().getStart() != transition.getLeft().getEnd()) {
+                // A range transition means characters outside the single-char set can also start a match, so no
+                // single starting character can be searched for
+                return Optional.empty();
             }
+            characters.add(transition.getLeft().getStart());
         }
         return Optional.of(characters);
     }
@@ -808,6 +809,26 @@ class DFA {
             }
             var afterInfix = state.after(infix);
             if (afterInfix.map(s -> !s.isAccepting()).orElse(false)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if some match of this DFA contains {@code s} with at least one matched character both before and
+     * after the occurrence, i.e. the DFA can contain {@code s} as a non-suffix occurrence that does not begin the
+     * match. When checking a reversed DFA against a reversed suffix, occurrences at the start of the reversed match
+     * are the match's final suffix, so excluding them is required. Depends on dead states being pruned, so that a
+     * state with any outgoing transition can reach acceptance.
+     */
+    public boolean canContainAsNonSuffix(String s) {
+        for (var state : this.states) {
+            if (state == this) {
+                continue;
+            }
+            var after = state.after(s);
+            if (after.isPresent() && !after.get().isTerminal()) {
                 return true;
             }
         }

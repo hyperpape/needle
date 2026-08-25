@@ -20,6 +20,11 @@ public class FindMethodSpec {
      * Allows searching forwards in a string to find the endpoint of a match.
      */
     public static final String FORWARDS = "Forwards";
+    /**
+     * Drives a search from occurrences of the shared suffix, scanning backwards with the reversed DFA to locate
+     * match endpoints. Used when there is no maximum length, so the suffix can't anchor the forwards search.
+     */
+    public static final String SUFFIX_SEARCH = "SuffixSearch";
 
     final DFA dfa;
     final String name;

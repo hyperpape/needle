@@ -43,6 +43,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final FindMethodSpec reversedFindMethodSpec;
     private final FindMethodSpec containedInFindMethodSpec;
     private final FindMethodSpec dfaSearchFindMethodSpec;
+    private final FindMethodSpec suffixSearchFindMethodSpec;
     private final Factorization factorization;
     private final Map<Integer, Offset> forwardOffsets;
 
@@ -59,6 +60,7 @@ class DFAClassBuilder extends ClassBuilder {
         this.containedInFindMethodSpec = dfas.containedInFindMethodSpec;
         this.reversedFindMethodSpec = dfas.reversedFindMethodSpec;
         this.dfaSearchFindMethodSpec = dfas.dfaSearchFindMethodSpec;
+        this.suffixSearchFindMethodSpec = dfas.suffixSearchFindMethodSpec;
         this.factorization = dfas.factorization;
         this.compilerOptions = options;
         this.forwardOffsets = dfas.forwardOffsets;
@@ -83,7 +85,12 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     List<FindMethodSpec> allSpecs() {
-        return List.of(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec);
+        if (suffixSearchFindMethodSpec == null) {
+            return List.of(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec);
+        }
+        // The suffix-driven search replaces the forwards and backwards index methods, so the specs backing them are
+        // omitted and no methods or constants are emitted for their DFAs
+        return List.of(forwardFindMethodSpec, containedInFindMethodSpec, suffixSearchFindMethodSpec);
     }
 
     void initMethods() {
@@ -97,25 +104,37 @@ class DFAClassBuilder extends ClassBuilder {
             // these methods depend on being called after addStateMethodTransitionStrings()
             setByteClassTransitions(forwardFindMethodSpec);
             setByteClassTransitions(containedInFindMethodSpec);
-            setByteClassTransitions(reversedFindMethodSpec);
-            setByteClassTransitions(dfaSearchFindMethodSpec);
+            if (suffixSearchFindMethodSpec == null) {
+                setByteClassTransitions(reversedFindMethodSpec);
+                setByteClassTransitions(dfaSearchFindMethodSpec);
+            } else {
+                setByteClassTransitions(suffixSearchFindMethodSpec);
+            }
         }
 
         addAffixConstants();
         // TODO: refactor to use compilation policy
-        dfaSearchFindMethodSpec.dfa.initialAsciiBytes().ifPresent(byteMask -> {
-            if (shouldIncludeFirstByteMask()) {
-                addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, byteMask);
-            }
-        });
+        if (suffixSearchFindMethodSpec == null) {
+            // FIRST_BYTE_MASK is only consumed by the forwards index method, which the suffix-driven search
+            // replaces
+            dfaSearchFindMethodSpec.dfa.initialAsciiBytes().ifPresent(byteMask -> {
+                if (shouldIncludeFirstByteMask()) {
+                    addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, byteMask);
+                }
+            });
+        }
 
         createMatchesMethod(forwardFindMethodSpec);
         createContainedInMethod(containedInFindMethodSpec);
         createFindMethod();
         createFindMethodInternal();
-        createIndexMethod(dfaSearchFindMethodSpec);
-        if (!factorization.canOnlyHaveOneLength()) {
-            createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa);
+        if (suffixSearchFindMethodSpec != null) {
+            createSuffixDrivenIndexMethod(suffixSearchFindMethodSpec);
+        } else {
+            createIndexMethod(dfaSearchFindMethodSpec);
+            if (!factorization.canOnlyHaveOneLength()) {
+                createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa);
+            }
         }
         for (var spec : allSpecs()) {
             addWasAcceptedMethod(spec);
@@ -133,7 +152,7 @@ class DFAClassBuilder extends ClassBuilder {
                 addConstant(PREFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, prefix);
             });
         }
-        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useSuffix)) {
+        if (allSpecs().stream().anyMatch(s -> s.compilationPolicy.useSuffix) || suffixSearchFindMethodSpec != null) {
             allSpecs().get(0).compilationPolicy.getSuffix().ifPresent(suffix -> {
                 addConstant(SUFFIX_CONSTANT, CompilerUtil.STRING_DESCRIPTOR, suffix);
             });
@@ -623,6 +642,82 @@ class DFAClassBuilder extends ClassBuilder {
         });
     }
 
+    /**
+     * Emits the suffix-driven search, used when the shared suffix can occur in a match only as the match's final
+     * characters. Occurrences of the suffix are examined left to right; for each, a backwards scan with the reversed
+     * search DFA runs from the state after the reversed suffix, consuming the characters before the occurrence down
+     * to FROM. The scan records the lowest position at which the state is accepting--the leftmost start of a match
+     * ending at this occurrence's end. The first occurrence with any accepting state is the final occurrence of the
+     * leftmost match at or after FROM, so the recorded start plus the occurrence's end is the complete match: the
+     * match fields are set and true returned, and find() runs no further scans. Returns false when the occurrences
+     * are exhausted.
+     *
+     * A dead state during an occurrence's scan means no match ending at that occurrence starts lower, so the scan
+     * stops and the search moves to the next occurrence. Every match contains the literal suffix, so a match is
+     * never zero-length.
+     */
+    private Method createSuffixDrivenIndexMethod(FindMethodSpec spec) {
+        var suffix = spec.compilationPolicy.getSuffix().orElseThrow();
+        var postSuffixState = spec.dfa.after(StringUtils.reverse(suffix)).orElseThrow(
+                () -> new IllegalStateException("No DFA state available after consuming suffix. This should be impossible"));
+        int postSuffixStateNumber = postSuffixState.getStateNumber();
+        boolean postSuffixAccepting = postSuffixState.isAccepting();
+
+        var vars = new GenericVars("FROM", "TO", MatchingVars.INDEX, MatchingVars.STATE, MatchingVars.CHAR,
+                MatchingVars.LAST_MATCH, "OCC", "K");
+        vars.addVar(BYTE_CLASS_FIELD);
+        vars.addVar(MatchingVars.STRING);
+        var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "Z", vars);
+
+        method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
+        // INDEX holds the next suffix occurrence to examine; occurrences before FROM cannot host a match starting
+        // at or after FROM, so the search begins at the first occurrence at or after FROM
+        method.set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
+                read("FROM")));
+
+        method.loop(gte(read(MatchingVars.INDEX), literal(0)), List.of(
+                set("OCC", read(MatchingVars.INDEX)),
+                // matches must lie within [FROM, TO); occurrences are examined left to right, so once one ends past
+                // TO, every later occurrence does too
+                cond(gt(plus(read("OCC"), literal(suffix.length())), read("TO"))).withBody(returnValue(literal(false))),
+                set("K", sub(read("OCC"), 1)),
+                set(MatchingVars.STATE, postSuffixStateNumber),
+                set(MatchingVars.LAST_MATCH, postSuffixAccepting ? read("OCC") : literal(-1)),
+                loop(and(gte(read("K"), read("FROM")), neq(-1, read(MatchingVars.STATE))),
+                        List.of(
+                                set(MatchingVars.CHAR, call("charAt", Builtin.C, read(MatchingVars.STRING), read("K"))),
+                                maxCharacterCheckIsRequired(spec) ? cond(gt(read(MatchingVars.CHAR), literal((int) spec.dfa.maxChar())))
+                                        .withBody(List.of(set(MatchingVars.STATE, -1), escape())) : new NoOpStatement(),
+                                spec.compilationPolicy.useByteClassesForAllStates ? setByteClass() : new NoOpStatement(),
+                                spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
+                                cond(eq(-1, read(MatchingVars.STATE))).withBody(escape()),
+                                // keep the lowest start seen: the scan moves left, so the last accepting position is
+                                // the leftmost. When the state is accepting but terminal, no lower position can be
+                                // accepting, so stop scanning.
+                                cond(call(spec.wasAcceptedName(), Builtin.BOOL, thisRef(), read(MatchingVars.STATE)))
+                                        .withBody(canAdvanceFromAccepting(spec)
+                                                ? List.<CodeElement>of(set(MatchingVars.LAST_MATCH, read("K")))
+                                                : List.of(set(MatchingVars.LAST_MATCH, read("K")), escape())),
+                                set("K", sub(read("K"), 1))
+                        )),
+                cond(gt(read(MatchingVars.LAST_MATCH), -1)).withBody(List.of(
+                        fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.LAST_MATCH)),
+                        fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()),
+                                plus(read("OCC"), suffix.length())),
+                        returnValue(literal(true)))),
+                set(MatchingVars.INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
+                        getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)),
+                        plus(read("OCC"), 1)))
+        ));
+        method.returnValue(literal(false));
+        return method;
+    }
+
+    private static boolean canAdvanceFromAccepting(FindMethodSpec spec) {
+        return spec.dfa.canAdvanceFromAcceptingState();
+    }
+
     private Method createFindMethod() {
 
         var method = mkMethod("find", List.of(), "Z");
@@ -633,6 +728,9 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private Method createFindMethodInternal() {
+        if (suffixSearchFindMethodSpec != null) {
+            return createFindMethodDrivenBySuffix();
+        }
         var vars = new GenericVars("FROM", "TO", MatchingVars.INDEX, INDEX_BACKWARDS);
         var method = mkMethod("find", List.of("I", "I"), "Z", vars);
 
@@ -679,6 +777,26 @@ class DFAClassBuilder extends ClassBuilder {
                     .orElse(List.of(
                             returnValue(literal(false))));
         }
+        return method;
+    }
+
+    /**
+     * find() when the suffix-driven search applies: it locates the leftmost match at or after the search start and
+     * sets the start and end fields, so no forwards or backwards scans are needed. Every match contains the literal
+     * suffix, so matches are never zero-length and the next search resumes at the match's end.
+     */
+    private Method createFindMethodDrivenBySuffix() {
+        var vars = new GenericVars("FROM", "TO");
+        var method = mkMethod("find", List.of("I", "I"), "Z", vars);
+
+        method.cond(eq(get(NEXT_START_FIELD, Builtin.I, thisRef()), -1
+        )).withBody(returnValue(literal(false)));
+        method.cond(call(suffixSearchFindMethodSpec.indexMethod(), Builtin.BOOL, thisRef(), read("FROM"), read("TO")))
+                .withBody(List.of(
+                        fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()),
+                                get(END_FIELD, Builtin.I, thisRef())),
+                        returnValue(literal(true))));
+        method.returnValue(literal(false));
         return method;
     }
 

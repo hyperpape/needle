@@ -37,7 +37,6 @@ class CompilationPolicy {
     // Whether to check that we have enough distance to fully match our string on each outer loop--if our regex is short
     // this almost certainly won't be worthwhile. If our regex is long, then we can avoid looking at many characters
     boolean useMaxStart;
-
     protected CompilationPolicy() {
     }
 
@@ -49,7 +48,6 @@ class CompilationPolicy {
         ).orElse(false) && !factorization.getSharedSuffix().equals(factorization.getSharedPrefix());;
         compilationPolicy.useInfixes = !factorization.getRequiredInfixes().isEmpty() && factorization.getMaxLength().isPresent();
         compilationPolicy.useMaxStart = factorization.getMinLength() > THRESHOLD_FOR_CALCULATING_MAX_START;
-
         compilationPolicy.prefix = factorization.getSharedPrefix().orElse(null);
         compilationPolicy.suffix = factorization.getSharedSuffix().orElse(null);
         compilationPolicy.infix = chooseInfix(factorization);
