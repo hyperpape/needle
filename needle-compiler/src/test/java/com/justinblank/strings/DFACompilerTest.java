@@ -25,6 +25,10 @@ public class DFACompilerTest {
 
     static final Random random = new Random(1024); // arbitrary fixed seed
 
+    private List<Pair<RegexTestSpec, Integer>> testRows;
+    private final Map<Pair<String, Integer>, Pattern> rowPatterns = new HashMap<>();
+    private static final AtomicInteger rowPatternCounter = new AtomicInteger();
+
     // TODO: This is suboptimal, as it doesn't mix unicode and A-Z.
     static final Gen<String> ALPHABET = A_THROUGH_Z.ofLengthBetween(0, SMALL_DATA_SIZE)
             .mix(SMALL_BMP.ofLengthBetween(0, SMALL_DATA_SIZE));
@@ -698,55 +702,50 @@ public class DFACompilerTest {
         }
     }
 
+    /**
+     * Parses the specs and assigns flags once, in file order: both file-based test methods must observe the same
+     * rows, since flag-less rows draw from a seeded random stream.
+     */
+    private List<Pair<RegexTestSpec, Integer>> testRows() throws Exception {
+        if (testRows == null) {
+            testRows = new ArrayList<>();
+            for (var spec : new RegexTestSpecParser().readTests()) {
+                testRows.add(Pair.of(spec, generateFlags(spec)));
+            }
+        }
+        return testRows;
+    }
+
+    private Pattern patternForRow(RegexTestSpec spec, int flags) {
+        return rowPatterns.computeIfAbsent(Pair.of(spec.pattern, flags),
+                (p) -> DFACompiler.compile(spec.pattern, "dfaFileBasedTests" + rowPatternCounter.incrementAndGet(), flags));
+    }
+
+    private static void failWithErrors(List<String> errors) {
+        if (!errors.isEmpty()) {
+            fail(String.join("\n", errors));
+        }
+    }
+
     @Test
-    void fileBasedTests() throws Exception {
-        var baseName = "dfaFileBasedTests";
-        var counter = new AtomicInteger();
-        var patterns = new HashMap<Pair<String, Integer>, Pattern>();
-        var testSpecs = new RegexTestSpecParser().readTests();
+    void needleFileBasedTests() throws Exception {
         var correctMatches = 0;
         var nonMatches = 0;
         var errors = new ArrayList<String>();
-        for (var spec : testSpecs) {
-            int flags = generateFlags(spec);
-            var pair = Pair.of(spec.pattern, flags);
-            var pattern = patterns.computeIfAbsent(pair, (p) -> DFACompiler.compile(spec.pattern, baseName + counter.incrementAndGet(), flags));
+        for (var pair : testRows()) {
+            var spec = pair.getLeft();
+            int flags = pair.getRight();
             try {
-                var matcher = pattern.matcher(spec.target);
+                var matcher = patternForRow(spec, flags).matcher(spec.target);
                 var found = matcher.find();
                 if (spec.successful) {
                     if (!found) {
                         errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
+                    } else if (matcher.start() != spec.start || matcher.end() != spec.end) {
+                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + matcher.start() + ", actualEnd=" + matcher.end());
                     } else {
-                        if (matcher.start() != spec.start || matcher.end() != spec.end) {
-                            errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + matcher.start() + ", actualEnd=" + matcher.end());
-                            nonMatches++;
-                        } else {
-                            correctMatches++;
-                        }
-
-                        // Java doesn't support leftmost longest, so don't compare to it
-                        if ((flags & LEFTMOST_LONGEST) != LEFTMOST_LONGEST) {
-                            var javaPattern = java.util.regex.Pattern.compile(spec.pattern, flags & ~LEFTMOST_LONGEST);
-                            var javaMatcher = javaPattern.matcher(spec.target);
-                            var javaFound = javaMatcher.find();
-                            if (javaFound) {
-                                var javaStart = javaMatcher.start();
-                                var javaEnd = javaMatcher.end();
-                                if (javaStart != matcher.start() || javaEnd != matcher.end()) {
-                                    errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " failed to match java indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", javaStart=" + javaStart + ", javaEnd=" + javaEnd + ", matcherStart=" + matcher.start() + ", matcherEnd=" + matcher.end());
-                                }
-                            } else {
-                                errors.add("Matching spec=" + spec.pattern + " against needle=" + spec.target + " matched, while the java regex did not match");
-                            }
-                        }
-                    }
-                    try {
-                        find(pattern, spec.target);
-                    } catch (Exception e) {
-                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had error in find " + e);
-                    } catch (AssertionError e) {
-                        errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " had AssertionError in find " + e);
+                        correctMatches++;
+                        find(patternForRow(spec, flags), spec.target);
                     }
                 } else {
                     if (found) {
@@ -756,20 +755,43 @@ public class DFACompilerTest {
                     }
                 }
             }
-            // Throwable to ExceptionInInitializerError
+            // Throwable to catch ExceptionInInitializerError
             catch (Throwable t) {
-                errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against needle=" + spec.target + " has error in find " + t);
+                errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against string=" + spec.target + " has error in find " + t);
             }
         }
-        if (!errors.isEmpty()) {
-            for (var error : errors) {
-                System.out.println(error);
-            }
-            fail("Errors in file based tests");
-        }
+        failWithErrors(errors);
         // If these fail, then the test parsing is broken
         assertNotEquals(0, correctMatches);
         assertNotEquals(0, nonMatches);
+    }
+
+    @Test
+    void jdkFileBasedTests() throws Exception {
+        var errors = new ArrayList<String>();
+        for (var pair : testRows()) {
+            var spec = pair.getLeft();
+            int flags = pair.getRight();
+            // Java doesn't support leftmost longest, so don't compare to it
+            if ((flags & LEFTMOST_LONGEST) == LEFTMOST_LONGEST) {
+                continue;
+            }
+            var javaPattern = java.util.regex.Pattern.compile(spec.pattern, flags);
+            var javaMatcher = javaPattern.matcher(spec.target);
+            var found = javaMatcher.find();
+            if (spec.successful) {
+                if (!found) {
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against jdk=" + spec.target + " failed: expected start=" + spec.start + ", expected end=" + spec.end);
+                } else if (javaMatcher.start() != spec.start || javaMatcher.end() != spec.end) {
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against jdk=" + spec.target + " had incorrect indexes, expected start=" + spec.start + ", expected end=" + spec.end + ", actualStart=" + javaMatcher.start() + ", actualEnd=" + javaMatcher.end());
+                }
+            } else {
+                if (found) {
+                    errors.add("Matching spec='" + spec.pattern + "' with flags=" + flags + " against string='" + spec.target + "' incorrectly matched");
+                }
+            }
+        }
+        failWithErrors(errors);
     }
 
     private static int generateFlags(RegexTestSpec spec) {
