@@ -23,6 +23,8 @@ Documented mismatches can only take the form of:
 
 ## Testing and Correctness
 
+Correctness of the code is essential. It is better to throw an exception than to return a wrong result. Never use default values that will give incorrect results.  
+
 In general, the most effective tests we have follow the pattern of matches.txt--a specification of how a regular expression should match, which is then checked against the JDK standard library and needle, with as much detail as possible. Unit tests are primarily useful for making it easier to debug and isolate specific failures. 
 
 These tests should monotonically increase their coverage. Tests should never fail on a commit that is part of origin/main. 
@@ -47,4 +49,6 @@ mvn test -Dneedle.recordSnapshots=true
 
 Keep commits and comments free of superfluous content. Do not editorialize, a bug is a bug. 
 
-Only mention design principles (e.g. JDK compatibility) where they explain unclear or surprising choices.  
+Only mention design principles (e.g. JDK compatibility) where they explain unclear or surprising choices. For instance, a commit message for a parser change need not mention JDK compatibility. 
+
+Describing the prior code behavior in a commit message is unnecessary, unless it is not obvious what the commit changed.  
