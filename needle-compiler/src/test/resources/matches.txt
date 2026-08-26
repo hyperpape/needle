@@ -298,6 +298,10 @@ abc                 ABC                 y       0       3       42
 \n                  \n                  y       0       1       0
 \n                  a                   n                       0
 \r                  \r                  y       0       1       0
+\t                  a                   n                       0
+\f                  a                   n                       0
+\a                  a                   n                       0
+\e                  a                   n                       0
 \w+                 ab                  y       0       2       40
 \w+                 ab                  y       0       2       100
 \w                  ' '                 n                       0
