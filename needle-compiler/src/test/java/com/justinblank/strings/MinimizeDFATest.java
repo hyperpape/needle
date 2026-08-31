@@ -2,8 +2,11 @@ package com.justinblank.strings;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -92,5 +95,28 @@ class MinimizeDFATest {
         var dfa = DFA.createDFA("(a|b)");
         assertEquals(2, dfa.statesCount());
 
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideTestSpecs")
+    void minimizationTests(MinimizationTestSpec spec) throws Exception {
+        com.justinblank.strings.RegexAST.Node node = RegexParser.parse(spec.pattern);
+        NFA nfa = new NFA(RegexInstrBuilder.createNFA(node));
+
+        NFAToDFACompiler compiler = new NFAToDFACompiler(nfa);
+        DFA preMinimized = compiler._compile(ConversionMode.BASIC);
+        preMinimized.pruneDeadStates();
+
+        // Get minimized state count
+        DFA minimized = MinimizeDFA.minimizeDFA(preMinimized, false);
+
+        assertEquals(spec.stateCount, preMinimized.statesCount(),
+                "State count mismatch for pattern: " + spec.pattern);
+        assertEquals(spec.withMinimization, minimized.statesCount(),
+                "Minimized state count mismatch for pattern: " + spec.pattern);
+    }
+
+    static List<MinimizationTestSpec> provideTestSpecs() throws Exception {
+        return new MinimizationTestSpecParser().readTests();
     }
 }

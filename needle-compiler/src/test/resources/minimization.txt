@@ -1,0 +1,22 @@
+# pattern stateCount withMinimization
+# Minimal patterns (no minimization possible)
+a                2   2
+ab               3   3
+abc              4   4
+a*               1   1
+(a|b)            2   2
+[ab]             2   2
+(a|b|c)          2   2
+
+# Patterns with savings from repeated structures
+(ab)+            4   3
+(abc)+           6   4
+(abcd)+          8   5
+(abcde)+         10  6
+(abcdef)+        12  7
+(abcdefghij)+    20  11
+
+# Complex patterns with significant savings
+(ab|a|bcdef|g)+  13  8
+(a(b|c))*        2   2
+((a|b)(c|d))*    2   2
