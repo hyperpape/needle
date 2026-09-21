@@ -1,0 +1,14 @@
+# pattern              prefixes          suffixes          factors           all               required-factors  shared-prefix  shared-suffix
+AB                     {AB}              {AB}              {AB}              {AB}              {AB}              AB             AB
+A*B                    {}                {B}               {B}               null              {B}               null           {B}
+((GA|AAA)*)(TA|AG)     {}                {TA, AG}          {TA, AG}          null              null              null           null
+[AB][CD]               {BC, AC, BD, AD}  {BC, AC, BD, AD}  {BC, AC, BD, AD}  {BC, AC, BD, AD}  null              null           null
+(ABC(GA|AAA)*)(TA|AG)  {ABC}             {TA, AG}          {ABC}             null              {ABC}             ABC            null
+((ABC)|(DEF))          {ABC, DEF}        {ABC, DEF}        {ABC, DEF}        {ABC, DEF}        null              null           null
+A?                     {, A}             {, A}             {, A}             {, A}             null              null           null
+[A-Z]*                 {}                {}                {}                null              null              null           null
+(AB){0,2}              {, AB, ABAB}      {, AB, ABAB}      {, AB, ABAB}      {, AB, ABAB}      null              null           null
+(AB){1,2}              {AB, ABAB}        {AB, ABAB}        {AB, ABAB}        {AB, ABAB}        {AB}              AB             AB
+A                      {A}               {A}               {A}               {A}               {A}               A              A
+AA                     {AA}              {AA}              {AA}              {AA}              {AA}              AA             AA
+A+B+                   null              null              null              null              null              null           null
