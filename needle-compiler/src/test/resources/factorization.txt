@@ -12,3 +12,30 @@ A?                     {, A}             {, A}             {, A}             {, 
 A                      {A}               {A}               {A}               {A}               {A}               A              A
 AA                     {AA}              {AA}              {AA}              {AA}              {AA}              AA             AA
 A+B+                   null              null              null              null              null              null           null
+
+# Tests for empty prefix/suffix sets with complex patterns - added to verify correct handling of
+# concatenation with optional components and repetitions that can match empty string
+(ABC)*A                {}                {A}               {A}               null              A                 null           A
+A(BCD)*                {A}               {}                {A}               null              A                 A              null
+(ABC)*(DEF)*           {}                {}                {}                null              {}                null           null
+
+# Alternation with empty components (empty string is part of the language)
+(|abc)                 {, abc}           {, abc}           {, abc}           {, abc}           {}                null           null
+(abc|)                 {, abc}           {, abc}           {, abc}           {, abc}           {}                null           null
+(a|b|)                 {, a, b}          {, a, b}          {, a, b}          {, a, b}          {}                null           null
+
+# Nested patterns with empty components
+((ab)*c)               {}                {c}               {c}               null              c                 null           c
+(a(bc)*)               a                 {}                {a}               null              a                 a              null
+(A|B)*(CD)*            {}                {}                {}                null              {}                null           null
+
+# Repeated empty + non-empty combinations (no shared affixes when repetitions are involved)
+(A*B*)*                {}                {}                {}                null              {}                null           null
+
+# Required factors in patterns with empty components - all combinations must be present as required factors
+(A|B)(C|D)             {AC, AD, BC, BD}  {AC, AD, BC, BD}  {AC, AD, BC, BD}  {AC, AD, BC, BD}  {}                null           null
+(A*|B*)(C*|D*)         {}                {}                {}                null              {}                null           null
+
+# Pure repetitions have no shared affixes (null means unknown/uncomputed due to potentially infinite factors)
+(AAA)*                 {}                {}                {}                null              {}                null           null
+(AAA)+                 null              null              null              null              {}                null           null

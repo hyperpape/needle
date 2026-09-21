@@ -132,6 +132,15 @@ public class Factorization {
         return infixes;
     }
 
+    /** An empty set carries no information: treating it as data would claim shared affixes that don't exist. */
+    private static boolean hasNoPrefixInformation(Factorization f) {
+        return f.prefixes == null || f.prefixes.isEmpty();
+    }
+
+    private static boolean hasNoSuffixInformation(Factorization f) {
+        return f.suffixes == null || f.suffixes.isEmpty();
+    }
+
     /**
      * Union does set union on all the components of a factorization. For any component, if either side is null,
      * then the result is null.
@@ -146,7 +155,7 @@ public class Factorization {
             newAll.addAll(factorization.all);
             all = newAll;
         }
-        if (this.prefixes == null || factorization.prefixes == null) {
+        if (hasNoPrefixInformation(this) || hasNoPrefixInformation(factorization)) {
             prefixes = null;
         }
         else {
@@ -154,7 +163,7 @@ public class Factorization {
             newPrefixes.addAll(factorization.prefixes);
             prefixes = newPrefixes;
         }
-        if (this.suffixes == null || factorization.suffixes == null) {
+        if (hasNoSuffixInformation(this) || hasNoSuffixInformation(factorization)) {
             suffixes = null;
         }
         else {

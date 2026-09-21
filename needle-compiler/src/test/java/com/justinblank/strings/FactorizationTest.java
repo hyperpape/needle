@@ -150,10 +150,11 @@ class FactorizationTest {
     void potentiallyEmptyCountedRepetitionOfRange() {
         var node = RegexParser.parse("[B-i]{0,2}");
         var factorization = node.bestFactors();
-        var expectedFactors = Set.of("");
-        assertEquals(expectedFactors, factorization.getFactors());
-        assertEquals(expectedFactors, factorization.getPrefixes());
-        assertEquals(expectedFactors, factorization.getSuffixes());
+        // a potentially-empty repetition contributes no reliable affix information
+        assertEquals(Set.of(""), factorization.getFactors());
+        assertEquals(Set.of(""), factorization.getPrefixes());
+        // the union with the repetition's unknown suffixes yields no shared suffix
+        assertNull(factorization.getSuffixes());
         assertNull(factorization.getAll());
 
         assertEquals(Optional.empty(), factorization.getSharedPrefix());
@@ -174,9 +175,11 @@ class FactorizationTest {
     void potentiallyEmptyCountedRepetitionWithLargeRange() {
         var node = RegexParser.parse("[A-Z]{0,2}");
         var factorization = node.bestFactors();
+        // a potentially-empty repetition contributes no reliable affix information
         assertEquals(Set.of(""), factorization.getFactors());
         assertEquals(Set.of(""), factorization.getPrefixes());
-        assertEquals(Set.of(""), factorization.getSuffixes());
+        // the union with the repetition's unknown suffixes yields no shared suffix
+        assertNull(factorization.getSuffixes());
         assertNull(factorization.getAll());
     }
 
