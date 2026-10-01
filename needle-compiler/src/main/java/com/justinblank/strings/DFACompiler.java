@@ -86,7 +86,16 @@ public class DFACompiler {
         var reversedFindMethodSpec = new FindMethodSpec(dfaReversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
         var dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
         FindMethodSpec suffixSearchFindMethodSpec = null;
-        if (factorization.getMaxLength().isEmpty() && factorization.getSharedSuffix().map(StringUtils::isNotEmpty).orElse(false)) {
+        // The suffix-driven search can return a complete match only when the shared suffix occurs in a match only
+        // as the match's final characters: no occurrence strictly inside a match, and no match that starts with the
+        // suffix and continues past it. Otherwise a match can extend past an occurrence's scan or share a start
+        // with a longer match, and computing the exact span would need super-linear work to preserve leftmost
+        // longest semantics, so we fall back to the ordinary forwards and backwards scans.
+        Optional<String> sharedSuffix = factorization.getSharedSuffix().filter(StringUtils::isNotEmpty);
+        boolean suffixOnlyAtMatchEnd = sharedSuffix.isPresent()
+                && !dfaReversedSearch.canContainAsNonSuffix(StringUtils.reverse(sharedSuffix.get()))
+                && !dfa.after(sharedSuffix.get()).map(postSuffix -> postSuffix.isAccepting() && !postSuffix.isTerminal()).orElse(false);
+        if (factorization.getMaxLength().isEmpty() && suffixOnlyAtMatchEnd) {
             suffixSearchFindMethodSpec = new FindMethodSpec(dfaReversedSearch, FindMethodSpec.SUFFIX_SEARCH, false, factorization, CharacterDistribution.DEFAULT);
         }
         return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, suffixSearchFindMethodSpec, factorization);

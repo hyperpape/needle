@@ -11,9 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the suffix-driven backwards search used for unbounded-length regexes with a shared suffix. Correctness is
- * checked against java.util.regex; scaling checks guard against quadratic behavior when the suffix occurs many times
- * (each occurrence must not trigger a fresh scan of the whole haystack).
+ * Tests for the suffix-driven backwards search, used for unbounded-length regexes whose shared suffix can occur in a
+ * match only as the match's final characters. Correctness is checked against java.util.regex; patterns where the
+ * suffix can occur strictly inside a match, or as the start of a longer match, are included to cover the ordinary
+ * forwards and backwards scans. Scaling checks guard against quadratic behavior when the suffix occurs many times.
  */
 @Timeout(300)
 class SuffixSearchTest {
@@ -48,16 +49,16 @@ class SuffixSearchTest {
             "[^x]*x, aabbxaaxx",
             "[A-Za-z]+ing, testing",
             "(t*acg*)*(cg), acgggactcgcc",
-            // Suffix search alone determines the span: no match contains the suffix strictly inside, and no match
-            // is a proper prefix of another
+            // The suffix can occur in a match only as the match's final characters: the suffix-driven search
+            // returns the complete span
             "a[^a]*a, aba",
             "a[^a]*a, aaba",
             "a[^a]*a, xaaa",
             "x[^x]*x, axbxc",
             "a[^a]*aa, xaaa",
             "[^x]*x, xaax",
-            // Suffix occurs strictly inside matches, or matches are prefixes of one another: the forwards and
-            // backwards scans still compute the span
+            // The suffix occurs strictly inside matches, or matches extend past the suffix's occurrence: the
+            // ordinary forwards and backwards scans compute the span
             "aa[^a]*a, xaaa",
             "aa[^a]*a, xaabaax"
     })
