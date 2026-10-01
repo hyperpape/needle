@@ -74,7 +74,7 @@ public class DFACompiler {
 
         // A self-restarting reversed DFA: during a backwards scan from a suffix occurrence, a dead state means no
         // match can exist further down, so the scan can stop instead of continuing to the search's lower bound.
-        DFA dfaReversedSearch = NFAToDFACompiler.compile(reversedNFA, ConversionMode.DFA_SEARCH, options.debugOptions.printDFAs);
+        DFA dfaReversedSearch = NFAToDFACompiler.compile(reversedNFA, ConversionMode.BASIC, options.debugOptions.printDFAs);
 
         if (options.debugOptions.printDFAs) {
             printDFARepresentations(dfa, containedInDFA, dfaReversed, dfaSearch);
