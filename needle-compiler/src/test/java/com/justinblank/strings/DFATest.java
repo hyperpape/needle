@@ -436,4 +436,36 @@ class DFATest {
         assertTrue(dfa.hasNonPrefix("P"));
         assertTrue(dfa.hasNonPrefix("Prefix"));
     }
+
+    @Test
+    public void testCanContainAsNonSuffixFalseWhenOccurrenceOnlyAtEnd() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertFalse(dfa.canContainAsNonSuffix("Suffix"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixTrueWhenSuffixAppearsStrictlyInsideMatch() {
+        var dfa = DFA.createDFA("PrefixSuffixSuffix");
+        assertTrue(dfa.canContainAsNonSuffix("Suffix"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixFalseWhenOnlyOccurrenceBeginsMatch() {
+        // "aa" matches (the middle is empty), but that occurrence of "a" begins the match, and the middle of any
+        // match cannot contain "a"
+        var dfa = DFA.createDFA("a[^a]*a");
+        assertFalse(dfa.canContainAsNonSuffix("a"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixTrueWhenMiddleCanMatchSuffixChar() {
+        var dfa = DFA.createDFA("a.*a");
+        assertTrue(dfa.canContainAsNonSuffix("a"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixMultiCharSuffix() {
+        assertTrue(DFA.createDFA("ab.*ab").canContainAsNonSuffix("ab"));
+        assertFalse(DFA.createDFA("ab[^b]*ab").canContainAsNonSuffix("ab"));
+    }
 }

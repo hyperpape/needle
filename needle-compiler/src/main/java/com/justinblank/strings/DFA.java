@@ -815,6 +815,26 @@ class DFA {
         return false;
     }
 
+    /**
+     * Returns true if some match of this DFA contains {@code s} with at least one matched character both before and
+     * after the occurrence, i.e. the DFA can contain {@code s} as a non-suffix occurrence that does not begin the
+     * match. When checking a reversed DFA against a reversed suffix, occurrences at the start of the reversed match
+     * are the match's final suffix, so excluding them is required. Depends on dead states being pruned, so that a
+     * state with any outgoing transition can reach acceptance.
+     */
+    public boolean canContainAsNonSuffix(String s) {
+        for (var state : this.states) {
+            if (state == this) {
+                continue;
+            }
+            var after = state.after(s);
+            if (after.isPresent() && !after.get().isTerminal()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean hasNonPrefix(String infix) {
         for (var state : this.states) {
             if (state == this) {

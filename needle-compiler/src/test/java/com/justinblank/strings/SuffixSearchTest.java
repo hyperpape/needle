@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -47,9 +48,38 @@ class SuffixSearchTest {
             "a*bc, bc",
             "[^x]*x, aabbxaaxx",
             "[A-Za-z]+ing, testing",
-            "(t*acg*)*(cg), acgggactcgcc"
+            "(t*acg*)*(cg), acgggactcgcc",
+            // Suffix search alone determines the span: no match contains the suffix strictly inside, and no match
+            // is a proper prefix of another
+            "a[^a]*a, aba",
+            "a[^a]*a, aaba",
+            "a[^a]*a, xaaa",
+            "x[^x]*x, axbxc",
+            "a[^a]*aa, xaaa",
+            "[^x]*x, xaax",
+            // Suffix occurs strictly inside matches, or matches are prefixes of one another: the forwards and
+            // backwards scans still compute the span
+            "aa[^a]*a, xaaa",
+            "aa[^a]*a, xaabaax"
     })
     void matchesJdk(String regex, String input) {
+        assertSameSpansAsJdk(regex, input, 0);
+    }
+
+    /**
+     * Pre-existing failure, unrelated to the exact-span suffix search: for (a[^a]*a|a), the search-mode forwards DFA
+     * is accepting and terminal after the leading "a", because subset construction prunes the continuing (a[^a]*a)
+     * thread when the lower-priority (a) alternative completes. indexForwards therefore stops at the first
+     * acceptance, reporting (0,1) where the JDK reports (0,3). Kept here so the expected spans are recorded; the
+     * JDK is the source of truth for spans.
+     */
+    @Disabled
+    @ParameterizedTest
+    @CsvSource({
+            "(a[^a]*a|a), aba",
+            "(a[^a]*a|a), xbaba"
+    })
+    void suffixSearchOrderedAlternationSpans(String regex, String input) {
         assertSameSpansAsJdk(regex, input, 0);
     }
 
@@ -61,7 +91,8 @@ class SuffixSearchTest {
     @CsvSource({
             "'.*x', x",
             "'[^x]*x', xa",
-            "'ab.*y', aby"
+            "'ab.*y', aby",
+            "'a[^a]*a', ab"
     })
     void suffixDenseHaystacksStayLinear(String regex, String unit) throws Exception {
         // correctness at a size where even quadratic work completes quickly
