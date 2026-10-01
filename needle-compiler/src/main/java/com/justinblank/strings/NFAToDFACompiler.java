@@ -143,7 +143,14 @@ class NFAToDFACompiler {
                     closure.seenAccepting = true;
                 }
                 if (states.getStates().contains(epsilonTransitionState)) {
-                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState), priority);
+                    // The state was reached by the preceding transition, which assigned it the consumed
+                    // instruction's priority. Keep that, but also let the epsilon path compete: the
+                    // transition-assigned priority can be worse than the precedence of a thread reaching the state
+                    // through an epsilon edge in the same step (e.g. a Match reached both through a quantified
+                    // group's exit and an earlier alternative's jump). StateSet.add keeps the better of the two.
+                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState),
+                            states.getPriority(epsilonTransitionState));
+                    closure.add(epsilonTransitionState, states.getDistance(state), states.getPriority(state));
                 }
                 else {
                     closure.add(epsilonTransitionState, states.getDistance(state), priority);

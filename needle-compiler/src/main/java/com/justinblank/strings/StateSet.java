@@ -13,14 +13,16 @@ class StateSet {
     // TODO: fix up how this is set
     boolean seenAccepting;
 
+    /**
+     * Adds the state, or merges in the reaching thread's data. When multiple threads reach the same state, the one
+     * that would produce the better match owns it: the larger distance (an earlier restart, so an earlier match
+     * start) wins, and at equal distance the smaller priority value (higher parse precedence) wins. The result is
+     * independent of the order in which threads are added.
+     */
     public boolean add(Integer integer, Integer distance, int priority) {
         var currentState = stateStarts.get(integer);
-        if (currentState != null) {
-            if (currentState.distance < distance) {
-                stateStarts.put(integer, new StateData(distance, priority));
-            }
-        }
-        else {
+        if (currentState == null || currentState.distance < distance
+                || (currentState.distance == distance && currentState.priority > priority)) {
             stateStarts.put(integer, new StateData(distance, priority));
         }
         return states.add(integer);
@@ -43,7 +45,11 @@ class StateSet {
                 continue;
             }
             var stateData = stateStarts.get(state);
-            if (stateData.distance < boundary || priority < stateData.priority) {
+            // A thread that started later than the accepting thread loses to the accepting match on leftmost
+            // grounds; a thread that started equally early loses on precedence. A thread that started earlier must
+            // survive regardless of precedence: its matches beat the accepting match under leftmost-first.
+            if (stateData.distance < boundary
+                    || (stateData.distance == boundary && priority < stateData.priority)) {
                 it.remove();
                 removed = true;
                 stateStarts.remove(state);
