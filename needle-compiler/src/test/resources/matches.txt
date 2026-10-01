@@ -338,11 +338,16 @@ a{0,}               aaa             y     0     3  0
 
 # unbounded-length regexes with a shared suffix: find() is driven backwards
 # from suffix occurrences
-.*x                  axbx                y       0       4       0
-b.*x                 bxabxabx            y       0       8       0
-ab.*y                abzzzy              y       0       6       0
-a+b+c                aabbc               y       0       5       0
-ad*g                 adg                 y       0       3       0
-a*bc                 bc                  y       0       2       0
-[A-Za-z]+ing         testing             y       0       7       0
-.*x                  axbx                y       0       4       800000
+.*x                  axbx                    y       0       4       0
+b.*x                 bxabxabx                y       0       8       0
+ab.*y                abzzzy                  y       0       6       0
+a+b+c                aabbc                   y       0       5       0
+ad*g                 adg                     y       0       3       0
+a*bc                 bc                      y       0       2       0
+[A-Za-z]+ing         testing                 y       0       7       0
+.*x                  axbx                    y       0       4       800000
+br[^g]+ing           bring                   n
+br[^g]+ing           bridging                n
+br[^n]+ing           bringing                n
+br[^n]+ing           bridging                y       0       8
+br[^n]+ing           'bringing the bridging' y       13      21
