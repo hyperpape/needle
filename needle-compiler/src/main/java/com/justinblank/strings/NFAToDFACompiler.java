@@ -143,7 +143,12 @@ class NFAToDFACompiler {
                     closure.seenAccepting = true;
                 }
                 if (states.getStates().contains(epsilonTransitionState)) {
-                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState), priority);
+                    // The state was reached by the preceding transition, which assigned it the consumed
+                    // instruction's priority. Preserve that: a Match instruction is shared between alternatives and
+                    // carries no single correct priority, so an accepting thread must keep the precedence of the
+                    // path that reached it, or the prune kills higher-precedence threads that are still matching.
+                    closure.add(epsilonTransitionState, states.getDistance(epsilonTransitionState),
+                            states.getPriority(epsilonTransitionState));
                 }
                 else {
                     closure.add(epsilonTransitionState, states.getDistance(state), priority);

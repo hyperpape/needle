@@ -1,6 +1,5 @@
 package com.justinblank.strings;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -67,17 +66,16 @@ class SuffixSearchTest {
     }
 
     /**
-     * Pre-existing failure, unrelated to the exact-span suffix search: for (a[^a]*a|a), the search-mode forwards DFA
-     * is accepting and terminal after the leading "a", because subset construction prunes the continuing (a[^a]*a)
-     * thread when the lower-priority (a) alternative completes. indexForwards therefore stops at the first
-     * acceptance, reporting (0,1) where the JDK reports (0,3). Kept here so the expected spans are recorded; the
-     * JDK is the source of truth for spans.
+     * Ordered alternation where the earlier alternative can continue past the point where the later alternative
+     * completes: the forwards scan must keep scanning to the earlier alternative's end. This regressed when the
+     * subset construction pruned the continuing thread because the accepting thread carried the shared Match
+     * instruction's priority instead of the precedence of the path that reached it.
      */
-    @Disabled
     @ParameterizedTest
     @CsvSource({
             "(a[^a]*a|a), aba",
-            "(a[^a]*a|a), xbaba"
+            "(a[^a]*a|a), xbaba",
+            "(a[^a]*a|a), abababa"
     })
     void suffixSearchOrderedAlternationSpans(String regex, String input) {
         assertSameSpansAsJdk(regex, input, 0);
