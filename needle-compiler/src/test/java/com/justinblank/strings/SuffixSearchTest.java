@@ -47,9 +47,37 @@ class SuffixSearchTest {
             "a*bc, bc",
             "[^x]*x, aabbxaaxx",
             "[A-Za-z]+ing, testing",
-            "(t*acg*)*(cg), acgggactcgcc"
+            "(t*acg*)*(cg), acgggactcgcc",
+            // Suffix search alone determines the span: no match contains the suffix strictly inside, and no match
+            // is a proper prefix of another
+            "a[^a]*a, aba",
+            "a[^a]*a, aaba",
+            "a[^a]*a, xaaa",
+            "x[^x]*x, axbxc",
+            "a[^a]*aa, xaaa",
+            "[^x]*x, xaax",
+            // Suffix occurs strictly inside matches, or matches are prefixes of one another: the forwards and
+            // backwards scans still compute the span
+            "aa[^a]*a, xaaa",
+            "aa[^a]*a, xaabaax"
     })
     void matchesJdk(String regex, String input) {
+        assertSameSpansAsJdk(regex, input, 0);
+    }
+
+    /**
+     * Ordered alternation where the earlier alternative can continue past the point where the later alternative
+     * completes: the forwards scan must keep scanning to the earlier alternative's end. This regressed when the
+     * subset construction pruned the continuing thread because the accepting thread carried the shared Match
+     * instruction's priority instead of the precedence of the path that reached it.
+     */
+    @ParameterizedTest
+    @CsvSource({
+            "(a[^a]*a|a), aba",
+            "(a[^a]*a|a), xbaba",
+            "(a[^a]*a|a), abababa"
+    })
+    void suffixSearchOrderedAlternationSpans(String regex, String input) {
         assertSameSpansAsJdk(regex, input, 0);
     }
 
@@ -61,7 +89,8 @@ class SuffixSearchTest {
     @CsvSource({
             "'.*x', x",
             "'[^x]*x', xa",
-            "'ab.*y', aby"
+            "'ab.*y', aby",
+            "'a[^a]*a', ab"
     })
     void suffixDenseHaystacksStayLinear(String regex, String unit) throws Exception {
         // correctness at a size where even quadratic work completes quickly
