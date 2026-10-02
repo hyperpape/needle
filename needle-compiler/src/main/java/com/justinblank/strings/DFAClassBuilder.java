@@ -111,11 +111,15 @@ class DFAClassBuilder extends ClassBuilder {
 
         addAffixConstants();
         // TODO: refactor to use compilation policy
-        dfaSearchFindMethodSpec.dfa.initialAsciiBytes().ifPresent(byteMask -> {
-            if (shouldIncludeFirstByteMask()) {
-                addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, byteMask);
-            }
-        });
+        if (suffixSearchFindMethodSpec == null) {
+            // FIRST_BYTE_MASK is only consumed by the forwards index method, which the suffix-driven search
+            // replaces
+            dfaSearchFindMethodSpec.dfa.initialAsciiBytes().ifPresent(byteMask -> {
+                if (shouldIncludeFirstByteMask()) {
+                    addArrayConstant(FIRST_BYTE_MASK, ACC_PRIVATE, byteMask);
+                }
+            });
+        }
 
         createMatchesMethod(forwardFindMethodSpec);
         createContainedInMethod(containedInFindMethodSpec);
@@ -123,10 +127,11 @@ class DFAClassBuilder extends ClassBuilder {
         createFindMethodInternal();
         if (suffixSearchFindMethodSpec != null) {
             createSuffixDrivenIndexMethod(suffixSearchFindMethodSpec);
-        }
-        createIndexMethod(dfaSearchFindMethodSpec);
-        if (!factorization.canOnlyHaveOneLength()) {
-            createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa);
+        } else {
+            createIndexMethod(dfaSearchFindMethodSpec);
+            if (!factorization.canOnlyHaveOneLength()) {
+                createIndexMethodReversed(reversedFindMethodSpec, forwardFindMethodSpec.dfa);
+            }
         }
         for (var spec : allSpecs()) {
             addWasAcceptedMethod(spec);
