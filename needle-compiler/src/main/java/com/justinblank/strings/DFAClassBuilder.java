@@ -88,7 +88,9 @@ class DFAClassBuilder extends ClassBuilder {
         if (suffixSearchFindMethodSpec == null) {
             return List.of(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec);
         }
-        return List.of(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, suffixSearchFindMethodSpec);
+        // The suffix-driven search replaces the forwards and backwards index methods, so the specs backing them are
+        // omitted and no methods or constants are emitted for their DFAs
+        return List.of(forwardFindMethodSpec, containedInFindMethodSpec, suffixSearchFindMethodSpec);
     }
 
     void initMethods() {
@@ -102,9 +104,10 @@ class DFAClassBuilder extends ClassBuilder {
             // these methods depend on being called after addStateMethodTransitionStrings()
             setByteClassTransitions(forwardFindMethodSpec);
             setByteClassTransitions(containedInFindMethodSpec);
-            setByteClassTransitions(reversedFindMethodSpec);
-            setByteClassTransitions(dfaSearchFindMethodSpec);
-            if (suffixSearchFindMethodSpec != null) {
+            if (suffixSearchFindMethodSpec == null) {
+                setByteClassTransitions(reversedFindMethodSpec);
+                setByteClassTransitions(dfaSearchFindMethodSpec);
+            } else {
                 setByteClassTransitions(suffixSearchFindMethodSpec);
             }
         }
