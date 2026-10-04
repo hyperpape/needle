@@ -1,5 +1,6 @@
 package com.justinblank.strings;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -113,6 +114,35 @@ class SuffixSearchTest {
             sb.append(unit);
         }
         return sb.toString();
+    }
+
+    /**
+     * The suffix-driven search must not report matches that end past the window end: the public find(from, to)
+     * passes a bounded TO, and indexOf alone would otherwise find occurrences beyond it.
+     */
+    @Test
+    void boundedWindowEnd() {
+        // a*baa is gated; the occurrence of "baa" at index 2 ends at 5, past the window ending at 4
+        assertBoundedFindMatchesJdk("a*baa", "aabaaba", 0, 4);
+        assertBoundedFindMatchesJdk("a*baa", "aabaaba", 0, 5);
+        assertBoundedFindMatchesJdk("a*baa", "aabaaba", 2, 7);
+        assertBoundedFindMatchesJdk("[^x]*x", "aaxax", 0, 2);
+        assertBoundedFindMatchesJdk("[^x]*x", "aaxax", 0, 3);
+        assertBoundedFindMatchesJdk("[^x]*x", "aaxax", 1, 4);
+    }
+
+    private static void assertBoundedFindMatchesJdk(String regex, String input, int from, int to) {
+        Pattern pattern = DFACompiler.compile(regex, "SuffixSearchWindow" + CLASS_COUNTER.incrementAndGet(), 0);
+        Matcher matcher = pattern.matcher(input);
+        java.util.regex.Matcher jdkMatcher = java.util.regex.Pattern.compile(regex).matcher(input);
+        jdkMatcher.region(from, to);
+        boolean needleFound = matcher.find(from, to);
+        assertEquals(jdkMatcher.find(), needleFound,
+                regex + " find(" + from + ", " + to + ") on \"" + input + "\"");
+        if (needleFound) {
+            assertEquals(jdkMatcher.start(), matcher.start(), regex + " start");
+            assertEquals(jdkMatcher.end(), matcher.end(), regex + " end");
+        }
     }
 
     private static final java.util.concurrent.atomic.AtomicInteger BENCH_COUNTER =

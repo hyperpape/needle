@@ -663,11 +663,11 @@ class DFAClassBuilder extends ClassBuilder {
         int postSuffixStateNumber = postSuffixState.getStateNumber();
         boolean postSuffixAccepting = postSuffixState.isAccepting();
 
-        var vars = new GenericVars("FROM", MatchingVars.INDEX, MatchingVars.STATE, MatchingVars.CHAR,
+        var vars = new GenericVars("FROM", "TO", MatchingVars.INDEX, MatchingVars.STATE, MatchingVars.CHAR,
                 MatchingVars.LAST_MATCH, "OCC", "K");
         vars.addVar(BYTE_CLASS_FIELD);
         vars.addVar(MatchingVars.STRING);
-        var method = mkMethod(spec.indexMethod(), List.of("I"), "Z", vars);
+        var method = mkMethod(spec.indexMethod(), List.of("I", "I"), "Z", vars);
 
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
         // INDEX holds the next suffix occurrence to examine; occurrences before FROM cannot host a match starting
@@ -678,6 +678,9 @@ class DFAClassBuilder extends ClassBuilder {
 
         method.loop(gte(read(MatchingVars.INDEX), literal(0)), List.of(
                 set("OCC", read(MatchingVars.INDEX)),
+                // matches must lie within [FROM, TO); occurrences are examined left to right, so once one ends past
+                // TO, every later occurrence does too
+                cond(gt(plus(read("OCC"), literal(suffix.length())), read("TO"))).withBody(returnValue(literal(false))),
                 set("K", sub(read("OCC"), 1)),
                 set(MatchingVars.STATE, postSuffixStateNumber),
                 set(MatchingVars.LAST_MATCH, postSuffixAccepting ? read("OCC") : literal(-1)),
@@ -783,12 +786,12 @@ class DFAClassBuilder extends ClassBuilder {
      * suffix, so matches are never zero-length and the next search resumes at the match's end.
      */
     private Method createFindMethodDrivenBySuffix() {
-        var vars = new GenericVars("FROM");
+        var vars = new GenericVars("FROM", "TO");
         var method = mkMethod("find", List.of("I", "I"), "Z", vars);
 
         method.cond(eq(get(NEXT_START_FIELD, Builtin.I, thisRef()), -1
         )).withBody(returnValue(literal(false)));
-        method.cond(call(suffixSearchFindMethodSpec.indexMethod(), Builtin.BOOL, thisRef(), read("FROM")))
+        method.cond(call(suffixSearchFindMethodSpec.indexMethod(), Builtin.BOOL, thisRef(), read("FROM"), read("TO")))
                 .withBody(List.of(
                         fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()),
                                 get(END_FIELD, Builtin.I, thisRef())),
