@@ -835,6 +835,95 @@ class DFA {
         return false;
     }
 
+    /**
+     * Returns true if some match {@code x·m·z} of this DFA has a factor {@code m} that is itself a match, while
+     * {@code x·m} is not: {@code x·m·z} and {@code m} match but {@code x·m} does not. When no violation exists, the
+     * language is closed under left extension, which guarantees that the suffix-driven search stopping at the first
+     * occurrence with a successful backwards scan yields the leftmost match start. Must not be called on a language
+     * that matches the empty string.
+     *
+     * The check tracks pairs of states (tail, whole): tail is the state reached by consuming the candidate factor m
+     * from the start state, whole the state reached by consuming x·m. Both consume the same characters, and the
+     * factor's start may be reset to any position, so successors of (tail, whole) on a character are (δ(tail, c),
+     * δ(whole, c)) and (δ(root, c), δ(whole, c)). A violation exists iff some reachable pair has an accepting tail
+     * and a whole state that is non-accepting but can still reach acceptance.
+     */
+    public boolean hasLeftExtensionViolation() {
+        Set<DFA> live = new HashSet<>();
+        for (var state : states) {
+            if (state.isAccepting()) {
+                live.add(state);
+            }
+        }
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (var state : states) {
+                if (!live.contains(state)) {
+                    for (var transition : state.getTransitions()) {
+                        if (live.contains(transition.getRight())) {
+                            live.add(state);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        Set<Long> seen = new HashSet<>();
+        Deque<Long> worklist = new ArrayDeque<>();
+        long initial = pairEncoding(stateNumber, stateNumber);
+        seen.add(initial);
+        worklist.add(initial);
+        while (!worklist.isEmpty()) {
+            long encoded = worklist.pop();
+            DFA tail = states.get((int) (encoded >>> 32));
+            DFA whole = states.get((int) encoded);
+            if (tail.isAccepting() && !whole.isAccepting() && live.contains(whole)) {
+                return true;
+            }
+            // Characters where tail, whole, and the reset target (this, the start state) transition uniformly
+            TreeSet<Integer> boundaries = new TreeSet<>();
+            for (var edgeList : List.of(tail.getTransitions(), whole.getTransitions(), getTransitions())) {
+                for (var edge : edgeList) {
+                    boundaries.add((int) edge.getLeft().getStart());
+                    boundaries.add(edge.getLeft().getEnd() + 1);
+                }
+            }
+            int start = boundaries.first();
+            for (int end : boundaries) {
+                if (end > start) {
+                    char c = (char) start;
+                    var nextWhole = whole.transition(c);
+                    if (nextWhole != null) {
+                        var nextTail = tail.transition(c);
+                        if (nextTail != null) {
+                            addPair(nextTail, nextWhole, seen, worklist);
+                        }
+                        var reset = transition(c);
+                        if (reset != null) {
+                            addPair(reset, nextWhole, seen, worklist);
+                        }
+                    }
+                }
+                start = end;
+            }
+        }
+        return false;
+    }
+
+    private void addPair(DFA tail, DFA whole, Set<Long> seen, Deque<Long> worklist) {
+        long encoded = pairEncoding(tail.getStateNumber(), whole.getStateNumber());
+        if (seen.add(encoded)) {
+            worklist.add(encoded);
+        }
+    }
+
+    private static long pairEncoding(int tailStateNumber, int wholeStateNumber) {
+        return ((long) tailStateNumber << 32) | wholeStateNumber;
+    }
+
     public boolean hasNonPrefix(String infix) {
         boolean reEnterable = this.rootIsReenterable();
         for (var state : this.states) {

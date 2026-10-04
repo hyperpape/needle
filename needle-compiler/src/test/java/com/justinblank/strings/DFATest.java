@@ -444,4 +444,52 @@ class DFATest {
         assertFalse(DFA.createDFA("ab").rootIsReenterable());
         assertTrue(DFA.createDFA("a*b").rootIsReenterable());
     }
+
+    @Test
+    public void testCanContainAsNonSuffixFalseWhenOccurrenceOnlyAtEnd() {
+        var dfa = DFA.createDFA("PrefixSuffix");
+        assertFalse(dfa.canContainAsNonSuffix("Suffix"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixTrueWhenSuffixAppearsStrictlyInsideMatch() {
+        var dfa = DFA.createDFA("PrefixSuffixSuffix");
+        assertTrue(dfa.canContainAsNonSuffix("Suffix"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixFalseWhenOnlyOccurrenceBeginsMatch() {
+        // "aa" matches (the middle is empty), but that occurrence of "a" begins the match, and the middle of any
+        // match cannot contain "a"
+        var dfa = DFA.createDFA("a[^a]*a");
+        assertFalse(dfa.canContainAsNonSuffix("a"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixTrueWhenMiddleCanMatchSuffixChar() {
+        var dfa = DFA.createDFA("a.*a");
+        assertTrue(dfa.canContainAsNonSuffix("a"));
+    }
+
+    @Test
+    public void testCanContainAsNonSuffixMultiCharSuffix() {
+        assertTrue(DFA.createDFA("ab.*ab").canContainAsNonSuffix("ab"));
+        assertFalse(DFA.createDFA("ab[^b]*ab").canContainAsNonSuffix("ab"));
+    }
+
+    @Test
+    public void testLeftExtensionClosureHoldsForAbsorbingMiddles() {
+        assertFalse(DFA.createDFA("abc.*xyz").hasLeftExtensionViolation());
+        assertFalse(DFA.createDFA("(abc|def).*xyz").hasLeftExtensionViolation());
+        assertFalse(DFA.createDFA(".*x").hasLeftExtensionViolation());
+        assertFalse(DFA.createDFA("[^x]*x").hasLeftExtensionViolation());
+        assertFalse(DFA.createDFA("(a[^a]*a|a)").hasLeftExtensionViolation());
+    }
+
+    @Test
+    public void testLeftExtensionClosureViolationDetected() {
+        // "ababxyzqxyz" matches (via the cycle "abxyzq"), and its factor "abxyz" matches (empty cycle), but the
+        // prefix "ababxyz" does not: extending the inner match to the outer match's start leaves the language
+        assertTrue(DFA.createDFA("ab(abxyzq)*xyz").hasLeftExtensionViolation());
+    }
 }
