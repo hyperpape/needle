@@ -25,6 +25,12 @@ public class FindMethodSpec {
      * match endpoints. Used when there is no maximum length, so the suffix can't anchor the forwards search.
      */
     public static final String SUFFIX_SEARCH = "SuffixSearch";
+    /**
+     * Like SUFFIX_SEARCH, for languages where the suffix can occur strictly inside a match but the language is
+     * closed under left extension: a backwards scan locates the leftmost start of a match ending at the occurrence,
+     * then the forwards search finds the match's end.
+     */
+    public static final String RELAXED_SUFFIX_SEARCH = "RelaxedSuffixSearch";
 
     final DFA dfa;
     final String name;

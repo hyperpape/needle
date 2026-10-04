@@ -802,6 +802,7 @@ class DFA {
         return false;
     }
 
+    // Slightly different semantics from canHaveAsProperInfix, may be redundant.
     public boolean hasInfix(String infix) {
         for (var state : this.states) {
             if (state == this) {
@@ -816,13 +817,9 @@ class DFA {
     }
 
     /**
-     * Returns true if some match of this DFA contains {@code s} with at least one matched character both before and
-     * after the occurrence, i.e. the DFA can contain {@code s} as a non-suffix occurrence that does not begin the
-     * match. When checking a reversed DFA against a reversed suffix, occurrences at the start of the reversed match
-     * are the match's final suffix, so excluding them is required. Depends on dead states being pruned, so that a
-     * state with any outgoing transition can reach acceptance.
+     * Returns true if some match of this DFA contains {@code s} as a proper infix.
      */
-    public boolean canContainAsNonSuffix(String s) {
+    public boolean canHaveAsProperInfix(String s) {
         for (var state : this.states) {
             if (state == this) {
                 continue;
@@ -833,6 +830,87 @@ class DFA {
             }
         }
         return false;
+    }
+
+    /**
+     * Returns true if some match {@code x·m·z} of this DFA has a factor {@code m} that is itself a match, while
+     * {@code x·m} is not: {@code x·m·z} and {@code m} match but {@code x·m} does not. Must not be called on a language
+     * that matches the empty string.
+     */
+    public boolean backwardsMatchFromSuffixCanMissEarlierMatches() {
+        Set<DFA> live = new HashSet<>();
+        for (var state : states) {
+            if (state.isAccepting()) {
+                live.add(state);
+            }
+        }
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (var state : states) {
+                if (!live.contains(state)) {
+                    for (var transition : state.getTransitions()) {
+                        if (live.contains(transition.getRight())) {
+                            live.add(state);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        Set<Long> seen = new HashSet<>();
+        Deque<Long> worklist = new ArrayDeque<>();
+        long initial = pairEncoding(stateNumber, stateNumber);
+        seen.add(initial);
+        worklist.add(initial);
+        while (!worklist.isEmpty()) {
+            long encoded = worklist.pop();
+            DFA tail = states.get((int) (encoded >>> 32));
+            DFA whole = states.get((int) encoded);
+            if (tail.isAccepting() && !whole.isAccepting() && live.contains(whole)) {
+                return true;
+            }
+            // Characters where tail, whole, and the reset target (this, the start state) transition uniformly
+            TreeSet<Integer> boundaries = new TreeSet<>();
+            for (var edgeList : List.of(tail.getTransitions(), whole.getTransitions(), getTransitions())) {
+                for (var edge : edgeList) {
+                    boundaries.add((int) edge.getLeft().getStart());
+                    boundaries.add(edge.getLeft().getEnd() + 1);
+                }
+            }
+            int start = boundaries.first();
+            for (int end : boundaries) {
+                if (end > start) {
+                    char c = (char) start;
+                    var nextWhole = whole.transition(c);
+                    if (nextWhole != null) {
+                        var nextTail = tail.transition(c);
+                        if (nextTail != null) {
+                            addPair(nextTail, nextWhole, seen, worklist);
+                        }
+                        var reset = transition(c);
+                        if (reset != null) {
+                            addPair(reset, nextWhole, seen, worklist);
+                        }
+                    }
+                }
+                start = end;
+            }
+        }
+        return false;
+    }
+
+    private void addPair(DFA tail, DFA whole, Set<Long> seen, Deque<Long> worklist) {
+        long encoded = pairEncoding(tail.getStateNumber(), whole.getStateNumber());
+        if (seen.add(encoded)) {
+            worklist.add(encoded);
+        }
+    }
+
+    private static long pairEncoding(int tailStateNumber, int wholeStateNumber) {
+        return ((long) tailStateNumber << 32) | wholeStateNumber;
     }
 
     public boolean hasNonPrefix(String infix) {

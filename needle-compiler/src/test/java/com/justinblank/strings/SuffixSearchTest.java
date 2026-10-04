@@ -9,13 +9,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the suffix-driven backwards search, used for unbounded-length regexes whose shared suffix can occur in a
- * match only as the match's final characters. Correctness is checked against java.util.regex; patterns where the
- * suffix can occur strictly inside a match, or as the start of a longer match, are included to cover the ordinary
- * forwards and backwards scans. Scaling checks guard against quadratic behavior when the suffix occurs many times.
+ * Tests for the suffix-driven searches, used for unbounded-length regexes with a shared suffix. When the suffix can
+ * occur in a match only as the match's final characters, the search returns the complete span directly; when the
+ * language is closed under left extension (a broader condition), the search locates a match start with a backwards
+ * scan and its end with the forwards search. Patterns failing both conditions exercise the ordinary forwards and
+ * backwards scans. Correctness is checked against java.util.regex; scaling checks guard against quadratic behavior
+ * when the suffix occurs many times.
  */
 @Timeout(300)
 class SuffixSearchTest {
@@ -50,6 +53,17 @@ class SuffixSearchTest {
             "[^x]*x, aabbxaaxx",
             "[A-Za-z]+ing, testing",
             "(t*acg*)*(cg), acgggactcgcc",
+            // The language is closed under left extension, so the search stops at the first occurrence whose
+            // backwards scan succeeds and finds the end with the forwards search
+            "abc.*xyz, abcxyzzz",
+            "abc.*xyz, abcxyzabcxyz",
+            "(abc|def).*xyz, abcAxyzBdefCxyz",
+            "(abc|def).*xyz, defxyz",
+            "(a[^a]*a|a), aba",
+            "(a[^a]*a|a), xbaba",
+            // Not closed under left extension ("ababxyz" contains the match "abxyz" but is not itself a match),
+            // so the ordinary forwards and backwards scans compute the span
+            "ab(abxyzq)*xyz, ababxyzqxyz",
             // The suffix can occur in a match only as the match's final characters: the suffix-driven search
             // returns the complete span
             "a[^a]*a, aba",
@@ -81,6 +95,63 @@ class SuffixSearchTest {
     })
     void suffixSearchOrderedAlternationSpans(String regex, String input) {
         assertSameSpansAsJdk(regex, input, 0);
+    }
+
+    /**
+     * Exhaustive leftmost-first sweep: every match span over every string of length <= 6 over a small alphabet must
+     * agree with java.util.regex. Covers patterns from all three search tiers--the exact-span and relaxed
+     * suffix-driven searches and the ordinary pipeline--with ordered alternations whose precedence decides the
+     * span, matches that begin with the shared suffix, and suffixes that are not matches themselves.
+     */
+    @ParameterizedTest
+    @CsvSource({
+            // exact-span tier
+            "a[^a]*a",
+            "a*baa",
+            "[^x]*x",
+            "ax|a[^a]*a",
+            "a[^a]*a|aa",
+            "x[^x]*x|ax",
+            "ab.ab",
+            "(a|ab)x",
+            // relaxed tier
+            ".*x",
+            "(a[^a]*a|a)",
+            // ordinary tier
+            "ab(abxq)*x",
+            "abc"
+    })
+    void leftmostFirstExhaustiveSweep(String regex) {
+        Pattern pattern = DFACompiler.compile(regex, "SuffixSearchSweep" + CLASS_COUNTER.incrementAndGet(), 0);
+        java.util.regex.Pattern jdkPattern = java.util.regex.Pattern.compile(regex);
+        String alphabet = "abxz";
+        int total = 1;
+        for (int len = 0; len <= 6; len++) {
+            for (int i = 0; i < total; i++) {
+                StringBuilder sb = new StringBuilder();
+                int v = i;
+                for (int k = 0; k < len; k++) {
+                    sb.append(alphabet.charAt(v % alphabet.length()));
+                    v /= alphabet.length();
+                }
+                String input = sb.toString();
+                Matcher matcher = pattern.matcher(input);
+                java.util.regex.Matcher jdkMatcher = jdkPattern.matcher(input);
+                int count = 0;
+                while (jdkMatcher.find()) {
+                    count++;
+                    assertTrue(matcher.find(), regex + " vs \"" + input + "\": needle stopped early at JDK match #"
+                            + count + " " + jdkMatcher.start() + "," + jdkMatcher.end());
+                    assertEquals(jdkMatcher.start(), matcher.start(),
+                            regex + " match #" + count + " on \"" + input + "\" start");
+                    assertEquals(jdkMatcher.end(), matcher.end(),
+                            regex + " match #" + count + " on \"" + input + "\" end");
+                }
+                assertFalse(matcher.find(), regex + " on \"" + input + "\": extra match "
+                        + matcher.start() + "," + matcher.end());
+            }
+            total *= alphabet.length();
+        }
     }
 
     /**
