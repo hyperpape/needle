@@ -98,7 +98,16 @@ public class DFACompiler {
         if (factorization.getMaxLength().isEmpty() && suffixOnlyAtMatchEnd) {
             suffixSearchFindMethodSpec = new FindMethodSpec(dfaReversedSearch, FindMethodSpec.SUFFIX_SEARCH, false, factorization, CharacterDistribution.DEFAULT);
         }
-        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, suffixSearchFindMethodSpec, factorization);
+        FindMethodSpec relaxedSuffixFindMethodSpec = null;
+        // When the strict conditions above fail, the search can still stop at the first occurrence whose backwards
+        // scan succeeds if the language is closed under left extension: extending a match ending at that occurrence
+        // back to the leftmost match's start yields a match, so the scan reaches the leftmost match start, and the
+        // forwards search then finds the leftmost match's end. Violations are compile-time-checked on the match DFA.
+        if (suffixSearchFindMethodSpec == null && factorization.getMaxLength().isEmpty() && sharedSuffix.isPresent()
+                && !dfa.hasLeftExtensionViolation()) {
+            relaxedSuffixFindMethodSpec = new FindMethodSpec(dfaReversedSearch, FindMethodSpec.RELAXED_SUFFIX_SEARCH, false, factorization, CharacterDistribution.DEFAULT);
+        }
+        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, suffixSearchFindMethodSpec, relaxedSuffixFindMethodSpec, factorization);
     }
 
     private static void checkForOverLongDFAs(List<DFA> dfas) {
@@ -145,16 +154,20 @@ public class DFACompiler {
         final FindMethodSpec dfaSearchFindMethodSpec;
         // Non-null when the regex has a shared suffix but no maximum length
         final FindMethodSpec suffixSearchFindMethodSpec;
+        // Non-null when the strict suffix-search conditions fail but the language is closed under left extension
+        final FindMethodSpec relaxedSuffixFindMethodSpec;
         final Factorization factorization;
         final Map<Integer, Offset> forwardOffsets;
 
         DFAs(FindMethodSpec forwardFindMethodSpec, FindMethodSpec reversedFindMethodSpec, FindMethodSpec containedInFindMethodSpec,
-             FindMethodSpec dfaSearchFindMethodSpec, FindMethodSpec suffixSearchFindMethodSpec, Factorization factorization) {
+             FindMethodSpec dfaSearchFindMethodSpec, FindMethodSpec suffixSearchFindMethodSpec,
+             FindMethodSpec relaxedSuffixFindMethodSpec, Factorization factorization) {
             this.forwardFindMethodSpec = forwardFindMethodSpec;
             this.reversedFindMethodSpec = reversedFindMethodSpec;
             this.containedInFindMethodSpec = containedInFindMethodSpec;
             this.dfaSearchFindMethodSpec = dfaSearchFindMethodSpec;
             this.suffixSearchFindMethodSpec = suffixSearchFindMethodSpec;
+            this.relaxedSuffixFindMethodSpec = relaxedSuffixFindMethodSpec;
             this.factorization = factorization;
             this.forwardOffsets = forwardFindMethodSpec.dfa.calculateOffsets(factorization);
         }

@@ -12,10 +12,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the suffix-driven backwards search, used for unbounded-length regexes whose shared suffix can occur in a
- * match only as the match's final characters. Correctness is checked against java.util.regex; patterns where the
- * suffix can occur strictly inside a match, or as the start of a longer match, are included to cover the ordinary
- * forwards and backwards scans. Scaling checks guard against quadratic behavior when the suffix occurs many times.
+ * Tests for the suffix-driven searches, used for unbounded-length regexes with a shared suffix. When the suffix can
+ * occur in a match only as the match's final characters, the search returns the complete span directly; when the
+ * language is closed under left extension (a broader condition), the search locates a match start with a backwards
+ * scan and its end with the forwards search. Patterns failing both conditions exercise the ordinary forwards and
+ * backwards scans. Correctness is checked against java.util.regex; scaling checks guard against quadratic behavior
+ * when the suffix occurs many times.
  */
 @Timeout(300)
 class SuffixSearchTest {
@@ -50,6 +52,17 @@ class SuffixSearchTest {
             "[^x]*x, aabbxaaxx",
             "[A-Za-z]+ing, testing",
             "(t*acg*)*(cg), acgggactcgcc",
+            // The language is closed under left extension, so the search stops at the first occurrence whose
+            // backwards scan succeeds and finds the end with the forwards search
+            "abc.*xyz, abcxyzzz",
+            "abc.*xyz, abcxyzabcxyz",
+            "(abc|def).*xyz, abcAxyzBdefCxyz",
+            "(abc|def).*xyz, defxyz",
+            "(a[^a]*a|a), aba",
+            "(a[^a]*a|a), xbaba",
+            // Not closed under left extension ("ababxyz" contains the match "abxyz" but is not itself a match),
+            // so the ordinary forwards and backwards scans compute the span
+            "ab(abxyzq)*xyz, ababxyzqxyz",
             // The suffix can occur in a match only as the match's final characters: the suffix-driven search
             // returns the complete span
             "a[^a]*a, aba",
