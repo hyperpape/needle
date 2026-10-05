@@ -436,4 +436,12 @@ class DFATest {
         assertTrue(dfa.hasNonPrefix("P"));
         assertTrue(dfa.hasNonPrefix("Prefix"));
     }
+
+    @Test
+    public void testRootIsReenterable() {
+        // minimization merges the [^x] loop state into the initial state, which then re-enters itself
+        assertTrue(DFA.createDFA("[^x]*x").rootIsReenterable());
+        assertFalse(DFA.createDFA("ab").rootIsReenterable());
+        assertTrue(DFA.createDFA("a*b").rootIsReenterable());
+    }
 }

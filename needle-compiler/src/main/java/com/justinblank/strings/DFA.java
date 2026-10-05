@@ -815,13 +815,30 @@ class DFA {
     }
 
     public boolean hasNonPrefix(String infix) {
+        boolean reEnterable = this.rootIsReenterable();
         for (var state : this.states) {
-            if (state == this) {
+            if (state == this && !reEnterable) {
                 continue;
             }
             var afterInfix = state.after(infix);
             if (afterInfix.isPresent()) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if some transition targets the initial state, so the initial state can be re-entered in the
+     * middle of a match. Occurrences consumed from the initial state are then not necessarily match starts. Must be
+     * called on the root; assumes dead states have been pruned.
+     */
+    public boolean rootIsReenterable() {
+        for (var state : states) {
+            for (var transition : state.getTransitions()) {
+                if (transition.getRight() == this) {
+                    return true;
+                }
             }
         }
         return false;

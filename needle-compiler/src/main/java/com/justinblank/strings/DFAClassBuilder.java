@@ -607,7 +607,7 @@ class DFAClassBuilder extends ClassBuilder {
                 return Optional.empty();
             }
             char c = cs.iterator().next();
-            if (forwardDFA.hasNonPrefix(String.valueOf(cs.iterator().next()))) {
+            if (forwardDFA.hasNonPrefix(String.valueOf(c))) {
                 return Optional.empty();
             }
             var vars = new MatchingVars(5, 1, 3, 2, 4);

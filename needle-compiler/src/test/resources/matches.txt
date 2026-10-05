@@ -89,6 +89,9 @@ a.*c                axycc               y       0       5
 'the [Cc]rown'      'the Crowd the Crown'   y       10      19
 'the [Cc]rown'      'the Crowds are'        n
 (AB){1,2}           ABABAB              y       0       4
+# The reverse scan shortcut would report the highest occurrence of x, missing that the match can start earlier
+[^x]*x              ax                  y       0       2       0
+[^x]*x              axaax               y       0       2       0
 AAB                 AAAB                y       1       4
 AAB                 ABAAB               y       2       5
 [a-q][^u-z]{3}x     aaax                n

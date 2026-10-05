@@ -46,3 +46,6 @@ the\s+\w+           'zzthe   art'       [(2,11)]
 (GCG)|([AT].{2}G)   ATCGCGAT            [(0,4)]
 (A+)                AAXAA               [(0,2),(3,5)]
 (A+)                AAXAA               [(0,2),(3,5)]          42
+# The reverse scan shortcut would report the highest occurrence of x, missing that the match can start earlier
+[^x]*x              ax                  [(0,2)]
+[^x]*x              axaax               [(0,2),(2,5)]
