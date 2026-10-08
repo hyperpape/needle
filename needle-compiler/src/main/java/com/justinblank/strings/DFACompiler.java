@@ -4,6 +4,7 @@ import com.justinblank.classcompiler.ClassBuilder;
 import com.justinblank.classcompiler.ClassCompiler;
 import com.justinblank.classcompiler.Method;
 import com.justinblank.classloader.MyClassLoader;
+import com.justinblank.strings.RegexAST.LengthPolynomial;
 import com.justinblank.strings.RegexAST.Node;
 import org.objectweb.asm.Opcodes;
 
@@ -61,6 +62,7 @@ public class DFACompiler {
     static DFAs buildDFAs(String regex, CompilerOptions options) {
         Node node = RegexParser.parse(regex, options.flags);
         Factorization factorization = Factorization.buildFactorization(node);
+        LengthPolynomial lengthPolynomial = node.lengthPolynomial().orElse(null);
 
         boolean leftmostLongest = (options.flags & Pattern.LEFTMOST_LONGEST) == Pattern.LEFTMOST_LONGEST;
         NFA forwardNFA = new NFA(RegexInstrBuilder.createNFA(node, leftmostLongest));
@@ -80,7 +82,7 @@ public class DFACompiler {
         var containedInFindMethodSpec = new FindMethodSpec(containedInDFA, FindMethodSpec.CONTAINEDIN, true, factorization, CharacterDistribution.DEFAULT);
         var reversedFindMethodSpec = new FindMethodSpec(dfaReversed, FindMethodSpec.BACKWARDS, false, factorization, CharacterDistribution.DEFAULT);
         var dfaSearchFindMethodSpec = new FindMethodSpec(dfaSearch, FindMethodSpec.FORWARDS, true, factorization, CharacterDistribution.DEFAULT);
-        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, factorization);
+        return new DFAs(forwardFindMethodSpec, reversedFindMethodSpec, containedInFindMethodSpec, dfaSearchFindMethodSpec, factorization, lengthPolynomial);
     }
 
     private static void checkForOverLongDFAs(List<DFA> dfas) {
@@ -126,14 +128,16 @@ public class DFACompiler {
         final FindMethodSpec containedInFindMethodSpec;
         final FindMethodSpec dfaSearchFindMethodSpec;
         final Factorization factorization;
+        final LengthPolynomial lengthPolynomial;
         final Map<Integer, Offset> forwardOffsets;
 
-        DFAs(FindMethodSpec forwardFindMethodSpec, FindMethodSpec reversedFindMethodSpec, FindMethodSpec containedInFindMethodSpec, FindMethodSpec dfaSearchFindMethodSpec, Factorization factorization) {
+        DFAs(FindMethodSpec forwardFindMethodSpec, FindMethodSpec reversedFindMethodSpec, FindMethodSpec containedInFindMethodSpec, FindMethodSpec dfaSearchFindMethodSpec, Factorization factorization, LengthPolynomial lengthPolynomial) {
             this.forwardFindMethodSpec = forwardFindMethodSpec;
             this.reversedFindMethodSpec = reversedFindMethodSpec;
             this.containedInFindMethodSpec = containedInFindMethodSpec;
             this.dfaSearchFindMethodSpec = dfaSearchFindMethodSpec;
             this.factorization = factorization;
+            this.lengthPolynomial = lengthPolynomial;
             this.forwardOffsets = forwardFindMethodSpec.dfa.calculateOffsets(factorization);
         }
     }

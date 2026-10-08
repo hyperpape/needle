@@ -2,6 +2,7 @@ package com.justinblank.strings;
 
 import com.justinblank.classcompiler.Method;
 import com.justinblank.classcompiler.lang.*;
+import com.justinblank.strings.RegexAST.LengthPolynomial;
 
 import static com.justinblank.classcompiler.lang.BinaryOperator.*;
 import static com.justinblank.classcompiler.lang.BinaryOperator.gt;
@@ -84,6 +85,22 @@ public class DFAMethodComponents {
 
     static Expression isLiveState() {
         return neq(read(MatchingVars.STATE), -1);
+    }
+
+    /**
+     * Emit an early return for lengths that cannot satisfy the supplied length polynomial. The min and max length are
+     * already checked against the factorization, so all that is left to add is the residue implied by the sizes of the
+     * polynomial's components.
+     */
+    static void checkLengthPolynomial(Method method, LengthPolynomial polynomial) {
+        int gcd = polynomial.gcdOfSizes();
+        if (gcd > 1) {
+            int constant = polynomial.getConstant();
+            Expression remainder = constant == 0
+                    ? mod(read(MatchingVars.LENGTH), gcd)
+                    : mod(sub(read(MatchingVars.LENGTH), constant), gcd);
+            method.cond(neq(remainder, 0)).withBody(returnValue(0));
+        }
     }
 
     static void checkMinMaxLengthForMatch(Method method, Factorization factorization) {

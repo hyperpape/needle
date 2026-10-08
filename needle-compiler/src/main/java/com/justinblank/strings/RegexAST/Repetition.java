@@ -24,7 +24,7 @@ public class Repetition extends Node {
 
     @Override
     public Optional<LengthPolynomial> lengthPolynomial() {
-        return Optional.empty();
+        return node.lengthPolynomial().flatMap(p -> p.multi(0, -1));
     }
 
     @Override
