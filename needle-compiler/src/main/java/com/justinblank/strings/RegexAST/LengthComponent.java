@@ -2,6 +2,10 @@ package com.justinblank.strings.RegexAST;
 
 import java.util.Objects;
 
+/**
+ * A term in a length polynomial: {@code size * x} where {@code x} ranges over the integers between {@code min} and
+ * {@code max} (inclusive). A {@code max} of -1 means the term is unbounded above.
+ */
 public class LengthComponent implements Comparable<LengthComponent> {
     final int min;
     final int max;
@@ -14,7 +18,14 @@ public class LengthComponent implements Comparable<LengthComponent> {
     }
 
     public LengthComponent times(int repeat) {
-        return new LengthComponent(min * repeat, max * repeat, size);
+        return new LengthComponent(min * repeat, multiplyMax(max, repeat), size);
+    }
+
+    static int multiplyMax(int max, int repeat) {
+        if (max == -1 || repeat == -1) {
+            return -1;
+        }
+        return max * repeat;
     }
 
     @Override
@@ -41,5 +52,10 @@ public class LengthComponent implements Comparable<LengthComponent> {
             return Integer.compare(max, o.max);
         }
         return 0;
+    }
+
+    @Override
+    public String toString() {
+        return size + "*[" + min + "," + (max == -1 ? "inf" : max) + "]";
     }
 }

@@ -4,6 +4,7 @@ import com.justinblank.classcompiler.*;
 import com.justinblank.classcompiler.Operation;
 import com.justinblank.classcompiler.lang.*;
 import com.justinblank.classcompiler.lang.Void;
+import com.justinblank.strings.RegexAST.LengthPolynomial;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -46,6 +47,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final FindMethodSpec suffixSearchFindMethodSpec;
     private final FindMethodSpec relaxedSuffixFindMethodSpec;
     private final Factorization factorization;
+    private final LengthPolynomial lengthPolynomial;
     private final Map<Integer, Offset> forwardOffsets;
 
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
@@ -64,6 +66,7 @@ class DFAClassBuilder extends ClassBuilder {
         this.suffixSearchFindMethodSpec = dfas.suffixSearchFindMethodSpec;
         this.relaxedSuffixFindMethodSpec = dfas.relaxedSuffixFindMethodSpec;
         this.factorization = dfas.factorization;
+        this.lengthPolynomial = dfas.lengthPolynomial;
         this.compilerOptions = options;
         this.forwardOffsets = dfas.forwardOffsets;
         // TODO: test whether it matters that the four DFAs can have different byteClasses
@@ -1110,6 +1113,9 @@ class DFAClassBuilder extends ClassBuilder {
 
         DFAMethodComponents.setLengthLocalVariable(method);
         DFAMethodComponents.checkMinMaxLengthForMatch(method, factorization);
+        if (lengthPolynomial != null) {
+            DFAMethodComponents.checkLengthPolynomial(method, lengthPolynomial);
+        }
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 
         int offsetCheckState = 0;

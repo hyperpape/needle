@@ -317,6 +317,41 @@ public class DFACompilerTest {
     }
 
     @Test
+    void polynomialPrefilterForCountedRepetition() {
+        Pattern pattern = DFACompiler.compile("(AB){2,3}", "PolynomialPrefilterCountedRepetition");
+        match(pattern, "ABAB");
+        match(pattern, "ABABAB");
+        assertFalse(pattern.matcher("").matches());
+        assertFalse(pattern.matcher("AB").matches());
+        assertFalse(pattern.matcher("ABABABAB").matches());
+        // 'ABABABAB' still contains a match, so the search pre-filter must not reject it wholesale
+        assertTrue(pattern.matcher("ABABABAB").find());
+    }
+
+    @Test
+    void polynomialPrefilterForUnboundedRepetition() {
+        Pattern pattern = DFACompiler.compile("(ABC)+", "PolynomialPrefilterUnboundedRepetition");
+        match(pattern, "ABC");
+        match(pattern, "ABCABC");
+        assertFalse(pattern.matcher("").matches());
+        assertFalse(pattern.matcher("AB").matches());
+        assertFalse(pattern.matcher("ABCA").matches());
+        assertFalse(pattern.matcher("ABCAB").matches());
+        assertTrue(pattern.matcher("ABCA").find());
+    }
+
+    @Test
+    void polynomialPrefilterForStarRepetition() {
+        Pattern pattern = DFACompiler.compile("(AB)*", "PolynomialPrefilterStarRepetition");
+        match(pattern, "");
+        match(pattern, "AB");
+        match(pattern, "ABAB");
+        assertFalse(pattern.matcher("A").matches());
+        assertFalse(pattern.matcher("ABA").matches());
+        assertTrue(pattern.matcher("ABA").find());
+    }
+
+    @Test
     void countedRepetitionOfUnion() {
         String regexString = "((AB)|(BA)){1,2}";
         Pattern pattern = DFACompiler.compile(regexString, "CountedRepetitionOfUnion");
