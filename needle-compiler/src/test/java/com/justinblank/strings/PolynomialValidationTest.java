@@ -67,6 +67,26 @@ public class PolynomialValidationTest {
         }
     }
 
+    /**
+     * A polynomial with two unbounded generators produces a numerical semigroup rather than a simple residue class;
+     * make sure the generated filter does not reject any string built from legal repetitions.
+     */
+    @Test
+    void generatedMatchesHandlesMultipleGenerators() {
+        int counter = 0;
+        for (var regex : new String[] {"(ABC)+(DEFGHIJ)+", "(ABC){1,8}(DEFGHIJ)+"}) {
+            var pattern = DFACompiler.compile(regex, "PolynomialJdkComparisonMultiGenerator" + counter++);
+            var jdk = java.util.regex.Pattern.compile(regex);
+            for (int abc = 1; abc <= 8; abc++) {
+                for (int def = 1; def <= 5; def++) {
+                    var s = "ABC".repeat(abc) + "DEFGHIJ".repeat(def);
+                    assertTrue(jdk.matcher(s).matches(), regex + " on " + s);
+                    assertTrue(pattern.matcher(s).matches(), regex + " on " + s);
+                }
+            }
+        }
+    }
+
     private static List<String> stringsUpToLength(int maxLength) {
         var strings = new ArrayList<String>();
         strings.add("");
