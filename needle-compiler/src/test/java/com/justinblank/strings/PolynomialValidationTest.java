@@ -55,6 +55,12 @@ public class PolynomialValidationTest {
                 "(ab|a)+",
                 "a?b?c?",
                 "(ab){0,2}(cd){0,2}",
+                "(ab|cd)+",
+                "(ab|cde)+",
+                "(a|bb)c",
+                "(ab|cd){2,3}",
+                "(abc)+|(def)+",
+                "(ab){1,2}|(cde){1,2}",
         };
         int counter = 0;
         for (String regex : patterns) {
@@ -85,6 +91,32 @@ public class PolynomialValidationTest {
                 }
             }
         }
+    }
+
+    /**
+     * A union produces a disjunction of length polynomials rather than a single one; make sure the generated filter
+     * does not reject any string the branch could produce.
+     */
+    @Test
+    void generatedMatchesHandlesUnionGenerators() {
+        var regex = "(ABC)+|(DEFGHIJ)+";
+        var pattern = DFACompiler.compile(regex, "PolynomialJdkComparisonUnion");
+        var jdk = java.util.regex.Pattern.compile(regex);
+        for (int abc = 1; abc <= 4; abc++) {
+            var s = "ABC".repeat(abc);
+            assertTrue(jdk.matcher(s).matches(), regex + " on " + s);
+            assertTrue(pattern.matcher(s).matches(), regex + " on " + s);
+        }
+        for (int def = 1; def <= 3; def++) {
+            var s = "DEFGHIJ".repeat(def);
+            assertTrue(jdk.matcher(s).matches(), regex + " on " + s);
+            assertTrue(pattern.matcher(s).matches(), regex + " on " + s);
+        }
+        var fixed = DFACompiler.compile("(a|bb)c", "PolynomialJdkComparisonUnionFixed");
+        assertTrue(fixed.matcher("ac").matches());
+        assertTrue(fixed.matcher("bbc").matches());
+        assertFalse(fixed.matcher("aac").matches());
+        assertFalse(fixed.matcher("c").matches());
     }
 
     private static List<String> stringsUpToLength(int maxLength) {

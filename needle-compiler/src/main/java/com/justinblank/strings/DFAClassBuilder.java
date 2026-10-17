@@ -4,7 +4,7 @@ import com.justinblank.classcompiler.*;
 import com.justinblank.classcompiler.Operation;
 import com.justinblank.classcompiler.lang.*;
 import com.justinblank.classcompiler.lang.Void;
-import com.justinblank.strings.RegexAST.LengthPolynomial;
+import com.justinblank.strings.RegexAST.LengthFilter;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -48,7 +48,7 @@ class DFAClassBuilder extends ClassBuilder {
     private final FindMethodSpec suffixSearchFindMethodSpec;
     private final FindMethodSpec relaxedSuffixFindMethodSpec;
     private final Factorization factorization;
-    private final LengthPolynomial lengthPolynomial;
+    private final LengthFilter lengthFilter;
     private final Map<Integer, Offset> forwardOffsets;
 
     private final DFAStateTransitions stateTransitions = new DFAStateTransitions();
@@ -67,7 +67,7 @@ class DFAClassBuilder extends ClassBuilder {
         this.suffixSearchFindMethodSpec = dfas.suffixSearchFindMethodSpec;
         this.relaxedSuffixFindMethodSpec = dfas.relaxedSuffixFindMethodSpec;
         this.factorization = dfas.factorization;
-        this.lengthPolynomial = dfas.lengthPolynomial;
+        this.lengthFilter = dfas.lengthFilter;
         this.compilerOptions = options;
         this.forwardOffsets = dfas.forwardOffsets;
         // TODO: test whether it matters that the four DFAs can have different byteClasses
@@ -1107,10 +1107,12 @@ class DFAClassBuilder extends ClassBuilder {
         return offset != null && offset.length > CompilationPolicy.MIN_OFFSET_LENGTH;
     }
 
-    private void addLengthPolynomialCheck(Method method) {
-        var membership = lengthPolynomial.membership(CompilationPolicy.MAX_LENGTH_FILTER_MODULUS);
+    private void addLengthFilterCheck(Method method) {
+        var membership = lengthFilter.membership(CompilationPolicy.MAX_LENGTH_FILTER_MODULUS);
         if (membership.isEmpty()) {
-            DFAMethodComponents.checkLengthPolynomial(method, lengthPolynomial);
+            // A single term has the residue check computed from its components; a disjunction has no single residue to
+            // check, so it simply gets no filter.
+            lengthFilter.single().ifPresent(polynomial -> DFAMethodComponents.checkLengthPolynomial(method, polynomial));
             return;
         }
         var filter = membership.get();
@@ -1134,8 +1136,8 @@ class DFAClassBuilder extends ClassBuilder {
 
         DFAMethodComponents.setLengthLocalVariable(method);
         DFAMethodComponents.checkMinMaxLengthForMatch(method, factorization);
-        if (lengthPolynomial != null) {
-            addLengthPolynomialCheck(method);
+        if (lengthFilter != null) {
+            addLengthFilterCheck(method);
         }
         method.set(MatchingVars.STRING, get(STRING_FIELD, ReferenceType.of(String.class), thisRef()));
 

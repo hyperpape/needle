@@ -45,6 +45,11 @@ public class CountedRepetition extends Node {
     }
 
     @Override
+    public Optional<LengthFilter> lengthFilter() {
+        return node.lengthFilter().flatMap(f -> f.repeatCount(min, max));
+    }
+
+    @Override
     protected int height() {
         return 1 + node.height();
     }

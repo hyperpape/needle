@@ -35,6 +35,11 @@ public class Union extends Node {
     }
 
     @Override
+    public Optional<LengthFilter> lengthFilter() {
+        return left.lengthFilter().flatMap(l -> right.lengthFilter().flatMap(l::union));
+    }
+
+    @Override
     protected int height() {
         return 1 + Math.max(left.height(), right.height());
     }
