@@ -119,6 +119,41 @@ public class PolynomialValidationTest {
         assertFalse(fixed.matcher("c").matches());
     }
 
+    /**
+     * A union whose minimum lengths already cover every residue produces a table that accepts every length at or above
+     * the minimum. It should not be embedded, though the minimum length check is still worthwhile.
+     */
+    @Test
+    void lengthArrayOnlyEmittedWhenItAddsResidueInformation() {
+        var uninformative = DFACompiler.compileToBytes("(ab)+|(cde)+", "LengthFilterUninformativeUnion", 0);
+        assertFalse(hasLengthFilterField(uninformative));
+
+        var informative = DFACompiler.compileToBytes("(ABC)+|(DEFGHIJ)+", "LengthFilterInformativeUnion", 0);
+        assertTrue(hasLengthFilterField(informative));
+
+        // The minimum length is still enforced without the array.
+        var pattern = DFACompiler.compile("(ab)+|(cde)+", "LengthFilterUninformativeUnionMatcher");
+        assertFalse(pattern.matcher("").matches());
+        assertTrue(pattern.matcher("ab").matches());
+        assertTrue(pattern.matcher("cde").matches());
+    }
+
+    private static boolean hasLengthFilterField(byte[] classBytes) {
+        var found = new boolean[1];
+        new org.objectweb.asm.ClassReader(classBytes).accept(
+                new org.objectweb.asm.ClassVisitor(org.objectweb.asm.Opcodes.ASM9) {
+                    @Override
+                    public org.objectweb.asm.FieldVisitor visitField(int access, String name, String descriptor,
+                            String signature, Object value) {
+                        if (name.equals("LENGTH_FILTER")) {
+                            found[0] = true;
+                        }
+                        return null;
+                    }
+                }, 0);
+        return found[0];
+    }
+
     private static List<String> stringsUpToLength(int maxLength) {
         var strings = new ArrayList<String>();
         strings.add("");

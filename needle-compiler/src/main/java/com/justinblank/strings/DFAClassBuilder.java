@@ -1116,12 +1116,15 @@ class DFAClassBuilder extends ClassBuilder {
             return;
         }
         var filter = membership.get();
-        addArrayConstant(LENGTH_FILTER, ACC_PRIVATE | ACC_STATIC | ACC_FINAL, filter.minRepresentable());
         // checkMinMaxLengthForMatch already rejects lengths below the minimum when it is large enough to be worth
         // checking; only fill the gap (and keep the array index non-negative) for short minimums.
         if (filter.base() > 0 && filter.base() <= CompilationPolicy.THRESHOLD_FOR_CALCULATING_MAX_START) {
             method.cond(lt(read(MatchingVars.LENGTH), filter.base())).withBody(returnValue(0));
         }
+        if (!filter.hasResidueInformation()) {
+            return;
+        }
+        addArrayConstant(LENGTH_FILTER, ACC_PRIVATE | ACC_STATIC | ACC_FINAL, filter.minRepresentable());
         Expression remaining = sub(read(MatchingVars.LENGTH), filter.base());
         Expression minRepresentable = arrayRead(
                 getStatic(LENGTH_FILTER, ReferenceType.of(getClassName()), ArrayType.of(Builtin.I)),

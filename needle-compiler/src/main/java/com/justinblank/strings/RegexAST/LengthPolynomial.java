@@ -221,6 +221,20 @@ public class LengthPolynomial {
         public int[] minRepresentable() {
             return minRepresentable;
         }
+
+        /**
+         * @return whether this table rejects some length at or above {@link #base()}. Every entry is congruent to its
+         * index modulo the modulus and non-negative, so it is at least the index; an entry equal to its index accepts
+         * the first length in that residue class and adds nothing beyond a minimum length check.
+         */
+        public boolean hasResidueInformation() {
+            for (int i = 0; i < minRepresentable.length; i++) {
+                if (minRepresentable[i] > i) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     /**
