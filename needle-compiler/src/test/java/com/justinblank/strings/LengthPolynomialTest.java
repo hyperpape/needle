@@ -146,6 +146,34 @@ public class LengthPolynomialTest {
                 .isEmpty();
     }
 
+    @Test
+    void membershipForUnionOfUnboundedGenerators() {
+        var node = RegexParser.parse("(ABC)+|(DEFGHIJ)+");
+        var membership = node.lengthFilter().orElseThrow()
+                .membership(CompilationPolicy.MAX_LENGTH_FILTER_MODULUS).orElseThrow();
+        assertThat(membership.base()).isEqualTo(3);
+        assertThat(membership.modulus()).isEqualTo(3);
+        // Multiples of 3 at least 3, and multiples of 7 at least 7 (DEFGHIJ has length 7)
+        for (int length : new int[] {3, 6, 7, 9, 12, 14, 15, 18, 21}) {
+            assertThat(accepts(membership, length)).as("length " + length).isTrue();
+        }
+        for (int length : new int[] {1, 2, 4, 5, 8, 11}) {
+            assertThat(accepts(membership, length)).as("length " + length).isFalse();
+        }
+    }
+
+    @Test
+    void membershipForUnionWithFixedLengthBranch() {
+        var node = RegexParser.parse("(ab)+|(cde)+");
+        var membership = node.lengthFilter().orElseThrow()
+                .membership(CompilationPolicy.MAX_LENGTH_FILTER_MODULUS).orElseThrow();
+        assertThat(membership.base()).isEqualTo(2);
+        assertThat(membership.modulus()).isEqualTo(2);
+        assertThat(accepts(membership, 2)).isTrue();
+        assertThat(accepts(membership, 3)).isTrue();
+        assertThat(accepts(membership, 1)).isFalse();
+    }
+
     private static boolean accepts(LengthPolynomial.Membership membership, int length) {
         if (length < membership.base()) {
             return false;

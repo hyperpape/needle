@@ -28,6 +28,11 @@ public class Repetition extends Node {
     }
 
     @Override
+    public Optional<LengthFilter> lengthFilter() {
+        return node.lengthFilter().flatMap(LengthFilter::repeat);
+    }
+
+    @Override
     protected int height() {
         return 1 + node.height();
     }

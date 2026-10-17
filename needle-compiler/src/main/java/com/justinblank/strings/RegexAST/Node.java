@@ -21,6 +21,13 @@ public abstract class Node {
 
     public abstract Optional<LengthPolynomial> lengthPolynomial();
 
+    /**
+     * @return a sound over-approximation of the lengths this node can match, using a disjunction to represent unions
+     */
+    public Optional<LengthFilter> lengthFilter() {
+        return lengthPolynomial().flatMap(LengthFilter::of);
+    }
+
     protected abstract int height();
 
     public abstract Factorization bestFactors();

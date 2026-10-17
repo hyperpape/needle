@@ -49,6 +49,11 @@ public class Concatenation extends Node {
     }
 
     @Override
+    public Optional<LengthFilter> lengthFilter() {
+        return head.lengthFilter().flatMap(h -> tail.lengthFilter().flatMap(h::plus));
+    }
+
+    @Override
     protected int height() {
         return 1 + Math.max(head.height(), tail.height());
     }

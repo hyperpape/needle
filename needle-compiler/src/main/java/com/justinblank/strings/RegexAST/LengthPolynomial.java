@@ -224,6 +224,17 @@ public class LengthPolynomial {
     }
 
     /**
+     * @return the sizes of this polynomial's components, in ascending order
+     */
+    int[] componentSizes() {
+        int[] sizes = new int[components.size()];
+        for (int i = 0; i < components.size(); i++) {
+            sizes[i] = components.get(i).size;
+        }
+        return sizes;
+    }
+
+    /**
      * Compute an exact membership test for the lengths described by this polynomial, if one is small enough to embed.
      *
      * <p>The components contribute {@code size * x} terms. Shifting each term by its minimum leaves a numerical
