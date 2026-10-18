@@ -245,17 +245,17 @@ class DFATest {
         var dfa = DFA.createDFA("[A-Za-z]+.b", ConversionMode.BASIC, Pattern.DOTALL);
         var byteClasses = dfa.byteClasses().get().ranges;
         for (var i = 0; i < 'A'; i++) {
-            assertEquals(1, byteClasses[i]);
+            assertEquals(0, byteClasses[i]);
         }
-        assertEquals(2, byteClasses['A']);
-        assertEquals(2, byteClasses['Z']);
-        assertEquals(2, byteClasses['a']);
-        assertEquals(3, byteClasses['b']);
+        assertEquals(1, byteClasses['A']);
+        assertEquals(1, byteClasses['Z']);
+        assertEquals(1, byteClasses['a']);
+        assertEquals(2, byteClasses['b']);
         for (var c = 'c'; c <= 'z'; c++) {
-            assertEquals(2, byteClasses[c]);
+            assertEquals(1, byteClasses[c]);
         }
         for (var c = 'z' + 1; c < DFA.MAX_CHAR_FOR_BYTECLASSES; c++) {
-            assertEquals(1, byteClasses[c]);
+            assertEquals(0, byteClasses[c]);
         }
     }
 
@@ -264,13 +264,13 @@ class DFATest {
         var dfa = DFA.createDFA("http://.+", ConversionMode.BASIC, Pattern.DOTALL);
         var byteClasses = dfa.byteClasses().get().ranges;
         for (var i = 0; i < '/'; i++) {
-            assertEquals(1, byteClasses[i]);
+            assertEquals(0, byteClasses[i]);
         }
-        assertEquals(2, byteClasses['/']);
+        assertEquals(1, byteClasses['/']);
         for (var i = '0'; i < ':'; i++) {
-            assertEquals(1, byteClasses[i]);
+            assertEquals(0, byteClasses[i]);
         }
-        assertEquals(3, byteClasses[':']);
+        assertEquals(2, byteClasses[':']);
     }
 
     @Test
@@ -328,11 +328,11 @@ class DFATest {
     void againByteClasses() {
         var dfa = DFA.createDFA("h:.+");
         var byteClasses = dfa.byteClasses().get();
-        assertEquals(1, byteClasses.ranges[0]);
+        assertEquals(0, byteClasses.ranges[0]);
         assertEquals(2, byteClasses.ranges[':']);
-        assertEquals(1, byteClasses.ranges[';']);
+        assertEquals(0, byteClasses.ranges[';']);
         assertEquals(3, byteClasses.ranges['h']);
-        assertEquals(1, byteClasses.ranges['i']);
+        assertEquals(0, byteClasses.ranges['i']);
     }
 
     @Test
@@ -360,17 +360,17 @@ class DFATest {
     void evenMore() {
         var dfa = DFA.createDFA("Hol.{0,2}Wat|Wat.{0,2}Hol");
         var byteClasses = dfa.byteClasses().get();
-        assertEquals(1, byteClasses.ranges[0]);
+        assertEquals(0, byteClasses.ranges[0]);
         assertEquals(2, byteClasses.ranges['H']);
-        assertEquals(1, byteClasses.ranges['I']);
+        assertEquals(0, byteClasses.ranges['I']);
         assertEquals(3, byteClasses.ranges['W']);
-        assertEquals(1, byteClasses.ranges['X']);
+        assertEquals(0, byteClasses.ranges['X']);
         assertEquals(4, byteClasses.ranges['a']);
-        assertEquals(1, byteClasses.ranges['b']);
+        assertEquals(0, byteClasses.ranges['b']);
         assertEquals(5, byteClasses.ranges['l']);
-        assertEquals(1, byteClasses.ranges['m']);
+        assertEquals(0, byteClasses.ranges['m']);
         assertEquals(6, byteClasses.ranges['o']);
-        assertEquals(1, byteClasses.ranges['p']);
+        assertEquals(0, byteClasses.ranges['p']);
         assertEquals(7, byteClasses.ranges['t']);
     }
 

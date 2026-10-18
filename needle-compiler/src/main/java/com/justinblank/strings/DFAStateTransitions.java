@@ -7,27 +7,21 @@ import java.util.*;
  */
 class DFAStateTransitions {
 
-    protected ByteClasses byteClasses;
-
     /**
      * Map from strings representing the search methods (e.g) "STATES_FORWARD" to sets of strings encoding
      * state transitions. For the encoding, see {@link ByteClassUtil}.
      */
     protected Map<String, List<String>> byteClassStringMaps = new HashMap<>();
 
-    protected void addStateTransitionString(FindMethodSpec spec, DFA dfaState) {
+    protected void addStateTransitionString(FindMethodSpec spec, DFA dfaState, ByteClasses byteClasses) {
         byteClassStringMaps.computeIfAbsent(spec.statesConstant(), (s) -> new ArrayList<>());
-        StringBuilder sb = buildByteClassString(dfaState);
+        StringBuilder sb = buildByteClassString(dfaState, byteClasses);
         if (sb.length() != 0) {
             byteClassStringMaps.get(spec.statesConstant()).add(sb.toString());
         }
     }
 
-    boolean willUseByteClasses() {
-        return byteClasses != null;
-    }
-
-    StringBuilder buildByteClassString(DFA dfaState) {
+    StringBuilder buildByteClassString(DFA dfaState, ByteClasses byteClasses) {
         boolean first = true;
         StringBuilder sb = new StringBuilder();
         sb.append(ByteClassUtil.encode(dfaState.getStateNumber())).append(ByteClassUtil.STATE_TO_TRANSITIONS_DELINEATOR);

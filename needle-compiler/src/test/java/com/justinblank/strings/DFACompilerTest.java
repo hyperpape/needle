@@ -681,10 +681,10 @@ public class DFACompilerTest {
         DFA dfaSearch = NFAToDFACompiler.compile(forwardNFA, ConversionMode.DFA_SEARCH);
         FindMethodSpec spec = new FindMethodSpec(dfaSearch,FindMethodSpec.FORWARDS, true, Factorization.empty(), CharacterDistribution.DEFAULT);
         DFAStateTransitions stateTransitions = new DFAStateTransitions();
-        stateTransitions.byteClasses = dfaSearch.byteClasses().get();
+        var byteClasses = dfaSearch.byteClasses().get();
 
         for (var state : dfaSearch.allStates()) {
-            stateTransitions.addStateTransitionString(spec, state);
+            stateTransitions.addStateTransitionString(spec, state, byteClasses);
         }
         // This represents that the DFA will use multiple strings to encode state transitions for the forward spec
         // This calculation and assert are pretty tied to the details of the string encoding, but copy some of the
@@ -896,5 +896,30 @@ public class DFACompilerTest {
         matcher.find();
         assertEquals(0, matcher.start());
         assertEquals(5, matcher.end());
+    }
+
+    /**
+     * The backwards scan has to use the reversed DFA's own byte classes. Characters that are equivalent in the
+     * forward search DFA can have different transitions in the reversed DFA, and merging them makes the reversed
+     * automaton stay alive past a character where it should die, so the start of the match is found too far left.
+     */
+    @Test
+    void backwardsScanUsesItsOwnByteClasses() {
+        String[][] cases = {
+                {"((C)?B)", "ABC"},
+                {"((A)*C)", "BBABACA"},
+                {"(((A)*)+(C)+)", "BBCCA"},
+                {"((C|(CB))|((B)+(BC)))", "BACBCA"},
+                {"(((B)*)?(C|(C)+))", "AACC"},
+                {"(((B)*)+(C(C)*))", "AACC"},
+        };
+        for (var c : cases) {
+            var jdk = java.util.regex.Pattern.compile(c[0]).matcher(c[1]);
+            assertTrue(jdk.find());
+            var needle = anonymousPattern(c[0]).matcher(c[1]);
+            assertTrue(needle.find(), c[0] + " on " + c[1]);
+            assertEquals(jdk.start(), needle.start(), c[0] + " on " + c[1] + " start");
+            assertEquals(jdk.end(), needle.end(), c[0] + " on " + c[1] + " end");
+        }
     }
 }
