@@ -555,16 +555,24 @@ class DFAClassBuilder extends ClassBuilder {
 
         tailLoopMask.ifPresent(mask -> {
             int tailState = tailLoop.get();
-            List<CodeElement> fastScanBody = new ArrayList<>();
-            fastScanBody.add(set(MatchingVars.CHAR, DFAMethodComponents.readChar()));
-            fastScanBody.add(DFAMethodComponents.incrementIndex());
-            buildBailOutCondition(mask).ifPresent(bailOut ->
-                    fastScanBody.add(cond(bailOut).withBody(returnValue(read(MatchingVars.LAST_MATCH)))));
-            fastScanBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
-            outerLoopBody.add(
-                    cond(eq(read(MatchingVars.STATE), literal(tailState)))
-                            .withBody(List.of(
-                                    loop(DFAMethodComponents.inBounds(), fastScanBody))));
+            Optional<Expression> bailOut = buildBailOutCondition(mask);
+            if (bailOut.isEmpty()) {
+                // Accepts every character (e.g. dotall .*): match goes to end of string
+                outerLoopBody.add(
+                        cond(eq(read(MatchingVars.STATE), literal(tailState)))
+                                .withBody(List.of(
+                                        set(MatchingVars.LAST_MATCH, read(MatchingVars.LENGTH)))));
+            } else {
+                List<CodeElement> fastScanBody = new ArrayList<>();
+                fastScanBody.add(set(MatchingVars.CHAR, DFAMethodComponents.readChar()));
+                fastScanBody.add(DFAMethodComponents.incrementIndex());
+                fastScanBody.add(cond(bailOut.get()).withBody(returnValue(read(MatchingVars.LAST_MATCH))));
+                fastScanBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
+                outerLoopBody.add(
+                        cond(eq(read(MatchingVars.STATE), literal(tailState)))
+                                .withBody(List.of(
+                                        loop(DFAMethodComponents.inBounds(), fastScanBody))));
+            }
         });
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
@@ -663,6 +671,21 @@ class DFAClassBuilder extends ClassBuilder {
                 loopBody.add(cond(bailOut).withBody(returnValue(literal(false)))));
         loopBody.add(DFAMethodComponents.incrementIndex());
         return loop(lt(read(MatchingVars.INDEX), read(MatchingVars.LENGTH)), loopBody);
+    }
+
+    /**
+     * Build the tail-loop fast-scan condition for the matches method.
+     * When the self-loop accepts every character (e.g. dotall), no scan is needed.
+     */
+    private CodeElement buildMatchesTailFastScanWithBailOut(boolean[] mask, int tailLoopState) {
+        Optional<Expression> bailOut = buildBailOutCondition(mask);
+        List<CodeElement> body = new ArrayList<>();
+        if (bailOut.isPresent()) {
+            body.add(buildMatchesTailFastScan(mask));
+        }
+        // else: accepts everything (e.g. dotall .*): no scan needed, just return true below
+        body.add(returnValue(literal(true)));
+        return cond(eq(read(MatchingVars.STATE), literal(tailLoopState))).withBody(body);
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
@@ -1293,14 +1316,10 @@ class DFAClassBuilder extends ClassBuilder {
                                         callStatic(DFADebugUtils.class, "returnWasAccepted", Void.VOID, read(MatchingVars.STATE)) :
                                         new NoOpStatement(),
                                 returnValue(DFAMethodComponents.wasAccepted(spec)))),
-                // Tail loop fast-scan: once in the accepting self-loop state, scan remaining characters.
+ // Tail loop fast-scan: once in the accepting self-loop state, scan remaining characters.
                 // If any character is rejected by the self-loop, the match fails. Otherwise it succeeds.
-                matchesTailLoopMask.isPresent() ?
-                        cond(eq(read(MatchingVars.STATE), literal(matchesTailLoop.get())))
-                                .withBody(List.of(
-                                        buildMatchesTailFastScan(matchesTailLoopMask.get()),
-                                        returnValue(literal(true))))
-                        : new NoOpStatement(),
+                matchesTailLoopMask.isPresent() ? buildMatchesTailFastScanWithBailOut(
+                        matchesTailLoopMask.get(), matchesTailLoop.get()) : new NoOpStatement(),
                 set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
                 spec.compilationPolicy.useByteClassesForAllStates ? cond(
                         gt(read(MatchingVars.CHAR), (int) spec.dfa.maxChar())).withBody(
