@@ -153,11 +153,15 @@ class DFAClassBuilder extends ClassBuilder {
             });
         }
         // TAIL_LOOP_MASK is used by the forwards index method for fast-scanning past characters accepted
-        // by a terminal self-loop (e.g. ".*"). The mask comes from the search DFA since it is the same
-        // accepting self-loop state in both DFAs for a given regex.
+        // by a terminal self-loop (e.g. ".*"). Only emit the array constant when the bail-out condition
+        // actually requires the mask (more than 2 ASCII rejections or partial non-ASCII coverage); for simple
+        // cases (0-2 rejections with all non-ASCII accepted) we generate direct comparisons.
         dfaSearchFindMethodSpec.dfa.tailLoop().ifPresent(tailLoopState -> {
-            dfaSearchFindMethodSpec.dfa.allStates().get(tailLoopState).tailLoopCharMask().ifPresent(mask -> {
-                addArrayConstant(TAIL_LOOP_MASK, ACC_PRIVATE, mask);
+            var tailState = dfaSearchFindMethodSpec.dfa.allStates().get(tailLoopState);
+            tailState.tailLoopCharMask().ifPresent(mask -> {
+                if (tailLoopNeedsMask(mask)) {
+                    addArrayConstant(TAIL_LOOP_MASK, ACC_PRIVATE, mask);
+                }
             });
         });
 
@@ -619,6 +623,21 @@ class DFAClassBuilder extends ClassBuilder {
     private Expression tailLoopCharCheck(Expression charExpr) {
         return arrayRead(getStatic(TAIL_LOOP_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
                 min(cast(Builtin.I, charExpr), literal(128)));
+    }
+
+    /**
+     * Returns true when the tail-loop rejection set is large enough that the mask array must be emitted
+     * (more than 2 ASCII rejections, or non-ASCII not all accepted). Returns false when simple comparisons
+     * suffice and the mask constant can be omitted.
+     */
+    private static boolean tailLoopNeedsMask(boolean[] mask) {
+        int rejectedCount = 0;
+        for (int i = 0; i < 128 && rejectedCount <= 2; i++) {
+            if (!mask[i]) {
+                rejectedCount++;
+            }
+        }
+        return rejectedCount > 2 || !mask[128];
     }
 
     /**
