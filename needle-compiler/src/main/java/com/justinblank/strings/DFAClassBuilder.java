@@ -555,17 +555,16 @@ class DFAClassBuilder extends ClassBuilder {
 
         tailLoopMask.ifPresent(mask -> {
             int tailState = tailLoop.get();
+            List<CodeElement> fastScanBody = new ArrayList<>();
+            fastScanBody.add(set(MatchingVars.CHAR, DFAMethodComponents.readChar()));
+            fastScanBody.add(DFAMethodComponents.incrementIndex());
+            buildBailOutCondition(mask).ifPresent(bailOut ->
+                    fastScanBody.add(cond(bailOut).withBody(returnValue(read(MatchingVars.LAST_MATCH)))));
+            fastScanBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
             outerLoopBody.add(
                     cond(eq(read(MatchingVars.STATE), literal(tailState)))
                             .withBody(List.of(
-                                    loop(DFAMethodComponents.inBounds(),
-                                            List.of(
-                                                    set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                                                    DFAMethodComponents.incrementIndex(),
-                                                    cond(not(tailLoopCharCheck(read(MatchingVars.CHAR))))
-                                                            .withBody(returnValue(read(MatchingVars.LAST_MATCH))),
-                                                    set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)))
-                                    ))));
+                                    loop(DFAMethodComponents.inBounds(), fastScanBody))));
         });
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
@@ -620,6 +619,36 @@ class DFAClassBuilder extends ClassBuilder {
     private Expression tailLoopCharCheck(Expression charExpr) {
         return arrayRead(getStatic(TAIL_LOOP_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
                 min(cast(Builtin.I, charExpr), literal(128)));
+    }
+
+    /**
+     * Build the condition that causes the tail-loop fast scan to bail out. Prefers direct character
+     * comparisons when only 1 or 2 ASCII characters are rejected (and all non-ASCII are accepted),
+     * falling back to the general mask lookup otherwise. Returns empty when no character can ever
+     * cause a bail-out (the self-loop accepts every character).
+     */
+    private Optional<Expression> buildBailOutCondition(boolean[] mask) {
+        int rejectedCount = 0;
+        int r1 = -1, r2 = -1;
+        for (int i = 0; i < 128; i++) {
+            if (!mask[i]) {
+                rejectedCount++;
+                if (rejectedCount == 1) r1 = i;
+                else if (rejectedCount == 2) r2 = i;
+                else break;
+            }
+        }
+
+        if (rejectedCount == 0 && mask[128]) {
+            // Accepts everything (e.g. dotall mode): never bail out
+            return Optional.empty();
+        } else if (rejectedCount == 1 && mask[128]) {
+            return Optional.of(eq(read(MatchingVars.CHAR), literal(r1)));
+        } else if (rejectedCount == 2 && mask[128]) {
+            return Optional.of(or(eq(read(MatchingVars.CHAR), literal(r1)), eq(read(MatchingVars.CHAR), literal(r2))));
+        } else {
+            return Optional.of(not(tailLoopCharCheck(read(MatchingVars.CHAR))));
+        }
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
