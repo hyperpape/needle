@@ -559,16 +559,24 @@ class DFAClassBuilder extends ClassBuilder {
 
         tailLoopMask.ifPresent(mask -> {
             int tailState = tailLoop.get();
-            List<CodeElement> fastScanBody = new ArrayList<>();
-            fastScanBody.add(set(MatchingVars.CHAR, DFAMethodComponents.readChar()));
-            fastScanBody.add(DFAMethodComponents.incrementIndex());
-            buildBailOutCondition(mask).ifPresent(bailOut ->
-                    fastScanBody.add(cond(bailOut).withBody(returnValue(read(MatchingVars.LAST_MATCH)))));
-            fastScanBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
-            outerLoopBody.add(
-                    cond(eq(read(MatchingVars.STATE), literal(tailState)))
-                            .withBody(List.of(
-                                    loop(DFAMethodComponents.inBounds(), fastScanBody))));
+            Optional<Expression> bailOut = buildBailOutCondition(mask);
+            if (bailOut.isEmpty()) {
+                // Accepts every character (e.g. dotall .*): match goes to end of string
+                outerLoopBody.add(
+                        cond(eq(read(MatchingVars.STATE), literal(tailState)))
+                                .withBody(List.of(
+                                        set(MatchingVars.LAST_MATCH, read(MatchingVars.LENGTH)))));
+            } else {
+                List<CodeElement> fastScanBody = new ArrayList<>();
+                fastScanBody.add(set(MatchingVars.CHAR, DFAMethodComponents.readChar()));
+                fastScanBody.add(DFAMethodComponents.incrementIndex());
+                fastScanBody.add(cond(bailOut.get()).withBody(returnValue(read(MatchingVars.LAST_MATCH))));
+                fastScanBody.add(set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)));
+                outerLoopBody.add(
+                        cond(eq(read(MatchingVars.STATE), literal(tailState)))
+                                .withBody(List.of(
+                                        loop(DFAMethodComponents.inBounds(), fastScanBody))));
+            }
         });
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
