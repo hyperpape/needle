@@ -984,25 +984,67 @@ class DFA {
         var acceptingStates = acceptingStates();
         if (acceptingStates.size() == 1) {
             var acceptingState = acceptingStates.iterator().next();
-            if (acceptingState.isSelfLoopUntilNewline() && acceptingState.getStateNumber() + 1 == statesCount()) {
+            if (acceptingState.isSelfLoopOnly() && acceptingState.getStateNumber() + 1 == statesCount()) {
                 return Optional.of(acceptingState.getStateNumber());
             }
         }
         return Optional.empty();
     }
 
-    private boolean isSelfLoopUntilNewline() {
-        var transitions = getTransitions();
-        if (transitions.size() != 3) {
+    private boolean isSelfLoopOnly() {
+        if (transitions.isEmpty()) {
             return false;
         }
-        if (!transitions.get(0).getLeft().equals(CharRange.of((char) 0, '\t')) || transitions.get(0).getRight() != this) {
-            return false;
+        for (var transition : transitions) {
+            if (transition.getRight() != this) {
+                return false;
+            }
         }
-        if (!transitions.get(1).getLeft().equals(CharRange.of((char) 11, (char) 12)) || transitions.get(1).getRight() != this) {
-            return false;
+        return true;
+    }
+
+    /**
+     * Returns a boolean[129] mask indicating which characters this self-loop-only state accepts.
+     * mask[0..127] indicates acceptance for each ASCII character; mask[128] indicates whether
+     * all non-ASCII characters (128-65535) are accepted. Returns empty if the acceptance pattern
+     * for non-ASCII is too complex for this representation.
+     */
+    public Optional<boolean[]> tailLoopCharMask() {
+        if (!isSelfLoopOnly()) {
+            return Optional.empty();
         }
-        return transitions.get(2).getLeft().equals(CharRange.of((char) 14, (char) 65535)) && transitions.get(2).getRight() == this;
+        boolean[] mask = new boolean[129];
+        boolean nonAsciiCovered = false;
+
+        for (var transition : transitions) {
+            CharRange range = transition.getLeft();
+            int start = range.getStart();
+            int end = range.getEnd();
+
+            // Mark ASCII characters (0-127)
+            int asciiEnd = Math.min(end, 127);
+            for (int i = start; i <= asciiEnd; i++) {
+                mask[i] = true;
+            }
+
+            // Handle non-ASCII (128-65535)
+            if (end >= 128) {
+                if (start <= 128 && end == '\uFFFF') {
+                    // Covers all non-ASCII
+                    mask[128] = true;
+                    nonAsciiCovered = true;
+                } else {
+                    // Partial non-ASCII coverage: can't represent efficiently
+                    return Optional.empty();
+                }
+            }
+        }
+
+        if (!nonAsciiCovered) {
+            mask[128] = false;
+        }
+
+        return Optional.of(mask);
     }
 }
 
