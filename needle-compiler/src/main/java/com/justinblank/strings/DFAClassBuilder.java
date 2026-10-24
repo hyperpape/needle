@@ -38,6 +38,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String SUFFIX_CONSTANT = "SUFFIX";
     protected static final String INFIX_CONSTANT = "INFIX";
     protected static final String FIRST_BYTE_MASK = "FIRST_BYTE_MASK";
+    protected static final String TAIL_LOOP_MASK = "TAIL_LOOP_MASK";
     protected static final String LENGTH_FILTER = "LENGTH_FILTER";
     protected static final String INDEX_BACKWARDS = "indexBackwards";
 
@@ -151,6 +152,14 @@ class DFAClassBuilder extends ClassBuilder {
                 }
             });
         }
+        // TAIL_LOOP_MASK is used by the forwards index method for fast-scanning past characters accepted
+        // by a terminal self-loop (e.g. ".*"). The mask comes from the search DFA since it is the same
+        // accepting self-loop state in both DFAs for a given regex.
+        dfaSearchFindMethodSpec.dfa.tailLoop().ifPresent(tailLoopState -> {
+            dfaSearchFindMethodSpec.dfa.allStates().get(tailLoopState).tailLoopCharMask().ifPresent(mask -> {
+                addArrayConstant(TAIL_LOOP_MASK, ACC_PRIVATE, mask);
+            });
+        });
 
         createMatchesMethod(forwardFindMethodSpec);
         createContainedInMethod(containedInFindMethodSpec);
@@ -507,7 +516,11 @@ class DFAClassBuilder extends ClassBuilder {
             innerLoopBoundary = and(neq(0, read(MatchingVars.STATE)), innerLoopBoundary);
         }
         var tailLoop = spec.dfa.tailLoop();
-        if (tailLoop.isPresent()) {
+        var tailLoopState = tailLoop.map(integer -> spec.dfa.allStates().get(integer));
+        var tailLoopMask = tailLoopState.flatMap(DFA::tailLoopCharMask);
+        // Only exit the inner loop on the tail-loop state when we have a mask for fast-scanning.
+        // Without the mask we must continue through the normal state-machine processing.
+        if (tailLoopMask.isPresent()) {
             innerLoopBoundary = and(neq(tailLoop.get(), read(MatchingVars.STATE)), innerLoopBoundary);
         }
         Loop innerLoop = loop(innerLoopBoundary,
@@ -540,17 +553,20 @@ class DFAClassBuilder extends ClassBuilder {
                 ));
         outerLoopBody.add(innerLoop);
 
-        tailLoop.ifPresent(integer ->
-                outerLoopBody.add(
-                        cond(eq(read(MatchingVars.STATE), literal(integer)))
-                                .withBody(List.of(
-                                        loop(DFAMethodComponents.inBounds(),
-                                                List.of(
-                                                        set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                                                        DFAMethodComponents.incrementIndex(),
-                                                        cond(or(eq(read(MatchingVars.CHAR), literal((int) '\n')), eq(read(MatchingVars.CHAR), literal((int) '\r')))).withBody(returnValue(read(MatchingVars.INDEX))),
-                                                        set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)))
-                                        )))));
+        tailLoopMask.ifPresent(mask -> {
+            int tailState = tailLoop.get();
+            outerLoopBody.add(
+                    cond(eq(read(MatchingVars.STATE), literal(tailState)))
+                            .withBody(List.of(
+                                    loop(DFAMethodComponents.inBounds(),
+                                            List.of(
+                                                    set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
+                                                    DFAMethodComponents.incrementIndex(),
+                                                    cond(not(tailLoopCharCheck(read(MatchingVars.CHAR))))
+                                                            .withBody(returnValue(read(MatchingVars.LAST_MATCH))),
+                                                    set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)))
+                                    ))));
+        });
 
         method.returnValue(read(MatchingVars.LAST_MATCH));
 
@@ -595,6 +611,15 @@ class DFAClassBuilder extends ClassBuilder {
     private Expression matchDFAInitialByte() {
         return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
                 min(cast(Builtin.I, read(MatchingVars.CHAR)), literal(128)));
+    }
+
+    /**
+     * Check whether a character is accepted by the tail-loop self-loop. Uses a boolean[129] mask where
+     * entries 0-127 correspond to ASCII characters and entry 128 is the catch-all for non-ASCII.
+     */
+    private Expression tailLoopCharCheck(Expression charExpr) {
+        return arrayRead(getStatic(TAIL_LOOP_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
+                min(cast(Builtin.I, charExpr), literal(128)));
     }
 
     private CodeElement buildStateLookupFromByteClass(FindMethodSpec spec) {
