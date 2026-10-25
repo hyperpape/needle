@@ -30,6 +30,7 @@ class DFAClassBuilder extends ClassBuilder {
     protected static final String INDEX_FIELD = "index";
     protected static final String BYTE_CLASS_FIELD = "byteClass";
     protected static final String NEXT_START_FIELD = "nextStart";
+    protected static final String FORWARD_START_FIELD = "forwardStart";
     protected static final String START_FIELD = "start";
     protected static final String END_FIELD = "end";
     protected static final String MATCHED_FIELD = "matched";
@@ -438,6 +439,11 @@ class DFAClassBuilder extends ClassBuilder {
         } else {
             method.set(MatchingVars.LAST_MATCH, -1);
         }
+        // Default the lower bound to FROM. The prefix and suffix/infix searches always raise it. So do the
+        // first-byte/predicate searches, but only when state 0 has no self-transitions: the predicate and
+        // initial-byte sets skip self-transitions, so a self-transition can skip a character that is itself a valid
+        // match start (e.g. the leading a* of "a*bc"), which makes the seed an upper bound instead of a lower bound.
+        method.fieldSet(get(FORWARD_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
 
         List<CodeElement> outerLoopBody = new ArrayList<>();
 
@@ -457,6 +463,7 @@ class DFAClassBuilder extends ClassBuilder {
                     read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.INDEX))).withBody(
                     returnValue(-1)));
+            outerLoopBody.add(setForwardStart());
             if (spec.compilationPolicy.useSuffix) {
                 outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                         getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
@@ -474,12 +481,14 @@ class DFAClassBuilder extends ClassBuilder {
                     getStatic(SUFFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
             outerLoopBody.add(updateIndexBasedOnSuffixIndex());
+            outerLoopBody.add(setForwardStart());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         } else if (spec.compilationPolicy.useInfixes) {
             outerLoopBody.add(set(MatchingVars.SUFFIX_INDEX, call("indexOf", Builtin.I, read(MatchingVars.STRING),
                     getStatic(INFIX_CONSTANT, ReferenceType.of(getClassName()), ReferenceType.of(String.class)), read(MatchingVars.INDEX))));
             outerLoopBody.add(cond(eq(-1, read(MatchingVars.SUFFIX_INDEX))).withBody(returnValue(-1)));
             outerLoopBody.add(updateIndexBasedOnSuffixIndex());
+            outerLoopBody.add(setForwardStart());
             outerLoopBody.add(set(MatchingVars.STATE, 0));
         } else if (spec.canSeekForPredicate()) {
             boolean canAdvanceFromAcceptingState = spec.dfa.canAdvanceFromAcceptingState();
@@ -488,28 +497,36 @@ class DFAClassBuilder extends ClassBuilder {
                 outerSeek = and(hasNoLastMatch(spec), outerSeek);
             }
             outerLoopBody.add(set(MatchingVars.STATE, 0));
+            List<CodeElement> predicateMatchBody = new ArrayList<>();
+            if (!spec.dfa.hasSelfTransition()) {
+                predicateMatchBody.add(setForwardStart());
+            }
+            predicateMatchBody.add(set(MatchingVars.STATE, spec.dfa.forwardFollowingState().getStateNumber()));
+            predicateMatchBody.add(DFAMethodComponents.incrementIndex());
+            predicateMatchBody.add(spec.dfa.forwardFollowingState().isAccepting()
+                    ? set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : new NoOpStatement());
             outerLoopBody.add(loop(outerSeek,
                     List.of(
                             set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
                             cond(generatePredicate(spec.dfa))
-                                    .withBody(List.of(
-                                            set(MatchingVars.STATE, spec.dfa.forwardFollowingState().getStateNumber()),
-                                            DFAMethodComponents.incrementIndex(),
-                                            spec.dfa.forwardFollowingState().isAccepting()
-                                                    ? set(MatchingVars.LAST_MATCH, read(MatchingVars.INDEX)) : new NoOpStatement()))
+                                    .withBody(predicateMatchBody)
                                     .orElse(List.of(
                                             DFAMethodComponents.incrementIndex(),
                                             set(MatchingVars.STATE, -1)))
                     )));
         } else if (spec.dfa.initialAsciiBytes().isPresent() && !spec.dfa.isAccepting()) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
+            List<CodeElement> initialByteMatchBody = spec.dfa.hasSelfTransition()
+                    ? List.<CodeElement>of(escape())
+                    : List.<CodeElement>of(setForwardStart(), escape());
             outerLoopBody.add(loop(and(DFAMethodComponents.hasNoLastMatch(spec),
                             and(DFAMethodComponents.inBounds(),
                                     lte(read(MatchingVars.STATE), 0)))
                     , List.of(set(MatchingVars.CHAR, DFAMethodComponents.readChar()),
-                            cond(matchDFAInitialByte()).withBody(List.of(escape())).orElse(List.of(DFAMethodComponents.incrementIndex())))));
+                            cond(matchDFAInitialByte()).withBody(initialByteMatchBody).orElse(List.of(DFAMethodComponents.incrementIndex())))));
         } else {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
+            outerLoopBody.add(setForwardStart());
         }
 
         // We only need to call wasAccepted at the top of our loop if matching a prefix/initial state can leave us in
@@ -622,6 +639,15 @@ class DFAClassBuilder extends ClassBuilder {
     private Expression matchDFAInitialByte() {
         return arrayRead(getStatic(FIRST_BYTE_MASK, ReferenceType.of(getClassName()), ArrayType.of(Builtin.BOOL)),
                 min(cast(Builtin.I, read(MatchingVars.CHAR)), literal(128)));
+    }
+
+    /**
+     * Record the position at which the forwards search began scanning the current match candidate. The DFA can shift
+     * the match start forwards through an overlapping occurrence (e.g. "aaa[cd]" on "aaaac"), so this is only a
+     * lower bound on the start, used to bound the backwards start scan.
+     */
+    private CodeElement setForwardStart() {
+        return fieldSet(get(FORWARD_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX));
     }
 
     /**
@@ -1012,7 +1038,7 @@ class DFAClassBuilder extends ClassBuilder {
                     withBody(List.of(
                             // TODO: adding local variables here is a workaround for mako breaking when we inline them
                             set(INDEX_BACKWARDS, call(reversedFindMethodSpec.indexMethod(), Builtin.I, thisRef(),
-                                    sub(read(MatchingVars.INDEX), 1), read("FROM"))),
+                                    sub(read(MatchingVars.INDEX), 1), get(FORWARD_START_FIELD, Builtin.I, thisRef()))),
                             fieldSet(get(END_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
                             fieldSet(get(START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(INDEX_BACKWARDS)),
                             fieldSet(get(NEXT_START_FIELD, ReferenceType.of(getClassName()), thisRef()), read(MatchingVars.INDEX)),
@@ -1095,6 +1121,7 @@ class DFAClassBuilder extends ClassBuilder {
         addField(new Field(ACC_PRIVATE, STRING_FIELD, CompilerUtil.STRING_DESCRIPTOR, null, null));
         addField(new Field(ACC_PRIVATE, LENGTH_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, NEXT_START_FIELD, "I", null, 0));
+        addField(new Field(ACC_PRIVATE, FORWARD_START_FIELD, "I", null, 0));
         addField(new Field(ACC_PRIVATE, START_FIELD, "I", null, -1));
         addField(new Field(ACC_PRIVATE, END_FIELD, "I", null, -1));
         addField(new Field(ACC_PRIVATE, MATCHED_FIELD, "Z", null, 0));
