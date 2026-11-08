@@ -211,13 +211,7 @@ class DFAClassBuilder extends ClassBuilder {
     }
 
     private boolean shouldIncludeFirstByteMask() {
-        if (!(dfaSearchFindMethodSpec.compilationPolicy.usePrefix || dfaSearchFindMethodSpec.compilationPolicy.useSuffix || dfaSearchFindMethodSpec.compilationPolicy.useInfixes)) {
-            if (dfaSearchFindMethodSpec.dfa.initialAsciiBytes().isPresent() && !dfaSearchFindMethodSpec.dfa.isAccepting()) {
-                return true;
-            }
-            ;
-        }
-        return false;
+        return dfaSearchFindMethodSpec.canSeekForInitialByte();
     }
 
     private boolean shouldPopulateByteClassArrays() {
@@ -514,7 +508,7 @@ class DFAClassBuilder extends ClassBuilder {
                                             DFAMethodComponents.incrementIndex(),
                                             set(MatchingVars.STATE, -1)))
                     )));
-        } else if (spec.dfa.initialAsciiBytes().isPresent() && !spec.dfa.isAccepting()) {
+        } else if (spec.canSeekForInitialByte()) {
             outerLoopBody.add(set(MatchingVars.STATE, 0));
             List<CodeElement> initialByteMatchBody = spec.dfa.hasSelfTransition()
                     ? List.<CodeElement>of(escape())
@@ -568,7 +562,7 @@ class DFAClassBuilder extends ClassBuilder {
                         spec.compilationPolicy.useByteClassesForAllStates ? setByteClass(spec) : new NoOpStatement(),
                         spec.compilationPolicy.useByteClassesForAllStates ? buildStateLookupFromByteClass(spec) : buildStateSwitch(spec, -1),
                         DFAMethodComponents.returnLastMatchIfDeadState(),
-                        spec.doByteCheckForFirstCharacter() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
+                        spec.canSeekForInitialByte() ? cond(eq(0, read(MatchingVars.STATE))).withBody(escape()) : new NoOpStatement(),
                         (!spec.compilationPolicy.usePrefix && (spec.compilationPolicy.useSuffix || spec.compilationPolicy.useInfixes)) ? cond(and(gt(read(MatchingVars.INDEX), read(MatchingVars.SUFFIX_INDEX)), eq(0, read(MatchingVars.STATE)))).withBody(escape()) : new NoOpStatement(),
                         DFAMethodComponents.setLastMatchIfAccepted(spec)
                 ));

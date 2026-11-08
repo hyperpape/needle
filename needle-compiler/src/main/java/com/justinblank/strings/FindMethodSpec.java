@@ -87,7 +87,13 @@ public class FindMethodSpec {
                 '}';
     }
 
-    public boolean doByteCheckForFirstCharacter() {
+    /**
+     * Whether to scan for the initial character with a FIRST_BYTE_MASK lookup before running the DFA. Only
+     * worthwhile when the characters that can start a match are uncommon: with common initial characters the mask
+     * rarely skips anything, and scanning the haystack directly with the search DFA is cheaper than the extra seek
+     * loop.
+     */
+    public boolean canSeekForInitialByte() {
         if (dfa.isAccepting()) {
             return false;
         }
