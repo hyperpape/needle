@@ -10,6 +10,8 @@ Automata (DFA) (meaning that the regular expressions are
 then compiles them those to JVM ByteCode. Each regex becomes a
 separate JVM class.
 
+See also a more complete description of the [architecture and optimizations](architectureandoptimizations.md).
+
 ### Status
 
 Needle is not feature complete, but supports a significant portion of

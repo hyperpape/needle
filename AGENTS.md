@@ -4,6 +4,10 @@ This is a high performance regular expression library that aims to trade off com
 
 The current direction is working on precompiling DFAs to Java classes, but the library isn't limited to that. The north star is that for as many regular expressions as possible, this library should implement a solution as fast as a knowledgable developer could hand implement on the JVM. However, we should also aim for general purpose solutions. 
 
+For overall architecture and optimizations included in the project,
+read [Architecture and Optimizations](architectureandoptimizations.md). Agents must never directly edit this file, but
+must report any changes they make that change the optimizations described in it.
+
 ## Engines
 
 The project has three engines: 
