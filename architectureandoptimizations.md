@@ -48,18 +48,20 @@ DFA states are represented using `byte` for small DFAs, and `short` for larger o
 
 ## Contained In
 
-- from starting state, check min-length of starting string
+- from starting state, prefilter using distance to end of string  
 - where possible, searches use String#indexOf() to find the prefix
 
 ## Index Forwards
 
-- from starting state, check min-length of starting string
+- from starting state, prefilter using distance to end of string 
 - where possible, searches begin by using String#indexOf to find
-    - a prefix search (ideal)
-    - a suffix search
-        - requires the string have a maximum length, distance from the suffix advances the starting point of the search
+    - a prefix (first choice)
+    - a suffix
+        - requires the string to have a maximum length 
+        - state based matching starts at earliest point that could reach that suffix
     - an infix search
-        - requires the string have a maximum length, distance from the infix advances the starting point of the search
+        - requires the string have a maximum length
+        - state based matching starts at earliest point that could reach that infix
 - when no affix is usable searches can begin by scanning for the first character
     - by lookup in a `boolean[]`
         - character frequencies determine whether first-character scan can be used
