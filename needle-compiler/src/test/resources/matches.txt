@@ -354,3 +354,38 @@ br[^g]+ing           bridging                n
 br[^n]+ing           bringing                n
 br[^n]+ing           bridging                y       0       8
 br[^n]+ing           'bringing the bridging' y       13      21
+# negated classes whose members come from escapes
+[^\w]               !                       y       0       1       0
+[^\w]               a                       n                       0
+[^\d]               a                       y       0       1       0
+[^\s]               a                       y       0       1       0
+[\d[^\w]]           5                       y       0       1       0
+[\d[^\w]]           0                       y       0       1       0
+[\d[^\w]]           !                       y       0       1       0
+[\d[^\w]]           ' '                     y       0       1       0
+[\d[^\w]]           a                       n                       0
+[\d[^\w]]           _                       n                       0
+[^\w\d]             !                       y       0       1       0
+[^\w\d]             a                       n                       0
+[^\w\d]             5                       n                       0
+[^\w\d]             _                       n                       0
+[^\w\d]             ' '                     y       0       1       0
+
+# multiple escapes in a single class
+[\x41\x42]          A                       y       0       1       0
+[\x41\x42]          B                       y       0       1       0
+[\d\s]              5                       y       0       1       0
+[\w\d]              a                       y       0       1       0
+[\-\=]              -                       y       0       1       0
+[a-z0-9\-\=]        -                       y       0       1       0
+[\dsp]              s                       y       0       1       0
+[\dsp]              p                       y       0       1       0
+[\dsp]              5                       y       0       1       0
+[\dsp]              a                       n                       0
+[\dsp]              ' '                     n                       0
+[\sx]               x                       y       0       1       0
+[\sx]               ' '                     y       0       1       0
+[\sx]               a                       n                       0
+[\w$]               $                       y       0       1       0
+[\w$]               a                       y       0       1       0
+[\w$]               ' '                     n                       0

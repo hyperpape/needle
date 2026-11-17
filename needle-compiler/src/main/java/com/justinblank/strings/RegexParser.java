@@ -638,14 +638,14 @@ class RegexParser {
             char c = takeChar();
             if (c == '^' && index == startingIndex + 1 && firstClassCharacter) {
                 complemented = true;
+                continue;
             } else if (c == ']') {
                 if (!firstClassCharacter || last != null) {
                     if (last != null) {
                         ranges.add(CharRange.of(last, last));
                     }
                     charRangeDepth--;
-                    var node = buildNode(ranges, complemented);
-                    return withAlternate(node, alternateNode);
+                    return finishCharSet(ranges, alternateNode, null, complemented);
                 }
                 else {
                     // a ']' immediately following '[' or '[^' is a literal
@@ -717,6 +717,10 @@ class RegexParser {
                 }
                 last = null;
             } else if (c == '[') {
+                if (last != null) {
+                    ranges.add(CharRange.of(last, last));
+                    last = null;
+                }
                 if (!ranges.isEmpty()) {
                     Node rangeNode = null;
                     for (var range : ranges) {
@@ -738,7 +742,7 @@ class RegexParser {
                 if (peekChar(']')) {
                     takeChar();
                     charRangeDepth--;
-                    return withAlternate(maybeNode, alternateNode);
+                    return finishCharSet(ranges, alternateNode, maybeNode.orElse(null), complemented);
                 }
                 else {
                     alternateNode = withAlternate(maybeNode, alternateNode).orElse(null);
@@ -751,7 +755,7 @@ class RegexParser {
                     last = next;
                 }
                 else {
-                    alternateNode = parseEscapeSequence();
+                    alternateNode = withAlternate(Optional.ofNullable(alternateNode), parseEscapeSequence()).orElse(null);
                 }
             } else {
                 if (last != null) {
@@ -764,6 +768,18 @@ class RegexParser {
         throw parseError("Parsing failed, unmatched [");
     }
 
+    private Optional<Node> finishCharSet(Set<CharRange> ranges, Node alternateNode, Node extra, boolean complemented) {
+        if (!complemented) {
+            Optional<Node> node = buildNode(ranges, false);
+            node = withAlternate(node, extra);
+            return withAlternate(node, alternateNode);
+        }
+        Set<CharRange> all = new HashSet<>(ranges);
+        collectRanges(alternateNode, all);
+        collectRanges(extra, all);
+        return buildNode(all, true);
+    }
+
     private Optional<Node> withAlternate(Optional<Node> node, Node alternate) {
         var union = node.map(n -> {
             if (alternate != null) {
@@ -773,6 +789,23 @@ class RegexParser {
             }
         }).orElse(alternate);
         return Optional.ofNullable(union);
+    }
+
+    private void collectRanges(Node node, Set<CharRange> ranges) {
+        if (node == null) {
+            return;
+        }
+        else if (node instanceof CharRangeNode) {
+            ranges.add(((CharRangeNode) node).range());
+        }
+        else if (node instanceof Union) {
+            var union = (Union) node;
+            collectRanges(union.left, ranges);
+            collectRanges(union.right, ranges);
+        }
+        else {
+            throw new IllegalStateException("Cannot add node to character class: " + node);
+        }
     }
 
     private Optional<Node> buildNode(Set<CharRange> ranges, boolean complemented) {

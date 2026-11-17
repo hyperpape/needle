@@ -51,3 +51,7 @@
 (A){0,2}            ''              0        0                   [null]
 (A){0,2}            A               0        1                   [A]
 (A){0,2}            AA              0        2                   [A]
+# exact counted repetitions capture the last iteration
+(A){2}              AA              0        2                   [A]
+(A){3}              AAA             0        3                   [A]
+(AB){2}             ABAB            0        4                   [AB]

@@ -190,15 +190,17 @@ public class CharRange implements Comparable<CharRange> {
         return true;
     }
 
-    // Note that this assumes non-overlapping ranges
+    /**
+     * Merge a list of possibly overlapping or adjacent character ranges into a sorted list of disjoint ranges.
+     */
     public static List<CharRange> compact(List<CharRange> charRanges) {
         charRanges.sort(Comparator.comparingInt(CharRange::getStart));
         List<CharRange> ranges = new ArrayList<>();
         CharRange current = charRanges.get(0);
         for (int i = 1; i < charRanges.size(); i++) {
             CharRange next = charRanges.get(i);
-            if (incr(current.getEnd()) == next.getStart()) {
-                current = CharRange.of(current.getStart(), next.getEnd());
+            if ((int) next.getStart() <= (int) current.getEnd() + 1) {
+                current = CharRange.of(current.getStart(), (char) Math.max((int) current.getEnd(), (int) next.getEnd()));
             }
             else {
                 ranges.add(current);

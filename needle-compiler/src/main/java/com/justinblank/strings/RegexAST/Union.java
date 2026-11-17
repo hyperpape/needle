@@ -130,30 +130,24 @@ public class Union extends Node {
         }
         ranges = new ArrayList<>(ranges);
         Collections.sort(ranges);
-        Iterator<CharRangeNode> it = ranges.iterator();
         List<CharRangeNode> complementedNodes = new ArrayList<>();
-        CharRangeNode last = null;
-        while (it.hasNext()) {
-            CharRangeNode current = it.next();
-            if (last != null) {
-                char low = (char) (((int) last.range().getEnd()) + 1);
-                char high = (char) (((int) current.range().getStart() - 1));
-                if (low <= high) {
-                    complementedNodes.add(new CharRangeNode(low, high));
-                }
+        int next = Character.MIN_VALUE;
+        for (CharRangeNode current : ranges) {
+            int start = current.range().getStart();
+            int end = current.range().getEnd();
+            if (start > next) {
+                complementedNodes.add(new CharRangeNode((char) next, (char) (start - 1)));
             }
-            else {
-                char high = (char) (((int) current.range().getStart()) -1);
-                complementedNodes.add(new CharRangeNode('\u0000', high));
-            }
-            last = current;
+            next = Math.max(next, end + 1);
         }
-        char low = (char) (((int) last.range().getEnd()) + 1);
-        complementedNodes.add(new CharRangeNode(low, '\uFFFF'));
-        CharRangeNode first = complementedNodes.get(0);
-        CharRangeNode second = complementedNodes.get(1);
-        Node union = Union.unorderedChoice(first, second);
-        for (int i = 2; i < complementedNodes.size(); i++) {
+        if (next <= Character.MAX_VALUE) {
+            complementedNodes.add(new CharRangeNode((char) next, Character.MAX_VALUE));
+        }
+        if (complementedNodes.isEmpty()) {
+            throw new IllegalArgumentException("Can't complement the set of all characters");
+        }
+        Node union = complementedNodes.get(0);
+        for (int i = 1; i < complementedNodes.size(); i++) {
             union = Union.unorderedChoice(union, complementedNodes.get(i));
         }
         return union;
